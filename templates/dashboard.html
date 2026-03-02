@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Space Explorer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <div class="dashboard-container">
+        <nav class="navbar">
+            <div class="navbar-brand">🚀 SOLAR LAB</div>
+            <div class="navbar-right">
+                <div class="user-info">
+                    Welcome, <span class="user-email">{{ user_email }}</span>
+                </div>
+                <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
+            </div>
+        </nav>
+
+        <div class="dashboard-header" style="text-align: center;">
+            <h1 class="dashboard-title">SOLAR EXPLORER DASHBOARD</h1>
+            <p class="dashboard-subtitle" style="color: #a0a0b0; font-size: 18px; margin-top: 10px;">Interactive NASA-Style Learning Lab</p>
+        </div>
+
+        <div class="cards-container">
+            <!-- Solar Explorer Card -->
+            <a href="{{ url_for('solar_explorer') }}" style="text-decoration: none;">
+                <div class="card">
+                    <div class="card-glass-glow"></div>
+                    <div class="card-inner-depth"></div>
+                    <div class="card-icon-wrapper">
+                        <div class="orbit-line orbit-1">
+                            <div class="orbit-dot"></div>
+                        </div>
+                        <div class="orbit-line orbit-2">
+                            <div class="orbit-dot"></div>
+                        </div>
+                        <div class="card-icon">🛰️</div>
+                    </div>
+                    <h2 class="card-title">Solar Explorer</h2>
+                    <p class="card-description">
+                        Embark on a realistic 3D journey through the solar system. Explore planets, moons, and the sun in immersive detail.
+                    </p>
+                    <button class="btn-card">Launch Mission</button>
+                </div>
+            </a>
+
+            <!-- Game Zone Card -->
+            <a href="{{ url_for('game_zone') }}" style="text-decoration: none;">
+                <div class="card">
+                    <div class="card-glass-glow"></div>
+                    <div class="card-inner-depth"></div>
+                    <div class="card-icon-wrapper">
+                        <div class="orbit-line orbit-1">
+                            <div class="orbit-dot"></div>
+                        </div>
+                        <div class="orbit-line orbit-2">
+                            <div class="orbit-dot"></div>
+                        </div>
+                        <div class="card-icon">🎮</div>
+                    </div>
+                    <h2 class="card-title">Game Zone</h2>
+                    <p class="card-description">
+                        Test your knowledge in the high-tech training center. Complete space missions and earn your astronaut wings.
+                    </p>
+                    <button class="btn-card">Enter Training</button>
+                </div>
+            </a>
+
+            <!-- Star Explorer Card (Coming Soon) -->
+            <div class="card disabled">
+                <span class="card-badge">Coming Soon</span>
+                <div class="card-glass-glow"></div>
+                <div class="card-inner-depth"></div>
+                <div class="card-icon-wrapper">
+                    <div class="orbit-line orbit-1">
+                        <div class="orbit-dot"></div>
+                    </div>
+                    <div class="orbit-line orbit-2">
+                        <div class="orbit-dot"></div>
+                    </div>
+                    <div class="card-icon">✨</div>
+                </div>
+                <h2 class="card-title">Star Explorer</h2>
+                <p class="card-description">
+                    Explore different types of stars and their life cycles. From Red Dwarfs to Supernovas.
+                </p>
+                <button class="btn-card">Classified</button>
+            </div>
+
+            <!-- Land on Planet Card (Coming Soon) -->
+            <div class="card disabled">
+                <span class="card-badge">Coming Soon</span>
+                <div class="card-glass-glow"></div>
+                <div class="card-inner-depth"></div>
+                <div class="card-icon-wrapper">
+                    <div class="orbit-line orbit-1">
+                        <div class="orbit-dot"></div>
+                    </div>
+                    <div class="orbit-line orbit-2">
+                        <div class="orbit-dot"></div>
+                    </div>
+                    <div class="card-icon">👨‍🚀</div>
+                </div>
+                <h2 class="card-title">Land on Planet</h2>
+                <p class="card-description">
+                    Experience landing missions on different planets. Pilot your craft through challenging atmospheres.
+                </p>
+                <button class="btn-card">Locked</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 50;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                const size = Math.random() * 3 + 1;
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                
+                const duration = Math.random() * 20 + 10;
+                particle.style.animationDuration = duration + 's';
+                particle.style.animationDelay = Math.random() * 10 + 's';
+                
+                particlesContainer.appendChild(particle);
+            }
+        }
+        
+        createParticles();
+    </script>
+</body>
+</html>

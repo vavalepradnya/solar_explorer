@@ -1,0 +1,3216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission Mars: The Red Planet - Game Module</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        :root {
+            --mars-red: #e27b58;
+            --mars-dust: #c1440e;
+            --space-black: #050505;
+            --accent-blue: #64c8ff;
+        }
+
+        body {
+            background-color: var(--space-black);
+            overflow-x: hidden;
+        }
+
+        .mars-game-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+            padding: 20px;
+        }
+
+        .slide-wrapper {
+            display: none;
+            animation: slideIn 0.5s ease-in-out;
+        }
+
+        .slide-wrapper.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .challenge-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            margin-top: 20px;
+        }
+
+        .challenge-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .slide-number {
+            color: var(--accent-blue);
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .challenge-title {
+            font-size: 32px;
+            color: #ffffff;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #ff4d00 0%, #ff8c00 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .challenge-subtitle {
+            font-size: 18px;
+            color: #a0a0b0;
+        }
+
+        .interactive-area {
+            background: #000;
+            border-radius: 16px;
+            border: 1px solid #333;
+            position: relative;
+            overflow: hidden;
+            height: 500px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .feedback-message {
+            height: 30px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #64c8ff;
+        }
+
+        .navigation-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 30px;
+        }
+
+        .btn-nav {
+            padding: 12px 25px;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-size: 16px;
+            border: none;
+        }
+
+        .btn-prev {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .btn-next {
+            background: linear-gradient(135deg, #ff4d00 0%, #ff8c00 100%);
+            color: #fff;
+            box-shadow: 0 5px 15px rgba(255, 77, 0, 0.3);
+        }
+
+        .btn-nav:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .btn-nav:hover:not(:disabled) {
+            transform: translateY(-2px);
+            filter: brightness(1.2);
+        }
+
+        .voice-control {
+            background: rgba(100, 200, 255, 0.1);
+            border: 1px solid rgba(100, 200, 255, 0.3);
+            color: var(--accent-blue);
+            padding: 8px 15px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        /* Slide Specific Styles */
+        .orbit-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .sun-static {
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, #fff700, #ff8c00, #ff4d00);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 40px #ff4d00;
+        }
+
+        .orbit-ring {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .orbit-label {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 10px;
+            white-space: nowrap;
+        }
+
+        .mars-draggable {
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle at 30% 30%, #ff4d00, #8b0000);
+            border-radius: 50%;
+            position: absolute;
+            cursor: grab;
+            z-index: 10;
+            box-shadow: 0 0 15px rgba(255, 77, 0, 0.6);
+        }
+
+        #targetOrbit {
+            border: 2px dashed #3498db !important;
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+        }
+
+        #targetOrbit .orbit-label {
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        .orbit-ring.correct-glow {
+            border: 2px solid #00ff00 !important;
+            box-shadow: 0 0 20px #00ff00;
+            border-style: solid !important;
+        }
+
+        .orbit-ring.correct-glow .orbit-label {
+            color: #00ff00;
+        }
+
+        .small-fact {
+            font-size: 14px;
+            color: #ffd700;
+            margin-top: 5px;
+            display: none;
+        }
+
+        @keyframes orbitAnimation {
+            from { transform: translate(-50%, -50%) rotate(0deg) translateX(135px) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg) translateX(135px) rotate(-360deg); }
+        }
+
+        .orbit-ring.highlight {
+            border: 2px solid var(--accent-blue) !important;
+            box-shadow: 0 0 15px var(--accent-blue);
+        }
+
+        .mars-orbiting {
+            animation: orbitAnimation 25s linear infinite;
+            left: 50% !important;
+            top: 50% !important;
+        }
+
+        .light-pulse {
+            width: 10px;
+            height: 10px;
+            background: #fff;
+            border-radius: 50%;
+            position: absolute;
+            box-shadow: 0 0 10px #fff;
+            display: none;
+        }
+
+        .rotating-mars {
+            width: 200px;
+            height: 200px;
+            background: url('https://upload.wikimedia.org/wikipedia/commons/0/02/OSIRIS_Mars_true_color.jpg');
+            background-size: cover;
+            border-radius: 50%;
+            box-shadow: inset -20px -20px 50px #000, 0 0 30px rgba(226, 123, 88, 0.3);
+            animation: rotateMars 10s linear infinite;
+            animation-play-state: paused;
+        }
+
+        @keyframes rotateMars {
+            from { background-position: 0 0; }
+            to { background-position: 400px 0; }
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            color: #fff;
+            margin-top: 20px;
+        }
+
+        .comparison-table th, .comparison-table td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: left;
+        }
+
+        .comparison-table th {
+            color: var(--accent-blue);
+        }
+
+        .survival-option {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+            text-align: center;
+            width: 180px;
+        }
+
+        .survival-option:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: var(--accent-blue);
+        }
+
+        .survival-option.selected {
+            background: rgba(100, 200, 255, 0.2);
+            border-color: var(--accent-blue);
+        }
+
+        .stats-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid var(--accent-blue);
+            font-family: monospace;
+            color: #fff;
+        }
+
+        /* Slide 3 Enhanced Styles */
+        .rotation-lab-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .planet-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            position: relative;
+        }
+
+        .planet-view {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            position: relative;
+            box-shadow: inset -20px -20px 50px #000;
+            background-size: cover !important;
+        }
+
+        .earth-view {
+            background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Earth_Western_Hemisphere_transparent_background.png/600px-Earth_Western_Hemisphere_transparent_background.png');
+            box-shadow: inset -20px -20px 50px #000, 0 0 20px rgba(100, 200, 255, 0.4);
+        }
+
+        .mars-view {
+            background: url('https://upload.wikimedia.org/wikipedia/commons/0/02/OSIRIS_Mars_true_color.jpg');
+            box-shadow: inset -20px -20px 50px #000, 0 0 20px rgba(226, 123, 88, 0.3);
+        }
+
+        .data-box {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #fff;
+            width: 180px;
+        }
+
+        .data-box h3 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            color: var(--accent-blue);
+        }
+
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            z-index: 5;
+        }
+
+        .clock-display {
+            font-family: monospace;
+            font-size: 24px;
+            color: #ffd700;
+            background: #222;
+            padding: 5px 15px;
+            border-radius: 5px;
+            border: 1px solid #444;
+        }
+
+        .temp-meter {
+            width: 100%;
+            height: 10px;
+            background: #333;
+            border-radius: 5px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .temp-fill {
+            height: 100%;
+            width: 50%;
+            transition: width 0.3s ease;
+        }
+
+        .terminator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(90deg, transparent 50%, rgba(0,0,0,0.8) 55%);
+            pointer-events: none;
+        }
+
+        .city-lights {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: url('https://upload.wikimedia.org/wikipedia/commons/b/ba/The_earth_at_night.jpg');
+            background-size: cover;
+            opacity: 0;
+            transition: opacity 0.5s;
+            mix-blend-mode: screen;
+        }
+
+        .sun-rays {
+            position: absolute;
+            left: -50px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100px;
+            height: 200px;
+            background: radial-gradient(ellipse at left, rgba(255,255,200,0.2), transparent 70%);
+            pointer-events: none;
+        }
+
+        .challenge-btn {
+            background: rgba(100, 200, 255, 0.2);
+            border: 1px solid var(--accent-blue);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .challenge-btn:hover {
+            background: rgba(100, 200, 255, 0.4);
+        }
+
+        /* Rotation Ring & Moons */
+        .rotation-ring-container {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: 200px;
+            height: 200px;
+            pointer-events: none;
+        }
+
+        .rotation-ring-svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .rotation-ring-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.1);
+            stroke-width: 4;
+        }
+
+        .rotation-ring-progress {
+            fill: none;
+            stroke-width: 4;
+            stroke-linecap: round;
+            stroke-dasharray: 565.48; /* 2 * PI * 90 */
+            stroke-dashoffset: 565.48;
+            transition: stroke-dashoffset 0.1s linear;
+        }
+
+        .moon-orbit {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            border-radius: 50%;
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            display: none;
+            pointer-events: none;
+        }
+
+        .moon {
+            position: absolute;
+            border-radius: 50%;
+            background: #ddd;
+            box-shadow: inset -2px -2px 5px #000;
+        }
+
+        @keyframes moonOrbit {
+            from { transform: rotate(0deg) translateX(var(--dist)) rotate(0deg); }
+            to { transform: rotate(360deg) translateX(var(--dist)) rotate(-360deg); }
+        }
+
+        .moon-anim {
+            animation: moonOrbit var(--speed) linear infinite;
+        }
+
+        /* Slide 5 - Mars Internal Structure Game */
+        .internal-game-container {
+            display: flex;
+            gap: 20px;
+            height: 600px;
+            width: 100%;
+        }
+
+        .side-panel {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+        }
+
+        .center-build-area {
+            flex: 2;
+            position: relative;
+            background: radial-gradient(circle at center, #1a0805 0%, #000 70%);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .component-box {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 10px;
+            cursor: grab;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            user-select: none;
+        }
+
+        .component-box:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .component-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+        }
+
+        .mars-cross-section {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .layer-target {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            transition: all 0.5s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .layer-placed {
+            position: absolute;
+            border-radius: 50%;
+            transition: all 0.5s ease;
+            box-shadow: inset -10px -10px 30px rgba(0,0,0,0.5);
+        }
+
+        .core-layer { width: 100px; height: 100px; background: radial-gradient(circle, #fff, #ffcf33, #ff4d00); z-index: 5; }
+        .mantle-layer { width: 280px; height: 280px; background: radial-gradient(circle, #ff8c00, #8b0000); z-index: 4; }
+        .crust-layer { width: 320px; height: 320px; background: #c1440e; z-index: 3; }
+        .atmo-glow { width: 360px; height: 360px; background: radial-gradient(circle, rgba(100, 200, 255, 0.2), transparent 70%); border: 1px solid rgba(100, 200, 255, 0.1); z-index: 2; }
+        .ice-cap { width: 40px; height: 10px; background: #fff; border-radius: 50%; position: absolute; z-index: 6; box-shadow: 0 0 10px #fff; }
+
+        .data-point {
+            font-size: 0.85rem;
+            color: #ccc;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .data-point span {
+            color: var(--accent-blue);
+            font-weight: bold;
+            float: right;
+        }
+
+        .shake {
+            animation: shakeAnim 0.5s;
+        }
+
+        @keyframes shakeAnim {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .mag-lines {
+            position: absolute;
+            width: 450px;
+            height: 300px;
+            border: 2px solid rgba(100, 200, 255, 0.2);
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 1s;
+        }
+
+        .challenge-box {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--accent-blue);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .sci-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #888;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .seasons-lab-viewport {
+            width: 100%;
+            height: 700px;
+            display: flex;
+            background: radial-gradient(circle at left, #1a0805 0%, #050505 60%);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .cinematic-orbit-panel {
+            flex: 2;
+            position: relative;
+            overflow: hidden;
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .realistic-sun {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, #fff 10%, #fff700 30%, #ff8c00 60%, transparent 80%);
+            border-radius: 50%;
+            box-shadow: 0 0 80px rgba(255, 77, 0, 0.6);
+            z-index: 5;
+        }
+
+        .sun-ray-effect {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background: repeating-conic-gradient(from 0deg, transparent 0deg 5deg, rgba(255, 255, 200, 0.02) 10deg 15deg);
+            animation: rotateRays 120s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes rotateRays { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .elliptical-path-viz {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            height: 380px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .orbit-season-label {
+            position: absolute;
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            pointer-events: none;
+            transition: color 0.3s, font-weight 0.3s;
+        }
+
+        .orbit-season-label.active {
+            color: var(--mars-red);
+            font-weight: bold;
+            text-shadow: 0 0 10px var(--mars-red);
+        }
+
+        #labelSpring { top: 15%; left: 50%; transform: translateX(-50%); }
+        #labelSummer { top: 50%; right: 10%; transform: translateY(-50%); }
+        #labelAutumn { bottom: 15%; left: 50%; transform: translateX(-50%); }
+        #labelWinter { top: 50%; left: 10%; transform: translateY(-50%); }
+
+        .mars-cinematic-body {
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: url('https://upload.wikimedia.org/wikipedia/commons/0/02/OSIRIS_Mars_true_color.jpg');
+            background-size: cover;
+            box-shadow: inset -15px -15px 30px #000, 0 0 20px rgba(255, 77, 0, 0.2);
+            transition: transform 0.1s linear;
+            z-index: 10;
+        }
+
+        .axis-rod-cinematic {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            width: 2px;
+            height: 140px;
+            background: rgba(255, 255, 255, 0.6);
+            transform-origin: center;
+        }
+
+        .axis-label-tag {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            color: var(--accent-blue);
+            white-space: nowrap;
+            border: 1px solid var(--accent-blue);
+        }
+
+        .axis-direction-arrow {
+            position: absolute;
+            color: rgba(255,255,255,0.15);
+            font-size: 0.8rem;
+            pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .ice-cap-realistic {
+            position: absolute;
+            width: 50%;
+            left: 25%;
+            background: #fff;
+            border-radius: 50%;
+            transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s;
+            box-shadow: 0 0 10px #fff;
+        }
+
+        .north-ice-realistic { top: 0; height: 10%; }
+        .south-ice-realistic { bottom: 0; height: 10%; }
+
+        .frost-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: rgba(200, 230, 255, 0.1);
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        /* Glass Climate Dashboard */
+        .climate-dashboard-panel {
+            flex: 1;
+            background: rgba(15, 15, 15, 0.8);
+            backdrop-filter: blur(15px);
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 20;
+        }
+
+        .dashboard-glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .card-header-sci {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sci-value-display {
+            font-family: 'Inter', sans-serif;
+            font-weight: 300;
+            font-size: 1.4rem;
+            color: #fff;
+        }
+
+        .sci-meter-group {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .sci-meter-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: #aaa;
+            margin-bottom: 4px;
+        }
+
+        .sci-meter-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .sci-meter-fill {
+            height: 100%;
+            width: 50%;
+            transition: width 0.4s, background-color 0.4s;
+        }
+
+        .temp-warm { background: linear-gradient(90deg, #ff8c00, #ff4d00); }
+        .temp-cool { background: linear-gradient(90deg, #64c8ff, #00bfff); }
+
+        .sun-angle-viz-mini {
+            width: 100%;
+            height: 60px;
+            background: #000;
+            border-radius: 8px;
+            position: relative;
+            margin-top: 10px;
+            border: 1px solid #222;
+        }
+
+        .ray-line {
+            position: absolute;
+            height: 1px;
+            background: rgba(255, 215, 0, 0.3);
+            transform-origin: right center;
+            right: 0;
+            top: 50%;
+        }
+
+        .intensity-tag {
+            font-size: 0.6rem;
+            color: #ffd700;
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        .ls-ring-container {
+            position: relative;
+            width: 140px;
+            height: 140px;
+            margin: 0 auto;
+        }
+
+        .ls-svg-ring {
+            transform: rotate(-90deg);
+        }
+
+        .ls-ring-bg { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 4; }
+        .ls-ring-progress { 
+            fill: none; 
+            stroke: var(--mars-red); 
+            stroke-width: 4; 
+            stroke-dasharray: 440; 
+            stroke-dashoffset: 440;
+            transition: stroke-dashoffset 0.1s linear;
+        }
+
+        .ls-value-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .ls-label { font-size: 0.6rem; color: #888; display: block; }
+        .ls-val { font-size: 1.2rem; font-weight: bold; color: #fff; }
+
+        .lab-master-slider {
+            width: 100%;
+            accent-color: var(--mars-red);
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        .season-badge {
+            background: rgba(255, 77, 0, 0.15);
+            border: 1px solid rgba(255, 77, 0, 0.3);
+            color: var(--mars-red);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .ambient-red-glow {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 70% 50%, rgba(226, 123, 88, 0.05) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        /* Mars Atmosphere Mission Styles */
+        .atmo-mission-container {
+            display: flex;
+            gap: 20px;
+            height: 600px;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .atmo-panel {
+            background: rgba(20, 20, 25, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .atmo-left { flex: 1.2; overflow-y: auto; }
+        .atmo-center { flex: 2; position: relative; display: flex; justify-content: center; align-items: center; overflow: visible; background: radial-gradient(circle at center, #1a0505 0%, #000 70%); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); height: 500px; }
+        .atmo-right { flex: 1; }
+
+        .gas-slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .target-point {
+            position: absolute;
+            width: 4px;
+            height: 10px;
+            background: #ff4d00;
+            bottom: -2px;
+            z-index: 10;
+            pointer-events: none;
+            box-shadow: 0 0 8px #ff4d00;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .target-point.match {
+            background: #00ff00;
+            box-shadow: 0 0 15px #00ff00;
+            transform: scale(1.5);
+        }
+
+        .target-label {
+            position: absolute;
+            font-size: 0.6rem;
+            color: #ff4d00;
+            bottom: -15px;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            display: none;
+        }
+
+        .gas-slider-group:hover .target-label {
+            display: block;
+        }
+
+        .gas-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #ccc;
+        }
+
+        .gas-label span.gas-name { color: var(--accent-blue); font-weight: bold; }
+        .gas-label span.gas-val { font-family: monospace; }
+
+        .atmo-slider {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .atmo-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--accent-blue);
+        }
+
+        .mars-atmo-sim {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            border-radius: 50%;
+            background: url('https://upload.wikimedia.org/wikipedia/commons/0/02/OSIRIS_Mars_true_color.jpg');
+            background-size: cover;
+            box-shadow: inset -20px -20px 50px #000;
+            transition: all 0.5s ease;
+            z-index: 5;
+            animation: rotateMars 20s linear infinite;
+        }
+
+        .atmo-halo {
+            position: absolute;
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(100, 200, 255, 0.4) 0%, transparent 70%);
+            z-index: 4;
+            transition: all 0.5s ease;
+            opacity: 0.2;
+            pointer-events: none;
+        }
+
+        .atmo-dust {
+            position: absolute;
+            width: 250px;
+            height: 250px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(193, 68, 14, 0.3) 0%, transparent 70%);
+            z-index: 6;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+        }
+
+        .ice-cap-sim {
+            position: absolute;
+            width: 60px;
+            height: 15px;
+            background: #fff;
+            border-radius: 50%;
+            z-index: 7;
+            transition: all 0.5s ease;
+            box-shadow: 0 0 10px #fff;
+        }
+
+        .ice-cap-north { top: 5px; left: 50%; transform: translateX(-50%); }
+        .ice-cap-south { bottom: 5px; left: 50%; transform: translateX(-50%); }
+
+        .dashboard-gauge {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .gauge-label { font-size: 0.7rem; color: #888; text-transform: uppercase; margin-bottom: 5px; display: block; }
+        .gauge-value { font-size: 1.1rem; color: #fff; font-weight: bold; display: block; }
+        .gauge-sub { font-size: 0.65rem; color: var(--accent-blue); }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            display: inline-block;
+            margin-top: 5px;
+        }
+
+        .status-danger { 
+            background: rgba(255, 77, 0, 0.2); 
+            color: #ff4d00; 
+            border: 1px solid #ff4d00;
+            animation: errorPulse 1.5s infinite;
+        }
+        .status-success { background: rgba(0, 255, 0, 0.1); color: #00ff00; border: 1px solid #00ff00; }
+        .status-warning { 
+            background: rgba(255, 215, 0, 0.1); 
+            color: #ffd700; 
+            border: 1px solid #ffd700;
+            animation: warnPulse 1.5s infinite;
+        }
+
+        @keyframes errorPulse {
+            0% { box-shadow: 0 0 5px #ff4d00; }
+            50% { box-shadow: 0 0 20px #ff4d00; }
+            100% { box-shadow: 0 0 5px #ff4d00; }
+        }
+
+        @keyframes warnPulse {
+            0% { box-shadow: 0 0 5px #ffd700; }
+            50% { box-shadow: 0 0 20px #ffd700; }
+            100% { box-shadow: 0 0 5px #ffd700; }
+        }
+
+        /* Slide 6 Reveal Animation Styles */
+        .pie-chart-container {
+            position: absolute;
+            width: 360px;
+            height: 360px;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        .pie-segment {
+            fill: none;
+            stroke-width: 22;
+            transition: stroke-dasharray 1s ease-out, stroke 0.3s;
+        }
+
+        .pie-label {
+            position: absolute;
+            font-size: 0.65rem;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 5px #000;
+            pointer-events: none;
+            white-space: nowrap;
+            transition: opacity 0.5s ease;
+        }
+
+        .bar-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .gas-bar-container {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .gas-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .gas-bar-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 4px;
+        }
+
+        .gas-bar-fill.active {
+            box-shadow: 0 0 15px currentColor;
+        }
+
+        .pulse-glow {
+            animation: pulseGlow 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0% { filter: brightness(1); box-shadow: 0 0 5px currentColor; }
+            50% { filter: brightness(1.5); box-shadow: 0 0 20px currentColor; }
+            100% { filter: brightness(1); box-shadow: 0 0 5px currentColor; }
+        }
+
+        .start-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 16px;
+        }
+
+        .btn-start-mission {
+            padding: 20px 40px;
+            font-size: 24px;
+            background: linear-gradient(135deg, #64c8ff 0%, #00bfff 100%);
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 0 30px rgba(100, 200, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .btn-start-mission:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 50px rgba(100, 200, 255, 0.8);
+        }
+
+        /* Gravity Lab Styles */
+        .gravity-lab-card {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .gravity-game-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            color: white;
+        }
+        .simulation-split {
+            display: flex;
+            gap: 20px;
+            height: 400px;
+        }
+        .sim-panel {
+            flex: 1;
+            background: #111;
+            border-radius: 15px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #333;
+            position: relative;
+        }
+        .panel-header {
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            background: rgba(255,255,255,0.05);
+        }
+        .earth-panel { border-color: #64c8ff; }
+        .mars-panel { border-color: #e27b58; }
+        
+        .surface {
+            flex: 1;
+            position: relative;
+            background-size: cover;
+            background-position: bottom;
+        }
+        .earth-surface {
+            background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
+            border-bottom: 20px solid #4a7c44;
+        }
+        .mars-surface {
+            background: linear-gradient(to bottom, #2c1608, #8b4513);
+            border-bottom: 20px solid #c1440e;
+        }
+        
+        .astronaut-container {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 80px;
+            z-index: 5;
+        }
+        .astronaut {
+            font-size: 50px;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            transition: bottom 0s linear;
+        }
+        .shadow {
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 10px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            transition: all 0s linear;
+        }
+        
+        .scientific-dashboard {
+            padding: 10px;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: space-around;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        .stat-item .val { color: #ffd700; }
+        
+        .game-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 12px;
+        }
+        .control-group { display: flex; gap: 10px; }
+        .btn-action {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .btn-action:hover { background: #444; border-color: #64c8ff; }
+        
+        .comparison-stats {
+            background: rgba(0,0,0,0.5);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .stat-row:last-child { border: none; }
+        .stat-row span:not(:first-child) { font-weight: bold; color: #64c8ff; }
+        
+        .gravity-quiz {
+            background: rgba(100, 200, 255, 0.1);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #64c8ff;
+            margin-top: 10px;
+        }
+        .quiz-options { display: flex; gap: 10px; margin-top: 10px; }
+        .quiz-opt {
+            flex: 1;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .quiz-opt:hover { background: rgba(255,255,255,0.1); }
+        
+        .dust-effect {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+        }
+        .mars-dust { background: rgba(193, 68, 14, 0.4); }
+
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <div class="mars-game-container">
+        <nav class="navbar">
+            <div class="navbar-brand">🚀 Space Explorer</div>
+            <div class="navbar-right">
+                <div class="user-info">
+                    <span class="user-email">{{ user_email }}</span>
+                </div>
+                <a href="{{ url_for('dashboard') }}" class="btn-logout" style="margin-right: 10px;">Dashboard</a>
+                <a href="{{ url_for('game_zone') }}" class="btn-logout">Back</a>
+            </div>
+        </nav>
+
+        <div id="slide1" class="slide-wrapper active">
+            <div class="challenge-card">
+                <div class="challenge-header">
+                    <span class="slide-number">Slide 1 – Orbit Position Challenge</span>
+                    <h1 class="challenge-title">🎯 “Place Mars in the Correct Orbit”</h1>
+                    <p class="challenge-subtitle">Mars is the fourth planet from the Sun. Drag it to its correct position!</p>
+                </div>
+                <div class="interactive-area" id="orbitArea">
+                    <div class="orbit-container">
+                        <div class="sun-static"></div>
+                        <div class="orbit-ring" style="width: 120px; height: 120px;" data-orbit="1"><div class="orbit-label">Orbit 1</div></div>
+                        <div class="orbit-ring" style="width: 170px; height: 170px;" data-orbit="2"><div class="orbit-label">Orbit 2</div></div>
+                        <div class="orbit-ring" style="width: 220px; height: 220px;" data-orbit="3"><div class="orbit-label">Orbit 3</div></div>
+                        <div class="orbit-ring" style="width: 270px; height: 270px;" data-orbit="4" id="targetOrbit"><div class="orbit-label">Orbit 4 (Target)</div></div>
+                        <div class="orbit-ring" style="width: 320px; height: 320px;" data-orbit="5"><div class="orbit-label">Orbit 5</div></div>
+                        <div class="orbit-ring" style="width: 370px; height: 370px;" data-orbit="6"><div class="orbit-label">Orbit 6</div></div>
+                        <div class="orbit-ring" style="width: 420px; height: 420px;" data-orbit="7"><div class="orbit-label">Orbit 7</div></div>
+                        <div class="orbit-ring" style="width: 470px; height: 470px;" data-orbit="8"><div class="orbit-label">Orbit 8</div></div>
+                        <div class="orbit-ring" style="width: 520px; height: 520px;" data-orbit="9"><div class="orbit-label">Orbit 9</div></div>
+                        <div id="marsOrbiter" class="mars-draggable" style="top: 20px; left: 20px;"></div>
+                    </div>
+                </div>
+                <div class="feedback-message" id="orbitFeedback"></div>
+                <div id="orbitSmallFact" class="small-fact" style="text-align: center;">Distance from Sun: About 227.9 million km.</div>
+            </div>
+        </div>
+
+        <div id="slide2" class="slide-wrapper">
+            <div class="challenge-card">
+                <div class="challenge-header">
+                    <span class="slide-number">Slide 2 – Distance & Light Travel</span>
+                    <h1 class="challenge-title">🎯 “How Far Is Mars from the Sun?”</h1>
+                    <p class="challenge-subtitle">Average Distance: 227.9 million km | Light Travel Time: ~12:40</p>
+                </div>
+                <div class="interactive-area">
+                    <div style="position: absolute; left: 50px;" class="sun-static"></div>
+                    <div id="marsDistance" style="position: absolute; right: 50px;" class="mars-draggable"></div>
+                    <div id="lightPulse" class="light-pulse"></div>
+                    <div class="timer-display" id="lightTimer">00:00</div>
+                    <div style="position: absolute; bottom: 50px; width: 80%; border-bottom: 2px dashed #444; text-align: center;">
+                        <span style="background: #000; padding: 0 10px; color: #888;">227.9 million km</span>
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <button onclick="startLightTimer()" class="btn-nav btn-next">🔘 Start Sunlight Timer</button>
+                </div>
+                <div class="feedback-message" id="lightFeedback"></div>
+            </div>
+        </div>
+
+        <div id="slide3" class="slide-wrapper">
+            <div class="challenge-card">
+                <div class="challenge-header">
+                    <span class="slide-number">Slide 3 – 🌗 MARS vs EARTH ROTATION LAB</span>
+                    <h1 class="challenge-title">🎮 “Day and Night Comparison Challenge”</h1>
+                    <p class="challenge-subtitle">Compare Planets: Mars vs Earth</p>
+                </div>
+                <div class="interactive-area" style="background: #050505;">
+                    <div class="sun-rays"></div>
+                    <div class="rotation-lab-container">
+                        <!-- Earth Panel -->
+                        <div class="planet-panel">
+                            <div style="position: relative;">
+                                <div class="rotation-ring-container">
+                                    <svg class="rotation-ring-svg">
+                                        <circle class="rotation-ring-bg" cx="100" cy="100" r="90"></circle>
+                                        <circle class="rotation-ring-progress" id="earthRing" cx="100" cy="100" r="90" style="stroke: #64c8ff;"></circle>
+                                    </svg>
+                                </div>
+                                <div class="planet-view earth-view" id="earthRotate">
+                                    <div class="city-lights" id="earthLights"></div>
+                                    <div class="terminator"></div>
+                                </div>
+                                <!-- Earth Moons -->
+                                <div class="moon-orbit" id="earthMoonOrbit" style="width: 240px; height: 240px;">
+                                    <div class="moon moon-anim" style="width: 12px; height: 12px; --dist: 120px; --speed: 5s; top: 50%; left: 50%;"></div>
+                                </div>
+                            </div>
+                            <div class="clock-display" id="earthClock">00:00</div>
+                            <div class="data-box">
+                                <h3>🌍 Earth</h3>
+                                Rotation: 24 hours<br>
+                                Equator Speed: ~1,670 km/h<br>
+                                Temp: <span id="earthTemp">15</span>°C
+                                <div class="temp-meter"><div class="temp-fill" id="earthTempFill" style="background: #64c8ff;"></div></div>
+                                <div id="earthMoonsCount" style="margin-top: 5px; color: #64c8ff; display: none;">Moons: 1</div>
+                            </div>
+                            <button class="challenge-btn" onclick="checkNoon('earth')">🎯 Find Noon</button>
+                        </div>
+
+                        <!-- Center Controls -->
+                        <div class="control-panel">
+                            <button onclick="toggleLabRotation()" id="labRotateBtn" class="btn-nav btn-next">🔘 Start Rotation</button>
+                            <button onclick="speedUpRotation()" class="btn-nav btn-prev">⏩ Speed Up</button>
+                            <button onclick="findMoons()" class="btn-nav btn-prev">🔘 Find Moons</button>
+                            <button onclick="fastForwardDays()" class="btn-nav btn-prev">⏩ Fast Forward 5 Days</button>
+                            <div style="color: #888; font-size: 10px; margin-top: 10px; text-align: center;">
+                                Day Drift: <span id="dayDrift">0</span> min
+                            </div>
+                        </div>
+
+                        <!-- Mars Panel -->
+                        <div class="planet-panel">
+                            <div style="position: relative;">
+                                <div class="rotation-ring-container">
+                                    <svg class="rotation-ring-svg">
+                                        <circle class="rotation-ring-bg" cx="100" cy="100" r="90"></circle>
+                                        <circle class="rotation-ring-progress" id="marsRing" cx="100" cy="100" r="90" style="stroke: #ff4d00;"></circle>
+                                    </svg>
+                                </div>
+                                <div class="planet-view mars-view" id="marsRotate">
+                                    <div class="terminator"></div>
+                                </div>
+                                <!-- Mars Moons -->
+                                <div class="moon-orbit" id="marsMoonOrbit1" style="width: 220px; height: 220px;">
+                                    <div class="moon moon-anim" style="width: 6px; height: 6px; --dist: 110px; --speed: 3s; top: 50%; left: 50%;"></div>
+                                </div>
+                                <div class="moon-orbit" id="marsMoonOrbit2" style="width: 260px; height: 260px;">
+                                    <div class="moon moon-anim" style="width: 8px; height: 8px; --dist: 130px; --speed: 7s; top: 50%; left: 50%;"></div>
+                                </div>
+                            </div>
+                            <div class="clock-display" id="marsClock">00:00</div>
+                            <div class="data-box">
+                                <h3>🔴 Mars</h3>
+                                Rotation: 24h 37m<br>
+                                Equator Speed: ~868 km/h<br>
+                                Temp: <span id="marsTemp">-63</span>°C
+                                <div class="temp-meter"><div class="temp-fill" id="marsTempFill" style="background: #ff4d00;"></div></div>
+                                <div id="marsMoonsCount" style="margin-top: 5px; color: #ff4d00; display: none;">Moons: 2 (Phobos & Deimos)</div>
+                            </div>
+                            <button class="challenge-btn" onclick="checkNoon('mars')">🎯 Find Noon</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="feedback-message" id="labFeedback">Which planet has a longer day? <button class="challenge-btn" onclick="checkLongestDay('earth')">Earth</button> <button class="challenge-btn" onclick="checkLongestDay('mars')">Mars</button></div>
+            </div>
+        </div>
+
+        <div id="slide4" class="slide-wrapper">
+            <div class="challenge-card" style="max-width: 1200px; padding: 0; background: transparent; border: none; box-shadow: none;">
+                <div class="seasons-lab-viewport">
+                    <div class="ambient-red-glow"></div>
+                    
+                    <!-- Cinematic Orbit Panel -->
+                    <div class="cinematic-orbit-panel">
+                        <div class="realistic-sun">
+                            <div class="sun-ray-effect"></div>
+                        </div>
+                        <div class="elliptical-path-viz"></div>
+                        
+                        <!-- Orbital Season Labels -->
+                        <div class="orbit-season-label" id="labelSpring">Northern Spring</div>
+                        <div class="orbit-season-label" id="labelSummer">Northern Summer</div>
+                        <div class="orbit-season-label" id="labelAutumn">Northern Autumn</div>
+                        <div class="orbit-season-label" id="labelWinter">Northern Winter</div>
+                        
+                        <div class="mars-cinematic-body" id="marsLabBody">
+                            <div class="frost-layer" id="marsFrost"></div>
+                            <div class="axis-rod-cinematic" id="marsLabAxis">
+                                <div class="axis-label-tag">AXIS: <span id="tiltDegDisplay">25</span>°</div>
+                            </div>
+                            <div class="ice-cap-realistic north-ice-realistic" id="northCapLab"></div>
+                            <div class="ice-cap-realistic south-ice-realistic" id="southCapLab"></div>
+                        </div>
+
+                        <div class="axis-direction-arrow" style="bottom: 20px; left: 20px;">
+                            ↖ Axis direction remains constant in space
+                        </div>
+                    </div>
+
+                    <!-- Climate Dashboard -->
+                    <div class="climate-dashboard-panel">
+                        <div class="dashboard-glass-card" style="text-align: center; border: none; background: transparent;">
+                            <span class="season-badge" id="currentSeasonBadge">Northern Spring</span>
+                            <h2 style="color: #fff; margin: 10px 0 0 0; font-size: 1.2rem;">Mars Seasons Lab</h2>
+                        </div>
+
+                        <!-- Orbit Progress -->
+                        <div class="dashboard-glass-card">
+                            <div class="card-header-sci">Martian Year Position <span>Ls 0° – 360°</span></div>
+                            <div class="ls-ring-container">
+                                <svg class="ls-svg-ring" width="140" height="140">
+                                    <circle class="ls-ring-bg" cx="70" cy="70" r="66"></circle>
+                                    <circle class="ls-ring-progress" id="lsRing" cx="70" cy="70" r="66"></circle>
+                                </svg>
+                                <div class="ls-value-center">
+                                    <span class="ls-label">Ls INDEX</span>
+                                    <span class="ls-val" id="lsValText">0°</span>
+                                </div>
+                            </div>
+                            <input type="range" min="0" max="360" value="0" class="lab-master-slider" id="lsSlider" oninput="updateSeasonsLab(this.value)">
+                        </div>
+
+                        <!-- Tilt Adjustment -->
+                        <div class="dashboard-glass-card">
+                            <div class="card-header-sci">Axial Tilt Adjustment <span id="tiltStatus">Real Mars</span></div>
+                            <input type="range" min="0" max="45" step="1" value="25" class="lab-master-slider" id="tiltSlider" oninput="updateTiltLab(this.value)">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.6rem; color: #555;">
+                                <span>0° (None)</span>
+                                <span>25° (Default)</span>
+                                <span>45° (Extreme)</span>
+                            </div>
+                        </div>
+
+                        <!-- Climate Indicators -->
+                        <div class="dashboard-glass-card">
+                            <div class="card-header-sci">Hemisphere Dashboard</div>
+                            
+                            <!-- Northern -->
+                            <div class="sci-meter-group">
+                                <div class="sci-meter-label">NORTH: <span id="northSeasonText">Spring</span></div>
+                                <div class="sci-meter-bar"><div id="northTempBar" class="sci-meter-fill temp-warm" style="width: 40%;"></div></div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.6rem; color: #888;">
+                                    <span>Sun Angle: <span id="northAngleText">45</span>°</span>
+                                    <span>Day: <span id="northDayText">12.3</span>h</span>
+                                </div>
+                            </div>
+
+                            <!-- Southern -->
+                            <div class="sci-meter-group">
+                                <div class="sci-meter-label">SOUTH: <span id="southSeasonText">Autumn</span></div>
+                                <div class="sci-meter-bar"><div id="southTempBar" class="sci-meter-fill temp-cool" style="width: 40%;"></div></div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.6rem; color: #888;">
+                                    <span>Sun Angle: <span id="southAngleText">45</span>°</span>
+                                    <span>Day: <span id="southDayText">12.3</span>h</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sun Angle Physics -->
+                        <div class="dashboard-glass-card">
+                            <div class="card-header-sci">Sun Angle Physics</div>
+                            <div class="sun-angle-viz-mini" id="sunAngleViz">
+                                <!-- Ray lines added via JS -->
+                            </div>
+                            <div class="intensity-tag" id="intensityTag">Energy Intensity: Normal</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+
+        <div id="slide5" class="slide-wrapper">
+            <div class="challenge-card">
+                <div class="challenge-header">
+                    <span class="slide-number">Slide 5 – Internal Structure</span>
+                    <h1 class="challenge-title">🔴 “Build Mars – Inside the Red Planet”</h1>
+                    <p class="challenge-subtitle">Drag components to build Mars from the inside out</p>
+                </div>
+                
+                <div class="internal-game-container">
+                    <!-- Left Panel: Drag Components -->
+                    <div class="side-panel">
+                        <div class="sci-label">Available Components</div>
+                        <div class="component-box" draggable="true" ondragstart="drag(event)" id="comp-core">
+                            <div class="component-icon" style="background: radial-gradient(circle, #fff, #ffcf33, #ff4d00);"></div>
+                            <span>Iron Core</span>
+                        </div>
+                        <div class="component-box" draggable="true" ondragstart="drag(event)" id="comp-mantle">
+                            <div class="component-icon" style="background: radial-gradient(circle, #ff8c00, #8b0000);"></div>
+                            <span>Mantle</span>
+                        </div>
+                        <div class="component-box" draggable="true" ondragstart="drag(event)" id="comp-crust">
+                            <div class="component-icon" style="background: #c1440e;"></div>
+                            <span>Crust</span>
+                        </div>
+                        <div class="component-box" draggable="true" ondragstart="drag(event)" id="comp-atmo">
+                            <div class="component-icon" style="background: rgba(100, 200, 255, 0.4); border: 1px solid #64c8ff;"></div>
+                            <span>Atmosphere</span>
+                        </div>
+                        <div class="component-box" draggable="true" ondragstart="drag(event)" id="comp-ice">
+                            <div class="component-icon" style="background: #fff; box-shadow: 0 0 5px #fff;"></div>
+                            <span>Polar Ice Caps</span>
+                        </div>
+                        <div class="component-box" draggable="true" ondragstart="drag(event)" id="comp-mag">
+                            <div class="component-icon" style="background: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(100,200,255,0.5) 5px, rgba(100,200,255,0.5) 10px);"></div>
+                            <span>Magnetic Field</span>
+                        </div>
+                        
+                        <button onclick="resetInternalGame()" class="btn-nav btn-prev" style="margin-top: 10px; width: 100%;">🔄 Reset Build</button>
+                    </div>
+
+                    <!-- Center: Build Area -->
+                    <div class="center-build-area" ondrop="drop(event)" ondragover="allowDrop(event)">
+                        <div class="mars-cross-section" id="marsBuildArea">
+                            <div id="mag-lines-viz" class="mag-lines"></div>
+                            <!-- Target slots will appear dynamically or we can use a central drop zone -->
+                            <div id="drop-zone" style="width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
+                                <div id="build-hint" style="color: rgba(255,255,255,0.3); font-size: 0.9rem; text-align: center;">
+                                    Drag components here<br>starting from the Core
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Live Data -->
+                    <div class="side-panel">
+                        <div class="sci-label">Live Data & Info</div>
+                        <div id="live-data-panel">
+                            <p style="color: #888; font-style: italic;">Add layers to see scientific data...</p>
+                        </div>
+                        
+                        <div class="challenge-box" id="internal-challenge" style="display: none;">
+                            <div class="sci-label" style="color: #ffd700;">Mini-Challenge</div>
+                            <div id="challenge-text"></div>
+                            <div id="challenge-options" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="feedback-message" id="internalFeedback">Build Mars from the inside out to understand its structure.</div>
+            </div>
+        </div>
+
+        <div id="slide6" class="slide-wrapper">
+            <div class="challenge-card" style="max-width: 1200px; margin-left: -100px; width: calc(100% + 200px); position: relative;">
+                <div id="atmo-start-overlay" class="start-overlay">
+                    <button onclick="startAtmosphereReveal()" class="btn-start-mission">▶ START MISSION</button>
+                </div>
+
+                <div class="challenge-header">
+                    <span class="slide-number">Slide 6 – Atmosphere Mission</span>
+                    <h1 class="challenge-title">🌫 “Mars Atmosphere Mission: Can You Rebuild It?”</h1>
+                    <p class="challenge-subtitle">Match the correct gas percentages to rebuild the Martian atmosphere.</p>
+                </div>
+                
+                <div class="atmo-mission-container">
+                    <!-- LEFT PANEL - Gas Control Console -->
+                    <div class="atmo-panel atmo-left">
+                        <div class="sci-label">Gas Control Console</div>
+                        
+                        <div class="gas-slider-group" id="group-co2">
+                            <div class="gas-label"><span class="gas-name">CO₂</span> <span class="gas-val" id="val-co2">0%</span></div>
+                            <input type="range" min="0" max="100" step="0.1" value="0" class="atmo-slider" id="slider-co2" oninput="updateAtmoInteraction('co2')" disabled>
+                            <div class="target-point" style="left: 95.3%;"></div>
+                            <div class="target-label" style="left: 95.3%;">95.3%</div>
+                            <div class="gas-bar-bg"><div id="bar-co2" class="gas-bar-fill" style="background: #e27b58;"></div></div>
+                        </div>
+                        
+                        <div class="gas-slider-group" id="group-n2">
+                            <div class="gas-label"><span class="gas-name">N₂</span> <span class="gas-val" id="val-n2">0%</span></div>
+                            <input type="range" min="0" max="100" step="0.1" value="0" class="atmo-slider" id="slider-n2" oninput="updateAtmoInteraction('n2')" disabled>
+                            <div class="target-point" style="left: 2.7%;"></div>
+                            <div class="target-label" style="left: 2.7%;">2.7%</div>
+                            <div class="gas-bar-bg"><div id="bar-n2" class="gas-bar-fill" style="background: #64c8ff;"></div></div>
+                        </div>
+                        
+                        <div class="gas-slider-group" id="group-argon">
+                            <div class="gas-label"><span class="gas-name">Argon</span> <span class="gas-val" id="val-argon">0%</span></div>
+                            <input type="range" min="0" max="100" step="0.1" value="0" class="atmo-slider" id="slider-argon" oninput="updateAtmoInteraction('argon')" disabled>
+                            <div class="target-point" style="left: 1.6%;"></div>
+                            <div class="target-label" style="left: 1.6%;">1.6%</div>
+                            <div class="gas-bar-bg"><div id="bar-argon" class="gas-bar-fill" style="background: #a0a0b0;"></div></div>
+                        </div>
+                        
+                        <div class="gas-slider-group" id="group-o2">
+                            <div class="gas-label"><span class="gas-name">O₂</span> <span class="gas-val" id="val-o2">0%</span></div>
+                            <input type="range" min="0" max="100" step="0.01" value="0" class="atmo-slider" id="slider-o2" oninput="updateAtmoInteraction('o2')" disabled>
+                            <div class="target-point" style="left: 0.13%;"></div>
+                            <div class="target-label" style="left: 0.13%;">0.13%</div>
+                            <div class="gas-bar-bg"><div id="bar-o2" class="gas-bar-fill" style="background: #fff;"></div></div>
+                        </div>
+                        
+                        <div class="gas-slider-group" id="group-cos">
+                            <div class="gas-label"><span class="gas-name">CO</span> <span class="gas-val" id="val-cos">0%</span></div>
+                            <input type="range" min="0" max="100" step="0.01" value="0" class="atmo-slider" id="slider-cos" oninput="updateAtmoInteraction('cos')" disabled>
+                            <div class="target-point" style="left: 0.08%;"></div>
+                            <div class="target-label" style="left: 0.08%;">0.08%</div>
+                            <div class="gas-bar-bg"><div id="bar-cos" class="gas-bar-fill" style="background: #ffb703;"></div></div>
+                        </div>
+                        
+                        <div class="gas-slider-group" id="group-h2o">
+                            <div class="gas-label"><span class="gas-name">H₂O</span> <span class="gas-val" id="val-h2o">0%</span></div>
+                            <input type="range" min="0" max="5" step="0.01" value="0" class="atmo-slider" id="slider-h2o" oninput="updateAtmoInteraction('h2o')" disabled>
+                            <div class="target-point" style="left: 0.6%;"></div>
+                            <div class="target-label" style="left: 0.6%;">0.03%</div>
+                            <div class="gas-bar-bg"><div id="bar-h2o" class="gas-bar-fill" style="background: #00bfff;"></div></div>
+                        </div>
+                        
+                        <div class="gas-slider-group" id="group-ch4">
+                            <div class="gas-label"><span class="gas-name">CH₄</span> <span class="gas-val" id="val-ch4">0%</span></div>
+                            <input type="range" min="0" max="1" step="0.001" value="0" class="atmo-slider" id="slider-ch4" oninput="updateAtmoInteraction('ch4')" disabled>
+                            <div class="target-point" style="left: 0.1%;"></div>
+                            <div class="target-label" style="left: 0.1%;">0.001%</div>
+                            <div class="gas-bar-bg"><div id="bar-ch4" class="gas-bar-fill" style="background: #32cd32;"></div></div>
+                        </div>
+
+                        <button id="verify-atmo-btn" onclick="checkAtmoBuild()" class="btn-nav btn-next" style="margin-top: 10px; width: 100%; display: none;">Verify Composition</button>
+                        <button id="reset-atmo-btn" onclick="resetAtmosphereMission()" class="btn-nav btn-prev" style="margin-top: 5px; width: 100%;">Reset Mission</button>
+                    </div>
+
+                    <!-- CENTER - Live Mars Simulation -->
+                    <div class="atmo-center">
+                        <div class="atmo-halo" id="mars-halo"></div>
+                        <div class="pie-chart-container" id="pie-chart-container">
+                            <svg width="360" height="360" viewBox="0 0 360 360">
+                                <circle cx="180" cy="180" r="160" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="24"></circle>
+                                <g id="pie-segments-group"></g>
+                            </svg>
+                        </div>
+                        <div class="mars-atmo-sim">
+                            <div class="atmo-dust" id="mars-dust-overlay"></div>
+                            <div class="ice-cap-sim ice-cap-north" id="ice-north"></div>
+                            <div class="ice-cap-sim ice-cap-south" id="ice-south"></div>
+                        </div>
+                        <div id="atmo-message" style="position: absolute; bottom: 20px; text-align: center; width: 100%; color: #fff; font-size: 0.9rem; text-shadow: 0 2px 4px #000;"></div>
+                    </div>
+
+                    <!-- RIGHT PANEL - Climate Dashboard -->
+                    <div class="atmo-panel atmo-right">
+                        <div class="sci-label">Climate Dashboard</div>
+                        
+                        <div class="dashboard-gauge">
+                            <span class="gauge-label">Atmospheric Pressure</span>
+                            <span class="gauge-value" id="gauge-pressure">0.01 mb</span>
+                            <span class="gauge-sub">Earth: 1013 mb</span>
+                        </div>
+
+                        <div class="dashboard-gauge">
+                            <span class="gauge-label">Greenhouse Strength</span>
+                            <span class="gauge-value" id="gauge-greenhouse">Very Low</span>
+                            <div class="sci-meter-bar"><div class="sci-meter-fill" id="fill-greenhouse" style="width: 5%; background: #64c8ff;"></div></div>
+                        </div>
+
+                        <div class="dashboard-gauge">
+                            <span class="gauge-label">Breathability</span>
+                            <span id="badge-breathable" class="status-badge status-danger">Lethal</span>
+                        </div>
+
+                        <div class="dashboard-gauge">
+                            <span class="gauge-label">Avg. Temperature</span>
+                            <span class="gauge-value" id="gauge-temp">-150°C</span>
+                            <span id="freeze-indicator" style="font-size: 0.7rem; color: #888; display: block; margin-top: 4px;">CO₂ in Gas Form</span>
+                        </div>
+
+                        <div id="experiment-tools" style="display: none; margin-top: 10px;">
+                            <div class="sci-label">Experiment Mode Unlocked!</div>
+                            <button onclick="experimentMode('warmer')" class="challenge-btn" style="width: 100%;">Increase CO₂ (Warmer?)</button>
+                            <button onclick="experimentMode('breathable')" class="challenge-btn" style="width: 100%; margin-top: 5px;">Max O₂ (Breathable?)</button>
+                            <button onclick="experimentMode('thicker')" class="challenge-btn" style="width: 100%; margin-top: 5px;">Thicken (Stable?)</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="atmo-explanation" style="display: none; background: rgba(0,0,0,0.8); border: 1px solid #64c8ff; padding: 15px; border-radius: 8px; margin-top: 15px; font-size: 0.9rem; line-height: 1.4;">
+                    <h3 style="color: #64c8ff; margin-bottom: 8px;">📊 Why is this composition critical?</h3>
+                    <p>Mars is a cold desert today primarily because its atmosphere is 100 times thinner than Earth's. While it is 95% CO₂, the sheer lack of atmospheric mass means it cannot trap enough heat. Increasing Oxygen alone wouldn't help humans because the low pressure would still be lethal!</p>
+                </div>
+                <div class="feedback-message" id="atmoFeedback"></div>
+            </div>
+        </div>
+
+        <div id="slide7" class="slide-wrapper">
+            <div class="challenge-card gravity-lab-card">
+                <div class="challenge-header">
+                    <span class="slide-number">Slide 7 – Gravity Comparison Game</span>
+                    <h1 class="challenge-title">🚀 “Gravity Jump Lab: Earth vs Mars”</h1>
+                    <p class="challenge-subtitle">Compare astronaut movement on different planets!</p>
+                </div>
+                
+                <div class="gravity-game-container">
+                    <div class="simulation-split">
+                        <!-- Earth Side -->
+                        <div class="sim-panel earth-panel">
+                            <div class="panel-header">🌍 EARTH PANEL</div>
+                            <div class="surface earth-surface">
+                                <div class="astronaut-container" id="earthAstronautContainer">
+                                    <div class="astronaut" id="earthAstronaut">🧑‍🚀</div>
+                                    <div class="dust-effect" id="earthDust"></div>
+                                </div>
+                                <div class="shadow" id="earthShadow"></div>
+                            </div>
+                            <div class="scientific-dashboard">
+                                <div class="stat-item">Gravity: <span class="val">9.8 m/s²</span></div>
+                                <div class="stat-item">Atmosphere: <span class="val">Thick</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Mars Side -->
+                        <div class="sim-panel mars-panel">
+                            <div class="panel-header">🔴 MARS PANEL</div>
+                            <div class="surface mars-surface">
+                                <div class="astronaut-container" id="marsAstronautContainer">
+                                    <div class="astronaut" id="marsAstronaut">🧑‍🚀</div>
+                                    <div class="dust-effect" id="marsDust"></div>
+                                </div>
+                                <div class="shadow" id="marsShadow"></div>
+                            </div>
+                            <div class="scientific-dashboard">
+                                <div class="stat-item">Gravity: <span class="val">3.7 m/s²</span></div>
+                                <div class="stat-item">Atmosphere: <span class="val">Thin</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="game-controls">
+                        <div class="control-group">
+                            <button onclick="gravityJump('normal')" class="btn-action">🏃 Jump</button>
+                            <button onclick="gravityJump('super')" class="btn-action">⚡ Super Jump</button>
+                            <button onclick="toggleSlowMo()" id="slowMoBtn" class="btn-action">🐢 Slow Motion: OFF</button>
+                        </div>
+                        <div class="power-slider-container" style="display: flex; align-items: center; gap: 10px;">
+                            <label>Jump Power</label>
+                            <input type="range" id="jumpPower" min="1" max="100" value="50">
+                        </div>
+                    </div>
+
+                    <!-- Comparison Panel -->
+                    <div id="comparisonStats" class="comparison-stats">
+                        <div class="stat-row">
+                            <span>Gravity</span>
+                            <span class="val">Earth: 9.8 m/s²</span>
+                            <span class="val">Mars: 3.7 m/s²</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Jump Height</span>
+                            <span id="earthJumpH">--</span>
+                            <span id="marsJumpH">--</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Air Time</span>
+                            <span id="earthTime">--</span>
+                            <span id="marsTime">--</span>
+                        </div>
+                        <div class="stat-row" style="border-top: 1px solid #ffd700; margin-top: 5px;">
+                            <span>Ratio Indicator</span>
+                            <span style="color: #ffd700; flex: 2; text-align: right;">“Mars gravity is about 38% of Earth’s.”</span>
+                        </div>
+                    </div>
+
+                    <!-- Quiz/Info Section -->
+                    <div id="gravityQuiz" class="gravity-quiz" style="display:none;">
+                        <h3>🧠 WHY IS MARS GRAVITY WEAKER?</h3>
+                        <p>Gravity depends on planet <b>mass</b> and <b>size</b>. Mars has less mass and is smaller than Earth, so its gravitational pull is only <b>38%</b> of Earth's.</p>
+                        <div class="quiz-question">
+                            Why would astronauts feel lighter on Mars?
+                            <div class="quiz-options">
+                                <button onclick="checkGravityQuiz(false)" class="quiz-opt">Because they are smaller</button>
+                                <button onclick="checkGravityQuiz(true)" class="quiz-opt">Because Mars has lower gravity</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="feedback-message" id="gravityFeedback">Welcome to the Gravity Jump Lab!</div>
+            </div>
+        </div>
+
+        <div class="navigation-controls">
+            <button onclick="prevSlide()" id="prevBtn" class="btn-nav btn-prev" disabled>⬅ Previous</button>
+            <button onclick="nextSlide()" id="nextBtn" class="btn-nav btn-next">Next Slide ⮕</button>
+        </div>
+
+        <div id="finalComparison" style="display: none; margin-top: 40px;" class="challenge-card">
+            <h2 style="text-align: center; color: #fff; margin-bottom: 20px;">📊 Final Mars Comparison Table</h2>
+            <table class="comparison-table">
+                <tr><th>Feature</th><th>Mars</th><th>Earth</th></tr>
+                <tr><td>Position</td><td>4th</td><td>3rd</td></tr>
+                <tr><td>Day Length</td><td>24h 37m</td><td>24h</td></tr>
+                <tr><td>Year Length</td><td>687 days</td><td>365 days</td></tr>
+                <tr><td>Avg Temp</td><td>-63°C</td><td>15°C</td></tr>
+                <tr><td>Moons</td><td>2</td><td>1</td></tr>
+                <tr><td>Atmosphere</td><td>Thin CO₂</td><td>Balanced</td></tr>
+            </table>
+            <div style="text-align: center; margin-top: 30px;">
+                <p style="color: #a0a0b0; font-style: italic;">“Mars is cold, dry, and dusty. It has seasons and a day similar to Earth. But its thin atmosphere and freezing temperatures make life difficult.”</p>
+                <a href="{{ url_for('game_zone') }}" class="btn-nav btn-next" style="display: inline-block; margin-top: 20px;">Finish Mission</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 7;
+        let rotationActive = false;
+        let atmoThick = false;
+
+        const voiceScripts = {
+            1: "Correct! Mars is the fourth planet from the Sun. It is farther away than Earth, which makes it much colder. On average, it takes about 1.88 Earth years to complete its journey around the Sun.",
+            2: "Mars is about 227.9 million kilometers from the Sun. Because it is farther than Earth, it receives less sunlight and is much colder. Sunlight takes over 12 minutes to reach its surface.",
+            3: "Both Earth and Mars rotate on their axes. This rotation causes day and night. Earth completes one rotation in 24 hours. Mars completes one rotation in 24 hours and 37 minutes. This is called a Sol. Mars’ day is only slightly longer than Earth’s. However, its thinner atmosphere causes greater temperature changes between day and night. Even small differences in rotation affect climate and daily life.",
+            4: "Welcome to the Mars Seasons Lab. Adjust the month and tilt to explore how climate changes. Seasons on Mars are caused by axial tilt and sunlight angle, not just distance from the Sun.",
+            5: "Build Mars from the inside out to understand its structure. Start by dragging the iron core to the center.",
+            6: "Welcome to the Mars Atmosphere Mission. Adjust the gases to match the real Martian atmosphere. Mars is dominated by carbon dioxide, making up over 95 percent of its thin air.",
+            7: "Welcome to the Gravity Jump Lab. Compare how gravity affects movement on Earth and Mars."
+        };
+
+        function showSlide(n) {
+            document.querySelectorAll('.slide-wrapper').forEach(s => s.classList.remove('active'));
+            document.getElementById('slide' + n).classList.add('active');
+            
+            document.getElementById('prevBtn').disabled = (n === 1);
+            if (n === totalSlides) {
+                document.getElementById('nextBtn').innerText = "Finish Mission 🏁";
+            } else {
+                document.getElementById('nextBtn').innerText = "Next Slide ⮕";
+            }
+
+            if (n === 4) {
+                updateSeasonsLab(0);
+                updateTiltLab(25);
+            }
+
+            if (n === 6) {
+                // Initialize display without triggering logic
+                updateAtmoDisplay();
+            }
+
+            // AI Guide Voice
+            if (n === 1) {
+                speak("Welcome to the Mars Mission. Your first challenge is to place Mars in its correct orbit. Mars is the fourth planet from the Sun. Drag it to the fourth orbit ring to continue.");
+            } else {
+                speak(voiceScripts[n]);
+            }
+        }
+
+        function speak(text, callback) {
+            if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9;
+            if (callback) utterance.onend = callback;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides) {
+                currentSlide++;
+                showSlide(currentSlide);
+            } else {
+                document.getElementById('finalComparison').style.display = 'block';
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 1) {
+                currentSlide--;
+                showSlide(currentSlide);
+            }
+        }
+
+        function speakCurrentSlide() {
+            const text = voiceScripts[currentSlide];
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Slide 1 logic
+        const mars = document.getElementById('marsOrbiter');
+        let isDragging = false;
+
+        mars.onmousedown = function(e) {
+            if (mars.classList.contains('mars-orbiting')) return;
+            isDragging = true;
+            mars.style.cursor = 'grabbing';
+        };
+
+        document.onmousemove = function(e) {
+            if (!isDragging) return;
+            const area = document.getElementById('orbitArea').getBoundingClientRect();
+            let x = e.clientX - area.left - 15;
+            let y = e.clientY - area.top - 15;
+            mars.style.left = x + 'px';
+            mars.style.top = y + 'px';
+
+            const target = document.getElementById('targetOrbit').getBoundingClientRect();
+            const centerX = target.left + target.width / 2;
+            const centerY = target.top + target.height / 2;
+            const dist = Math.sqrt(Math.pow(e.clientX - centerX, 2) + Math.pow(e.clientY - centerY, 2));
+
+            // Highlight target orbit when dragging near it
+            if (dist < 60) {
+                document.getElementById('targetOrbit').classList.add('highlight');
+            } else {
+                document.getElementById('targetOrbit').classList.remove('highlight');
+            }
+
+            if (dist < 30) {
+                document.getElementById('orbitFeedback').innerText = "✅ Correct! Mars is the fourth planet from the Sun.";
+                document.getElementById('orbitSmallFact').style.display = 'block';
+                document.getElementById('targetOrbit').classList.remove('highlight');
+                document.getElementById('targetOrbit').classList.add('correct-glow');
+                
+                // Clear inline styles to allow CSS animation to take over
+                mars.style.left = '';
+                mars.style.top = '';
+                mars.classList.add('mars-orbiting');
+                
+                isDragging = false;
+                speak(voiceScripts[1]);
+            }
+        };
+
+        document.onmouseup = function() {
+            isDragging = false;
+            mars.style.cursor = 'grab';
+        };
+
+        // Slide 2 logic
+        function startLightTimer() {
+            const timer = document.getElementById('lightTimer');
+            const pulse = document.getElementById('lightPulse');
+            const feedback = document.getElementById('lightFeedback');
+            
+            pulse.style.display = 'block';
+            pulse.style.left = '90px';
+            pulse.style.top = '50%';
+            
+            let seconds = 0;
+            const interval = setInterval(() => {
+                seconds += 20;
+                let displaySec = Math.floor(seconds / 60);
+                let displayRem = seconds % 60;
+                timer.innerText = (displaySec < 10 ? '0' : '') + displaySec + ':' + (displayRem < 10 ? '0' : '') + displayRem;
+                
+                let progress = seconds / 760; // 12:40 is 760 seconds
+                pulse.style.left = (90 + progress * 780) + 'px';
+
+                if (seconds >= 760) {
+                    clearInterval(interval);
+                    timer.innerText = "12:40";
+                    feedback.innerText = "✅ Sunlight takes about 12 minutes 40 seconds to reach Mars.";
+                }
+            }, 50);
+        }
+
+        // Slide 3 Enhanced Logic
+        let labInterval;
+        let labRotationActive = false;
+        let labRotationSpeed = 1;
+        let earthMinutes = 0;
+        let marsMinutes = 0;
+        let earthDone = false;
+        let marsDone = false;
+
+        function toggleLabRotation() {
+            const btn = document.getElementById('labRotateBtn');
+            labRotationActive = !labRotationActive;
+            
+            if (labRotationActive) {
+                btn.innerText = "⏹ Stop Rotation";
+                if (earthDone && marsDone) {
+                    earthMinutes = 0;
+                    marsMinutes = 0;
+                    earthDone = false;
+                    marsDone = false;
+                }
+                labInterval = setInterval(updateLab, 50 / labRotationSpeed);
+            } else {
+                btn.innerText = "🔘 Start Rotation";
+                clearInterval(labInterval);
+            }
+        }
+
+        function speedUpRotation() {
+            labRotationSpeed = labRotationSpeed >= 8 ? 1 : labRotationSpeed * 2;
+            if (labRotationActive) {
+                clearInterval(labInterval);
+                labInterval = setInterval(updateLab, 50 / labRotationSpeed);
+            }
+        }
+
+        function updateLab() {
+            if (!earthDone) {
+                earthMinutes += 10;
+                if (earthMinutes >= 1440) {
+                    earthMinutes = 1440;
+                    earthDone = true;
+                    document.getElementById('labFeedback').innerText = "✅ Earth completed 1 full rotation (24 hours).";
+                    speak("Earth takes 24 hours to complete one full rotation.");
+                }
+            }
+
+            if (!marsDone) {
+                marsMinutes += 10;
+                if (marsMinutes >= 1477) {
+                    marsMinutes = 1477;
+                    marsDone = true;
+                    document.getElementById('labFeedback').innerText = "✅ Mars completed 1 full rotation (1 Sol = 24 hours 37 minutes).";
+                    speak("Mars takes 24 hours and 37 minutes to complete one full rotation.");
+                }
+            }
+
+            updatePlanetDisplay('earth', earthMinutes, 1440);
+            updatePlanetDisplay('mars', marsMinutes, 1477);
+            
+            // Drift calculation
+            const drift = Math.abs(earthMinutes - marsMinutes);
+            document.getElementById('dayDrift').innerText = Math.floor(drift);
+
+            if (earthDone && marsDone) {
+                toggleLabRotation();
+                document.getElementById('labFeedback').innerText = "Comparison: Mars day is only 37 minutes longer than Earth’s day.";
+            }
+        }
+
+        function updatePlanetDisplay(planet, mins, totalMins) {
+            const h = Math.floor(mins / 60);
+            const m = mins % 60;
+            const clock = document.getElementById(planet + 'Clock');
+            clock.innerText = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+
+            const progress = mins / totalMins;
+            const rotation = progress * 360;
+            const view = document.getElementById(planet + 'Rotate');
+            view.style.backgroundPosition = `-${rotation * 2}px 0`;
+
+            // Update Progress Ring
+            const ring = document.getElementById(planet + 'Ring');
+            const offset = 565.48 - (progress * 565.48);
+            ring.style.strokeDashoffset = offset;
+
+            // Lighting & Temp logic
+            const isDay = mins > totalMins * 0.25 && mins < totalMins * 0.75;
+            const tempSpan = document.getElementById(planet + 'Temp');
+            const tempFill = document.getElementById(planet + 'TempFill');
+            
+            if (planet === 'earth') {
+                const earthLights = document.getElementById('earthLights');
+                earthLights.style.opacity = isDay ? 0 : 1;
+                const temp = isDay ? 15 : 10;
+                tempSpan.innerText = temp;
+                tempFill.style.width = ((temp + 100) / 150 * 100) + '%';
+            } else {
+                const temp = isDay ? -20 : -100;
+                tempSpan.innerText = temp;
+                tempFill.style.width = ((temp + 100) / 150 * 100) + '%';
+            }
+        }
+
+        function findMoons() {
+            const earthOrbit = document.getElementById('earthMoonOrbit');
+            const marsOrbit1 = document.getElementById('marsMoonOrbit1');
+            const marsOrbit2 = document.getElementById('marsMoonOrbit2');
+            const earthCount = document.getElementById('earthMoonsCount');
+            const marsCount = document.getElementById('marsMoonsCount');
+
+            const isVisible = earthOrbit.style.display === 'block';
+            const newState = isVisible ? 'none' : 'block';
+
+            earthOrbit.style.display = newState;
+            marsOrbit1.style.display = newState;
+            marsOrbit2.style.display = newState;
+            earthCount.style.display = newState;
+            marsCount.style.display = newState;
+
+            if (!isVisible) {
+                document.getElementById('labFeedback').innerText = "Earth: 1 Moon | Mars: 2 Moons (Phobos & Deimos)";
+                speak("Earth has one natural moon. Mars has two small moons called Phobos and Deimos.");
+            }
+        }
+
+        function fastForwardDays() {
+            earthMinutes = 0;
+            marsMinutes = 5 * 37;
+            earthDone = false;
+            marsDone = false;
+            updateLab();
+            document.getElementById('labFeedback').innerText = "After 5 days, Mars time has drifted by 185 minutes!";
+            speak("After five days, notice how the Martian time has drifted significantly compared to Earth time.");
+        }
+
+        function checkNoon(planet) {
+            const mins = planet === 'earth' ? earthMinutes : marsMinutes;
+            const total = planet === 'earth' ? 1440 : 1477;
+            // Noon is at 50% of rotation (facing Sun)
+            const isNoon = Math.abs(mins - total * 0.5) < 60;
+            
+            const feedback = document.getElementById('labFeedback');
+            if (isNoon) {
+                feedback.innerText = "✅ Correct! This is local noon on " + planet + ".";
+                speak("Correct! This is local noon. The sun is directly overhead.");
+            } else {
+                feedback.innerText = "❌ Not yet. Wait until the Sun is directly overhead.";
+                speak("Not yet. Wait until the Sun is directly overhead.");
+            }
+        }
+
+        function checkLongestDay(choice) {
+            const feedback = document.getElementById('labFeedback');
+            if (choice === 'mars') {
+                feedback.innerText = "✅ Correct! Mars day (Sol) is 24h 37m, which is 37 minutes longer than Earth's.";
+                speak("Correct! Mars' day is thirty seven minutes longer than Earth's.");
+            } else {
+                feedback.innerText = "❌ Try again. Compare the rotation times in the data boxes.";
+            }
+        }
+
+        // Slide 4 - 🔴 MARS REVOLUTION & SEASONS LAB Logic
+        let labLsIndex = 0;
+        let labMarsTilt = 25;
+        let labSpokenOnce = new Set();
+
+        function updateSeasonsLab(val) {
+            labLsIndex = parseFloat(val);
+            document.getElementById('lsValText').innerText = val + "°";
+            document.getElementById('lsSlider').value = val;
+            
+            // Update Ring Progress
+            const ring = document.getElementById('lsRing');
+            const offset = 440 - (val / 360) * 440;
+            ring.style.strokeDashoffset = offset;
+
+            calculateMarsClimate();
+            
+            // Audio Guidance
+            if (val == 90) speakOnce("You are now viewing Mars during northern summer. The northern hemisphere is tilted toward the Sun and receives more direct sunlight.");
+            if (val == 270) speakOnce("Mars is now at northern winter. The northern hemisphere tilts away from the Sun.");
+        }
+
+        function updateTiltLab(val) {
+            labMarsTilt = parseFloat(val);
+            document.getElementById('tiltDegDisplay').innerText = val;
+            document.getElementById('tiltSlider').value = val;
+            
+            const status = document.getElementById('tiltStatus');
+            if (val == 25) {
+                status.innerText = "Real Mars";
+                status.style.color = "var(--mars-red)";
+                speakOnce("Mars is currently tilted at about 25 degrees. This tilt creates its natural seasonal cycle.");
+            } else if (val == 0) {
+                status.innerText = "No Tilt";
+                status.style.color = "#888";
+                speakOnce("With no tilt, Mars would not experience strong seasonal changes.");
+            } else if (val > 35) {
+                status.innerText = "Extreme";
+                status.style.color = "#ff4d00";
+                speakOnce("Higher tilt creates more extreme seasons.");
+            } else {
+                status.innerText = "Custom";
+                status.style.color = "#fff";
+            }
+
+            calculateMarsClimate();
+        }
+
+        function calculateMarsClimate() {
+            const planet = document.getElementById('marsLabBody');
+            const axis = document.getElementById('marsLabAxis');
+            const frost = document.getElementById('marsFrost');
+            
+            // 1. Position on Elliptical Path (Centered)
+            const angleRad = (labLsIndex) * (Math.PI / 180);
+            const rx = 250;
+            const ry = 190;
+            
+            // Center is roughly 50% of cinematic panel
+            const panelWidth = document.querySelector('.cinematic-orbit-panel').offsetWidth;
+            const panelHeight = document.querySelector('.cinematic-orbit-panel').offsetHeight;
+            
+            const x = (panelWidth / 2) + Math.cos(angleRad) * rx;
+            const y = (panelHeight / 2) + Math.sin(angleRad) * ry;
+            
+            planet.style.left = `${x}px`;
+            planet.style.top = `${y}px`;
+
+            // 2. Fixed Axis Realism
+            axis.style.transform = `translateX(-50%) rotate(${labMarsTilt}deg)`;
+
+            // 3. Seasonal Alignment
+            // Ls 0=Spring (Top), 90=Summer (Right), 180=Autumn (Bottom), 270=Winter (Left)
+            // If Sun is at Center, then exposure depends on tilt direction vs Sun direction
+            // Our tilt is fixed at some degrees. If axis is tilted right, then when Mars is at left (Ls 270), 
+            // northern hemisphere points away from Sun (Winter).
+            // When Mars is at right (Ls 90), northern hemisphere points toward Sun (Summer).
+            const exposureN = Math.sin(angleRad); // 1 at Ls 90, -1 at Ls 270
+            
+            const nAngle = (Math.max(5, 45 + exposureN * labMarsTilt)).toFixed(0);
+            const sAngle = (Math.max(5, 45 - exposureN * labMarsTilt)).toFixed(0);
+            
+            document.getElementById('northAngleText').innerText = nAngle;
+            document.getElementById('southAngleText').innerText = sAngle;
+            
+            const nDay = (12.3 + (exposureN * (labMarsTilt / 25) * 4)).toFixed(1);
+            const sDay = (24.6 - nDay).toFixed(1);
+            document.getElementById('northDayText').innerText = nDay;
+            document.getElementById('southDayText').innerText = sDay;
+
+            const nTemp = 30 + (exposureN * 50 * (labMarsTilt / 25));
+            const sTemp = 30 - (exposureN * 50 * (labMarsTilt / 25));
+            
+            const nFill = document.getElementById('northTempBar');
+            const sFill = document.getElementById('southTempBar');
+            nFill.style.width = Math.min(100, Math.max(10, nTemp)) + "%";
+            sFill.style.width = Math.min(100, Math.max(10, sTemp)) + "%";
+            nFill.className = `sci-meter-fill ${nTemp > 40 ? 'temp-warm' : 'temp-cool'}`;
+            sFill.className = `sci-meter-fill ${sTemp > 40 ? 'temp-warm' : 'temp-cool'}`;
+
+            // 4. Ice Caps & Orbital Labels
+            const nIce = document.getElementById('northCapLab');
+            const sIce = document.getElementById('southCapLab');
+            let nSize = 10 - (exposureN * 15 * (labMarsTilt / 25));
+            let sSize = 10 + (exposureN * 15 * (labMarsTilt / 25));
+            nIce.style.height = Math.max(2, nSize) + "%";
+            sIce.style.height = Math.max(2, sSize) + "%";
+
+            // Orbital Labels Active State
+            const currentSeason = getMarsSeasonName(labLsIndex);
+            document.querySelectorAll('.orbit-season-label').forEach(l => l.classList.remove('active'));
+            const activeLabelId = 'label' + currentSeason;
+            if (document.getElementById(activeLabelId)) {
+                const labelEl = document.getElementById(activeLabelId);
+                labelEl.classList.add('active');
+                
+                // Update label text if tilt is extreme
+                if (labMarsTilt > 35) {
+                    labelEl.innerText = "Extreme " + currentSeason;
+                } else if (labMarsTilt < 10) {
+                    labelEl.innerText = "Weak " + currentSeason;
+                } else {
+                    labelEl.innerText = "Northern " + currentSeason;
+                }
+            }
+
+            // 5. Dashboard Labels
+            const nSeason = getMarsSeasonName(labLsIndex);
+            const sSeason = getMarsSeasonName(labLsIndex + 180);
+            document.getElementById('northSeasonText').innerText = nSeason;
+            document.getElementById('southSeasonText').innerText = sSeason;
+            document.getElementById('currentSeasonBadge').innerText = "Northern " + nSeason;
+
+            updatePhysicsPanel(nAngle);
+        }
+
+        function getMarsSeasonName(ls) {
+            const angle = ls % 360;
+            if (angle >= 315 || angle < 45) return "Spring";
+            if (angle >= 45 && angle < 135) return "Summer";
+            if (angle >= 135 && angle < 225) return "Autumn";
+            return "Winter";
+        }
+
+        function updatePhysicsPanel(angle) {
+            const viz = document.getElementById('sunAngleViz');
+            viz.innerHTML = '';
+            const numRays = 8;
+            for (let i = 0; i < numRays; i++) {
+                const ray = document.createElement('div');
+                ray.className = 'ray-line';
+                ray.style.top = (10 + i * 6) + 'px';
+                ray.style.width = '100%';
+                ray.style.transform = `rotate(${90 - angle}deg)`;
+                viz.appendChild(ray);
+            }
+            
+            const tag = document.getElementById('intensityTag');
+            if (angle > 60) tag.innerText = "Energy Intensity: HIGH";
+            else if (angle < 30) tag.innerText = "Energy Intensity: LOW";
+            else tag.innerText = "Energy Intensity: NORMAL";
+        }
+
+        function speakOnce(msg) {
+            if (!labSpokenOnce.has(msg)) {
+                speak(msg);
+                labSpokenOnce.add(msg);
+            }
+        }
+
+
+        // Slide 5 - Mars Internal Structure Game Logic
+        let internalLayers = {
+            'comp-core': { placed: false, order: 1, name: 'Core', class: 'core-layer', data: '<b>Core:</b> Mostly iron + sulfur. Radius ≈ 1,800 km. Temp: 1,500°C – 2,000°C. Once powered magnetic field.' },
+            'comp-mantle': { placed: false, order: 2, name: 'Mantle', class: 'mantle-layer', data: '<b>Mantle:</b> ~75–80% of Mars volume. Silicate rock (rich in magnesium & iron). Transfers internal heat.' },
+            'comp-crust': { placed: false, order: 3, name: 'Crust', class: 'crust-layer', data: '<b>Crust:</b> Average ~50 km. Basaltic rock. Rich in iron oxide (gives red color).' },
+            'comp-atmo': { placed: false, order: 4, name: 'Atmosphere', class: 'atmo-glow', data: '<b>Atmosphere:</b> ~95% Carbon Dioxide. Very thin. Pressure: <1% of Earth.' },
+            'comp-ice': { placed: false, order: 5, name: 'Polar Ice Caps', class: 'ice-cap', data: '<b>Polar Ice Caps:</b> Water ice + frozen Carbon Dioxide. Seasonal behavior.' },
+            'comp-mag': { placed: false, order: 6, name: 'Magnetic Field', class: 'mag-lines-viz', data: '<b>Magnetic Field:</b> Mars once had a strong magnetic field, but today it only has localized magnetic regions.' }
+        };
+
+        let currentBuildStep = 1;
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function drag(ev) {
+            ev.dataTransfer.setData("text", ev.target.id);
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            let data = ev.dataTransfer.getData("text");
+            let layer = internalLayers[data];
+            
+            if (!layer) return;
+
+            const feedback = document.getElementById('internalFeedback');
+            const buildArea = document.getElementById('marsBuildArea');
+
+            if (layer.order === currentBuildStep) {
+                // Correct placement
+                layer.placed = true;
+                currentBuildStep++;
+                
+                if (data === 'comp-mag') {
+                    document.getElementById('mag-lines-viz').style.opacity = '1';
+                } else if (data === 'comp-ice') {
+                    // Add two ice caps
+                    addIceCap(buildArea, 'top');
+                    addIceCap(buildArea, 'bottom');
+                } else {
+                    let div = document.createElement('div');
+                    div.className = 'layer-placed ' + layer.class;
+                    buildArea.appendChild(div);
+                }
+
+                // Hide original component
+                document.getElementById(data).style.visibility = 'hidden';
+                
+                // Update Data Panel
+                updateInternalDataPanel();
+                
+                // Success Audio/Feedback
+                feedback.innerText = "✅ " + layer.name + " placed correctly!";
+                playStepVoice(data);
+
+                // Check for completion
+                if (currentBuildStep > 6) {
+                    feedback.innerText = "🎉 Mission Complete! You've built Mars!";
+                    speak("You have successfully built Mars and explored its internal structure.");
+                    showInternalChallenge();
+                }
+
+                // Remove hint
+                document.getElementById('build-hint').style.display = 'none';
+
+            } else {
+                // Wrong placement
+                feedback.innerText = "❌ Incorrect order. Build from the center out!";
+                buildArea.classList.add('shake');
+                setTimeout(() => buildArea.classList.remove('shake'), 500);
+                speak("Try building from the center out. What's at the very heart of the planet?");
+            }
+        }
+
+        function addIceCap(parent, pos) {
+            let ice = document.createElement('div');
+            ice.className = 'ice-cap';
+            if (pos === 'top') ice.style.top = '40px';
+            else ice.style.bottom = '40px';
+            parent.appendChild(ice);
+        }
+
+        function updateInternalDataPanel() {
+            const panel = document.getElementById('live-data-panel');
+            panel.innerHTML = '';
+            
+            Object.values(internalLayers).forEach(layer => {
+                if (layer.placed) {
+                    let p = document.createElement('div');
+                    p.className = 'data-point';
+                    p.innerHTML = layer.data;
+                    panel.appendChild(p);
+                }
+            });
+        }
+
+        function playStepVoice(id) {
+            if (id === 'comp-core') speak("Mars has a large iron-rich core. Unlike Earth, it does not currently generate a strong global magnetic field.");
+            if (id === 'comp-mantle') speak("The mantle transfers internal heat and powered giant volcanoes like Olympus Mons, the largest in the solar system.");
+            if (id === 'comp-crust') speak("The crust is a thick rocky shell, rich in iron oxide which gives Mars its red color.");
+            if (id === 'comp-atmo') speak("Mars’ atmosphere is thin and mostly carbon dioxide, less than one percent of Earth's pressure.");
+            if (id === 'comp-ice') speak("Polar ice caps grow and shrink with the seasons, made of water ice and frozen carbon dioxide.");
+            if (id === 'comp-mag') speak("Mars once had a strong magnetic field, but today it only has localized magnetic regions.");
+        }
+
+        function resetInternalGame() {
+            // Reset internal structure state
+            Object.keys(internalLayers).forEach(key => {
+                internalLayers[key].placed = false;
+                document.getElementById(key).style.visibility = 'visible';
+            });
+            
+            currentBuildStep = 1;
+            currentChallengeIndex = 0;
+
+            // Clear build area
+            const buildArea = document.getElementById('marsBuildArea');
+            buildArea.querySelectorAll('.layer-placed').forEach(el => el.remove());
+            buildArea.querySelectorAll('.ice-cap').forEach(el => el.remove());
+            document.getElementById('mag-lines-viz').style.opacity = '0';
+            document.getElementById('build-hint').style.display = 'block';
+
+            // Reset UI panels
+            document.getElementById('internalFeedback').innerText = "Build Mars from the inside out to understand its structure.";
+            document.getElementById('live-data-panel').innerHTML = '<p style="color: #888; font-style: italic;">Add layers to see scientific data...</p>';
+            document.getElementById('internal-challenge').style.display = 'none';
+            
+            speak("Simulation reset. Start by dragging the iron core to the center.");
+        }
+
+        let currentChallengeIndex = 0;
+        const internalChallenges = [
+            {
+                q: "Why is Mars red?",
+                opts: [
+                    { t: "Atmosphere", c: false },
+                    { t: "Iron Oxide in Crust", c: true },
+                    { t: "Hot Core", c: false }
+                ],
+                a: "Correct! Iron oxide (rust) in the crust gives Mars its red color.",
+                v: "Correct! Iron oxide in the crust gives Mars its iconic red color."
+            },
+            {
+                q: "Why is Mars cold?",
+                opts: [
+                    { t: "Far from Sun", c: false },
+                    { t: "Thin Atmosphere", c: true },
+                    { t: "No Volcanism", c: false }
+                ],
+                a: "Correct! The thin atmosphere and weak greenhouse effect cannot hold heat.",
+                v: "Exactly! The thin atmosphere cannot trap enough heat to keep the planet warm."
+            },
+            {
+                q: "Why did Mars lose its atmosphere?",
+                opts: [
+                    { t: "Weak Gravity", c: false },
+                    { t: "Weak Magnetic Field", c: true },
+                    { t: "Solar Radiation", c: false }
+                ],
+                a: "Correct! Without a strong magnetic field, solar wind stripped away the gases.",
+                v: "That's right! Without a global magnetic field, the solar wind slowly stripped away the Martian atmosphere over billions of years."
+            }
+        ];
+
+        function showInternalChallenge() {
+            if (currentChallengeIndex >= internalChallenges.length) {
+                document.getElementById('internal-challenge').innerHTML = "<div class='sci-label' style='color: #00ff00;'>All Challenges Complete!</div><p>You are now an expert on Mars' internal structure.</p>";
+                return;
+            }
+
+            const box = document.getElementById('internal-challenge');
+            const text = document.getElementById('challenge-text');
+            const opts = document.getElementById('challenge-options');
+            const challenge = internalChallenges[currentChallengeIndex];
+            
+            box.style.display = 'block';
+            text.innerText = "Challenge " + (currentChallengeIndex + 1) + ": " + challenge.q;
+            
+            opts.innerHTML = '';
+            challenge.opts.forEach(choice => {
+                let b = document.createElement('button');
+                b.className = 'challenge-btn';
+                b.innerText = choice.t;
+                b.onclick = () => {
+                    if (choice.c) {
+                        text.innerText = "✅ " + challenge.a;
+                        speak(challenge.v);
+                        currentChallengeIndex++;
+                        setTimeout(showInternalChallenge, 4000);
+                    } else {
+                        speak("Not quite. Think about the " + choice.t + " again.");
+                    }
+                };
+                opts.appendChild(b);
+            });
+        }
+
+        // Slide 6 - Mars Atmosphere Mission Logic
+        let atmoMissionPhase = 1;
+        let experimentActive = null;
+        let isRevealing = false;
+
+        const gasTargets = {
+            'co2': { name: 'CO₂', val: 95.3, color: '#e27b58', voice: "Carbon dioxide makes up over ninety-five percent of Mars’ atmosphere." },
+            'n2': { name: 'N₂', val: 2.7, color: '#64c8ff', voice: "Nitrogen forms a small but important portion of the atmosphere." },
+            'argon': { name: 'Ar', val: 1.6, color: '#a0a0b0', voice: "Argon is an inert noble gas present in measurable quantities." },
+            'o2': { name: 'O₂', val: 0.13, color: '#fff', voice: "Oxygen exists only in trace amounts and cannot support life." },
+            'cos': { name: 'CO', val: 0.08, color: '#ffb703', voice: "Carbon monoxide is a minor trace component." },
+            'h2o': { name: 'H₂O', val: 0.03, color: '#00bfff', voice: "Water vapor exists in varying trace amounts depending on seasons." },
+            'ch4': { name: 'CH₄', val: 0.001, color: '#32cd32', voice: "Methane has been detected in tiny amounts, intriguing scientists about its source." }
+        };
+
+        async function startAtmosphereReveal() {
+            if (isRevealing) return;
+            isRevealing = true;
+            document.getElementById('atmo-start-overlay').style.display = 'none';
+            
+            // Wait for welcome message to finish (approx 5.5 seconds for safety)
+            speak("Welcome to the Mars Atmosphere Mission. Adjust the gases to match the real Martian atmosphere.");
+            await new Promise(resolve => setTimeout(resolve, 5500));
+
+            // Reset state
+            const gasKeys = Object.keys(gasTargets);
+            const pieGroup = document.getElementById('pie-segments-group');
+            pieGroup.innerHTML = '';
+            
+            // Clear existing labels
+            const container = document.getElementById('pie-chart-container');
+            container.querySelectorAll('.pie-label').forEach(l => l.remove());
+
+            for (const key of gasKeys) {
+                if (!isRevealing) break; // Allow reset to interrupt
+                const target = gasTargets[key];
+                const slider = document.getElementById('slider-' + key);
+                const bar = document.getElementById('bar-' + key);
+                const group = document.getElementById('group-' + key);
+
+                group.classList.add('pulse-glow');
+                
+                // Create a promise for the voice to complete
+                const voicePromise = new Promise(resolve => {
+                    speak(target.voice, resolve);
+                });
+
+                // Animate to target value over 3000ms (medium speed)
+                const animPromise = animateValue(0, target.val, 3000, (v) => {
+                    slider.value = v;
+                    bar.style.width = (v / slider.max * 100) + '%';
+                    updateAtmoDisplay();
+                    updatePieChart(); 
+                });
+
+                // Coordinate: wait for both voice and animation to finish
+                await Promise.all([voicePromise, animPromise]);
+
+                if (!isRevealing) break; // Check again after await
+                
+                group.classList.remove('pulse-glow');
+                // Small gap between gases
+                await new Promise(resolve => setTimeout(resolve, 1200));
+            }
+
+            if (!isRevealing) return; // Don't finalize if reset happened
+
+            speak("This is the real atmospheric composition of Mars. You can now adjust the gases to experiment with the climate.");
+            unlockSliders();
+            document.getElementById('verify-atmo-btn').style.display = 'block';
+            isRevealing = false;
+        }
+
+        function animateValue(start, end, duration, callback) {
+            return new Promise(resolve => {
+                let startTimestamp = null;
+                const step = (timestamp) => {
+                    if (!startTimestamp) startTimestamp = timestamp;
+                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                    const current = start + progress * (end - start);
+                    callback(current);
+                    if (progress < 1) {
+                        window.requestAnimationFrame(step);
+                    } else {
+                        resolve();
+                    }
+                };
+                window.requestAnimationFrame(step);
+            });
+        }
+
+        function unlockSliders() {
+            Object.keys(gasTargets).forEach(key => {
+                document.getElementById('slider-' + key).disabled = false;
+            });
+        }
+
+        function resetAtmosphereMission() {
+            isRevealing = false;
+            window.speechSynthesis.cancel();
+            
+            // Show overlay
+            document.getElementById('atmo-start-overlay').style.display = 'flex';
+            
+            // Hide UI elements
+            document.getElementById('verify-atmo-btn').style.display = 'none';
+            document.getElementById('experiment-tools').style.display = 'none';
+            document.getElementById('atmo-explanation').style.display = 'none';
+            
+            // Reset state
+            atmoMissionPhase = 1;
+            experimentActive = null;
+            
+            // Reset sliders and visual state
+            Object.keys(gasTargets).forEach(key => {
+                const slider = document.getElementById('slider-' + key);
+                const bar = document.getElementById('bar-' + key);
+                const group = document.getElementById('group-' + key);
+                const targetPoint = document.querySelector(`#group-${key} .target-point`);
+                
+                slider.value = 0;
+                slider.disabled = true;
+                bar.style.width = '0%';
+                bar.className = 'gas-bar-fill';
+                group.classList.remove('pulse-glow');
+                if (targetPoint) targetPoint.classList.remove('match');
+            });
+            
+            document.getElementById('atmoFeedback').innerText = '';
+            document.getElementById('atmo-message').innerText = '';
+            
+            updateAtmoDisplay();
+            updatePieChart();
+        }
+
+        function updateAtmoInteraction(key) {
+            const slider = document.getElementById('slider-' + key);
+            const bar = document.getElementById('bar-' + key);
+            const val = parseFloat(slider.value);
+            const feedback = document.getElementById('atmoFeedback');
+            const target = gasTargets[key].val;
+            const targetPoint = document.querySelector(`#group-${key} .target-point`);
+            
+            bar.style.width = (val / slider.max * 100) + '%';
+            
+            // Toggle match class
+            if (Math.abs(val - target) < (target * 0.05 + 0.1)) {
+                targetPoint.classList.add('match');
+            } else {
+                targetPoint.classList.remove('match');
+            }
+
+            // Error Detection / Feedback Logic
+            if (key === 'o2' && val > 5) {
+                bar.className = 'gas-bar-fill status-warning';
+                feedback.innerText = "⚠️ High Oxygen Alert: This does not match Mars’ natural atmosphere.";
+                speakOnce("Oxygen exists only in trace amounts and cannot support life. This level is not realistic for Mars.");
+            } else if (key === 'co2' && val < 90) {
+                bar.className = 'gas-bar-fill status-danger';
+                feedback.innerText = "❄️ Temperature Drop: Carbon dioxide is the dominant gas on Mars.";
+                speakOnce("Carbon dioxide is the dominant gas on Mars. Lowering it weakens the greenhouse effect.");
+            } else {
+                bar.className = 'gas-bar-fill';
+                feedback.innerText = "";
+            }
+
+            updateAtmoDisplay();
+            
+            // Check Total Pressure Feedback
+            const co2 = parseFloat(document.getElementById('slider-co2').value);
+            const n2 = parseFloat(document.getElementById('slider-n2').value);
+            const argon = parseFloat(document.getElementById('slider-argon').value);
+            const o2 = parseFloat(document.getElementById('slider-o2').value);
+            const totalPct = co2 + n2 + argon; // Simplified check
+            
+            if (totalPct > 110) {
+                feedback.innerText = "🌡 Atmospheric Thicken: Increasing atmospheric mass strengthens the greenhouse effect.";
+                speakOnce("Increasing atmospheric mass strengthens the greenhouse effect and raises the temperature.");
+            }
+
+            updatePieChart();
+        }
+
+        function updateAtmoDisplay() {
+            const co2 = parseFloat(document.getElementById('slider-co2').value);
+            const n2 = parseFloat(document.getElementById('slider-n2').value);
+            const argon = parseFloat(document.getElementById('slider-argon').value);
+            const o2 = parseFloat(document.getElementById('slider-o2').value);
+            const cos = parseFloat(document.getElementById('slider-cos').value);
+            const h2o = parseFloat(document.getElementById('slider-h2o').value);
+            const ch4 = parseFloat(document.getElementById('slider-ch4').value);
+
+            document.getElementById('val-co2').innerText = co2.toFixed(1) + '%';
+            document.getElementById('val-n2').innerText = n2.toFixed(1) + '%';
+            document.getElementById('val-argon').innerText = argon.toFixed(1) + '%';
+            document.getElementById('val-o2').innerText = o2.toFixed(1) + '%';
+            document.getElementById('val-cos').innerText = cos.toFixed(2) + '%';
+            document.getElementById('val-h2o').innerText = h2o.toFixed(2) + '%';
+            document.getElementById('val-ch4').innerText = ch4.toFixed(3) + '%';
+
+            // Calculate Pressure & Temp
+            const totalPct = co2 + n2 + argon + o2 + cos + h2o + ch4;
+            let pressure = (totalPct / 100) * 6.1; 
+            if (atmoMissionPhase === 2 && experimentActive === 'thicker') pressure = 500;
+            
+            document.getElementById('gauge-pressure').innerText = pressure.toFixed(2) + ' mb';
+
+            const halo = document.getElementById('mars-halo');
+            const haloSize = 260 + (pressure / 10) * 40;
+            halo.style.width = haloSize + 'px';
+            halo.style.height = haloSize + 'px';
+            halo.style.opacity = Math.min(0.8, 0.1 + (pressure / 100));
+
+            const greenhouse = (co2 / 100) * (pressure / 6.1);
+            const ghFill = document.getElementById('fill-greenhouse');
+            const ghVal = document.getElementById('gauge-greenhouse');
+            let ghPct = Math.min(100, greenhouse * 10);
+            ghFill.style.width = ghPct + '%';
+            
+            if (ghPct < 5) { ghVal.innerText = "Very Low"; ghFill.style.background = "#64c8ff"; }
+            else if (ghPct < 30) { ghVal.innerText = "Moderate"; ghFill.style.background = "#ffd700"; }
+            else { ghVal.innerText = "Strong"; ghFill.style.background = "#ff4d00"; }
+
+            let temp = -150 + (greenhouse * 80) + (pressure / 10) * 20;
+            document.getElementById('gauge-temp').innerText = temp.toFixed(1) + '°C';
+
+            // Seasonal CO2 Freeze Indicator
+            const freezeIndicator = document.getElementById('freeze-indicator');
+            if (temp < -125) {
+                freezeIndicator.innerText = "CO₂ Freezing (Dry Ice)";
+                freezeIndicator.style.color = "#64c8ff";
+            } else {
+                freezeIndicator.innerText = "CO₂ in Gas Form";
+                freezeIndicator.style.color = "#888";
+            }
+
+            // Ice Caps
+            const iceN = document.getElementById('ice-north');
+            const iceS = document.getElementById('ice-south');
+            let iceSize = Math.max(0, 60 - (temp + 120) * 0.4);
+            iceN.style.width = iceSize + 'px';
+            iceS.style.width = iceSize + 'px';
+            iceN.style.opacity = iceSize > 0 ? 1 : 0;
+            iceS.style.opacity = iceSize > 0 ? 1 : 0;
+
+            const badge = document.getElementById('badge-breathable');
+            if (o2 >= 19 && pressure >= 500) {
+                badge.innerText = "Breathable";
+                badge.className = "status-badge status-success";
+            } else if (o2 >= 19) {
+                badge.innerText = "O₂ High (Low Pressure)";
+                badge.className = "status-badge status-warning";
+            } else {
+                badge.innerText = "Lethal";
+                badge.className = "status-badge status-danger";
+            }
+        }
+
+        function updatePieChart() {
+            const pieGroup = document.getElementById('pie-segments-group');
+            const container = document.getElementById('pie-chart-container');
+            if (!pieGroup || !container) return;
+            
+            pieGroup.innerHTML = '';
+            
+            // Remove old labels
+            container.querySelectorAll('.pie-label').forEach(l => l.remove());
+
+            const radius = 160;
+            const centerX = 180;
+            const centerY = 180;
+            const circumference = 2 * Math.PI * radius;
+            
+            let totalVal = 0;
+            const activeGases = Object.keys(gasTargets).map(key => {
+                const slider = document.getElementById('slider-' + key);
+                const val = slider ? parseFloat(slider.value) : 0;
+                totalVal += val;
+                return { key, val };
+            }).filter(g => g.val > 0);
+
+            // Calculate visual percentages (ensure trace gases are visible)
+            const minVisualPct = 1.5; // Minimum 1.5% for visibility of trace gases
+            let visualTotal = 0;
+            
+            const visualGases = activeGases.map(g => {
+                const visualPct = Math.max(g.val, minVisualPct);
+                visualTotal += visualPct;
+                return { ...g, visualPct };
+            });
+
+            // Normalize visual percentages to 100%
+            let cumulativeVisual = 0;
+            visualGases.forEach(g => {
+                const normalizedVisual = (g.visualPct / visualTotal) * 100;
+                
+                const segment = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                segment.setAttribute("cx", centerX);
+                segment.setAttribute("cy", centerY);
+                segment.setAttribute("r", radius);
+                segment.setAttribute("class", "pie-segment");
+                segment.setAttribute("stroke", gasTargets[g.key].color);
+                
+                const offset = (cumulativeVisual / 100) * circumference;
+                const length = (normalizedVisual / 100) * circumference;
+                
+                segment.setAttribute("stroke-dasharray", `${length} ${circumference}`);
+                segment.setAttribute("stroke-dashoffset", -offset);
+                segment.style.transform = "rotate(-90deg)";
+                segment.style.transformOrigin = "center";
+                
+                pieGroup.appendChild(segment);
+
+                // Add Label
+                const labelAngle = ((cumulativeVisual + normalizedVisual / 2) / 100) * 360 - 90;
+                const labelRad = (labelAngle * Math.PI) / 180;
+                const labelDist = radius + 35; 
+                
+                const lx = centerX + Math.cos(labelRad) * labelDist;
+                const ly = centerY + Math.sin(labelRad) * labelDist;
+
+                const label = document.createElement('div');
+                label.className = 'pie-label';
+                label.innerHTML = `${gasTargets[g.key].name}<br>${g.val < 0.01 ? g.val.toFixed(3) : g.val.toFixed(2)}%`;
+                label.style.left = lx + 'px';
+                label.style.top = ly + 'px';
+                label.style.transform = 'translate(-50%, -50%)';
+                
+                container.appendChild(label);
+
+                cumulativeVisual += normalizedVisual;
+            });
+        }
+
+        function checkAtmoBuild() {
+            const co2 = parseFloat(document.getElementById('slider-co2').value);
+            const n2 = parseFloat(document.getElementById('slider-n2').value);
+            const argon = parseFloat(document.getElementById('slider-argon').value);
+            
+            const isCorrect = (co2 >= 94 && co2 <= 97) && (n2 >= 2 && n2 <= 4) && (argon >= 1 && argon <= 3);
+            
+            const feedback = document.getElementById('atmoFeedback');
+            const msg = document.getElementById('atmo-message');
+
+            if (isCorrect) {
+                feedback.innerText = "✅ Excellent! You have successfully reconstructed the Martian atmosphere.";
+                feedback.style.color = "#00ff00";
+                msg.innerText = "Atmosphere Reconstructed: 6.1 mb | -60°C";
+                document.getElementById('experiment-tools').style.display = 'block';
+                document.getElementById('atmo-explanation').style.display = 'block';
+                atmoMissionPhase = 2;
+                speak("You have successfully reconstructed and analyzed the atmosphere of Mars.");
+            } else {
+                feedback.innerText = "❌ This composition does not match the real Mars.";
+                feedback.style.color = "#ff4d00";
+                speak("Try to match the target points on the sliders.");
+            }
+        }
+
+        function experimentMode(type) {
+            experimentActive = type;
+            const msg = document.getElementById('atmo-message');
+            
+            if (type === 'warmer') {
+                document.getElementById('slider-co2').value = 100;
+                updateAtmoInteraction('co2');
+                speak("Even increasing carbon dioxide cannot fully warm Mars because the atmosphere is thin.");
+                msg.innerText = "Experiment: High CO₂ (Thin Atmosphere)";
+            } else if (type === 'breathable') {
+                document.getElementById('slider-o2').value = 21;
+                updateAtmoInteraction('o2');
+                speak("Oxygen alone is not enough. The atmospheric pressure is still too low.");
+                msg.innerText = "Experiment: High Oxygen (Low Pressure)";
+            } else if (type === 'thicker') {
+                updateAtmoDisplay();
+                speak("Increasing atmospheric mass strengthens the greenhouse effect and warms the climate. Observe how atmospheric thickness affects temperature.");
+                msg.innerText = "Experiment: Thick Atmosphere Simulation";
+            }
+        }
+
+        // Slide 7 logic - Gravity Jump Lab
+        let isSlowMo = false;
+        let isJumping = false;
+
+        function toggleSlowMo() {
+            isSlowMo = !isSlowMo;
+            const btn = document.getElementById('slowMoBtn');
+            btn.innerText = `🐢 Slow Motion: ${isSlowMo ? 'ON' : 'OFF'}`;
+            btn.style.background = isSlowMo ? '#64c8ff' : '#333';
+            btn.style.color = isSlowMo ? '#000' : '#fff';
+            
+            if (isSlowMo) {
+                speak("Notice how gravity controls acceleration toward the ground.");
+            }
+        }
+
+        function gravityJump(type) {
+            if (isJumping) return;
+            isJumping = true;
+
+            const powerInput = document.getElementById('jumpPower');
+            const power = powerInput ? powerInput.value / 50 : 1;
+            const baseForce = type === 'super' ? 300 : 150;
+            const jumpForce = baseForce * power;
+
+            // Earth: g = 9.8, Mars: g = 3.7
+            animateJump('earth', jumpForce, 9.8);
+            animateJump('mars', jumpForce, 3.7);
+
+            const feedback = document.getElementById('gravityFeedback');
+            if (type === 'normal') {
+                feedback.innerText = "Normal Jump! Both astronauts push with same force.";
+            } else {
+                feedback.innerText = "SUPER JUMP! Watch them soar!";
+            }
+
+            // Show quiz after first jump
+            setTimeout(() => {
+                const quiz = document.getElementById('gravityQuiz');
+                if (quiz) quiz.style.display = 'block';
+            }, 2000);
+        }
+
+        function animateJump(planet, force, gravity) {
+            const astronaut = document.getElementById(`${planet}Astronaut`);
+            const shadow = document.getElementById(`${planet}Shadow`);
+            const dust = document.getElementById(`${planet}Dust`);
+            const heightDisplay = document.getElementById(`${planet}JumpH`);
+            const timeDisplay = document.getElementById(`${planet}Time`);
+
+            if (!astronaut || !shadow) return;
+            
+            // Real physics calculations (approximated)
+            const v0 = force / 10;
+            const maxHeight = (v0 * v0) / (2 * gravity);
+            const airTime = (2 * v0) / gravity;
+
+            // Update stats display
+            if (heightDisplay) heightDisplay.innerText = `${maxHeight.toFixed(2)}m`;
+            if (timeDisplay) timeDisplay.innerText = `${airTime.toFixed(2)}s`;
+
+            // Voice feedback
+            if (planet === 'earth') {
+                setTimeout(() => speak("Earth’s strong gravity pulls objects down quickly."), 100);
+            } else {
+                setTimeout(() => speak("Mars’ weaker gravity allows longer jumps."), 1000);
+            }
+
+            // Animation
+            const duration = airTime * (isSlowMo ? 2000 : 1000);
+            const peakHeight = maxHeight * 10; // Pixels
+
+            // Jump UP
+            astronaut.style.transition = `bottom ${duration/2}ms ease-out`;
+            shadow.style.transition = `width ${duration/2}ms ease-out, opacity ${duration/2}ms ease-out`;
+            
+            astronaut.style.bottom = `${peakHeight}px`;
+            shadow.style.width = '20px';
+            shadow.style.opacity = '0.3';
+
+            // Fall DOWN
+            setTimeout(() => {
+                astronaut.style.transition = `bottom ${duration/2}ms ease-in`;
+                shadow.style.transition = `width ${duration/2}ms ease-in, opacity ${duration/2}ms ease-in`;
+                
+                astronaut.style.bottom = '0px';
+                shadow.style.width = '40px';
+                shadow.style.opacity = '0.5';
+
+                // Landing impact
+                setTimeout(() => {
+                    if (dust) {
+                        dust.style.width = planet === 'earth' ? '40px' : '80px';
+                        dust.style.height = planet === 'earth' ? '10px' : '20px';
+                        dust.style.opacity = '0.8';
+                        dust.style.transition = 'none';
+                        
+                        setTimeout(() => {
+                            dust.style.transition = 'all 1s ease-out';
+                            dust.style.width = planet === 'earth' ? '60px' : '150px';
+                            dust.style.opacity = '0';
+                        }, 50);
+                    }
+
+                    if (planet === 'mars') {
+                        isJumping = false;
+                        speak("Mars gravity is only about thirty-eight percent of Earth’s.");
+                    }
+                }, duration/2);
+            }, duration/2);
+        }
+
+        function checkGravityQuiz(isCorrect) {
+            const feedback = document.getElementById('gravityFeedback');
+            if (isCorrect) {
+                feedback.innerText = "✅ Correct! Lower gravity means less weight. You've unlocked the 'Gravity Explorer' badge!";
+                feedback.style.color = "#00ff00";
+                speak("You have discovered how gravity changes motion on different planets.");
+            } else {
+                feedback.innerText = "❌ Not quite. Gravity depends on the planet's mass and size.";
+                feedback.style.color = "#ff4d00";
+            }
+        }
+
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            for (let i = 0; i < 150; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+        createStars();
+        showSlide(1);
+    </script>
+</body>
+</html>

@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission Uranus - The Sideways Ice Giant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
+        .mission-container { min-height: 100vh; position: relative; z-index: 2; padding-bottom: 50px; }
+        .slide-wrapper { display: none; padding: 40px 20px; max-width: 1200px; margin: 0 auto; min-height: 100vh; animation: slideIn 0.5s ease-in-out; }
+        .slide-wrapper.active { display: block; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .slide-header { text-align: center; margin-bottom: 30px; }
+        .slide-number { font-size: 14px; color: #64c8ff; font-weight: bold; margin-bottom: 10px; }
+        .slide-title { font-size: 36px; color: #ffffff; margin-bottom: 15px; background: linear-gradient(135deg, #64c8ff 0%, #a2d2ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .narration-box { background: rgba(100, 200, 255, 0.1); border-left: 4px solid #64c8ff; padding: 15px; margin-bottom: 25px; border-radius: 8px; font-size: 18px; line-height: 1.6; backdrop-filter: blur(10px); }
+        .speaker-icon { color: #64c8ff; font-weight: bold; margin-right: 10px; }
+        
+        .interactive-area { background: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 12px; border: 1px solid #444; margin-bottom: 25px; position: relative; overflow: hidden; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        
+        .navigation { display: flex; justify-content: space-between; gap: 15px; margin-top: 30px; }
+        .btn-nav { flex: 1; padding: 12px; font-size: 14px; border: 2px solid; border-radius: 8px; cursor: pointer; transition: all 0.3s; font-weight: bold; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; }
+        .btn-prev { border-color: #64c8ff; color: #64c8ff; background: transparent; }
+        .btn-next { border-color: #a2d2ff; color: #a2d2ff; background: transparent; }
+        .btn-next:disabled { border-color: #555; color: #555; cursor: not-allowed; }
+        
+        .btn-start { padding: 15px 40px; font-size: 24px; background: #64c8ff; color: #fff; border: none; border-radius: 30px; cursor: pointer; transition: transform 0.2s; font-weight: bold; box-shadow: 0 0 20px rgba(100, 200, 255, 0.5); }
+        .btn-start:hover { transform: scale(1.1); }
+
+        /* Uranus Visuals */
+        .uranus-realistic { width: 300px; height: 300px; position: relative; display: flex; align-items: center; justify-content: center; }
+        .uranus-planet { width: 180px; height: 180px; background: radial-gradient(circle at 30% 30%, #ace5ee, #6fb1be 60%, #4a8d9a); border-radius: 50%; position: relative; box-shadow: inset -10px -10px 40px rgba(0,0,0,0.6), 0 0 20px rgba(172, 229, 238, 0.3); z-index: 2; transition: transform 0.5s; animation: rotateSideways 20s linear infinite; }
+        @keyframes rotateSideways { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(20deg); } }
+        /* Note: Since it's a solid gradient, we simulate rotation with a slight hue shift or we could use a texture. For now, let's keep it simple as requested. */
+        .uranus-rings { width: 280px; height: 2px; background: rgba(255, 255, 255, 0.1); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1; box-shadow: 0 0 5px rgba(255, 255, 255, 0.2); }
+        
+        /* Slide 1: Orbit */
+        .orbit-container { position: relative; width: 100%; height: 600px; }
+        .sun-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: radial-gradient(circle, #fff700, #ff8c00); border-radius: 50%; box-shadow: 0 0 50px #ff8c00; }
+        .orbit-ring { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; transition: all 0.3s; }
+        .orbit-label { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 10px; pointer-events: none; opacity: 0.6; width: 100%; text-align: center; }
+        .draggable-uranus { width: 30px; height: 30px; background: radial-gradient(circle at 30% 30%, #ace5ee, #6fb1be); border-radius: 50%; position: absolute; cursor: move; z-index: 10; box-shadow: 0 0 15px #ace5ee; }
+        
+        .revolving {
+            animation: revolve 30s linear infinite;
+            pointer-events: none;
+        }
+        @keyframes revolve {
+            from { transform: translate(-50%, -50%) rotate(0deg) translateY(-220px) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg) translateY(-220px) rotate(-360deg); }
+        }
+
+        /* Slide 2: Tilt */
+        .tilt-comparison { display: flex; gap: 100px; align-items: center; }
+        .planet-container { text-align: center; }
+        .axis-line { position: absolute; width: 2px; height: 240px; background: rgba(255,255,255,0.5); top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 0; }
+        
+        /* Slide 3: Ultra-Realistic Seasons */
+        .observatory-mode { display: flex; width: 100%; gap: 20px; min-height: 450px; margin-top: 10px; }
+        .side-panel { flex: 1; background: rgba(0,0,0,0.4); border: 1px solid #444; border-radius: 12px; padding: 15px; position: relative; display: flex; flex-direction: column; align-items: center; backdrop-filter: blur(5px); }
+        .planet-view { position: relative; width: 180px; height: 180px; margin: 30px 0; display: flex; align-items: center; justify-content: center; }
+        .ray-container { position: absolute; top: 0; left: -100px; width: 200px; height: 100%; pointer-events: none; z-index: 5; display: flex; flex-direction: column; justify-content: space-around; }
+        .sun-ray { position: relative; height: 2px; background: linear-gradient(to right, rgba(255, 247, 0, 0.8), transparent); width: 120px; }
+        .ray-arrow { position: absolute; right: 0; top: -4px; width: 0; height: 0; border-left: 8px solid rgba(255, 247, 0, 0.8); border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+        
+        .earth-planet { width: 100px; height: 100px; background: radial-gradient(circle at 30% 30%, #4b9cd3, #1a2a6c); border-radius: 50%; position: relative; transition: all 1s ease-in-out; box-shadow: inset -5px -5px 20px rgba(0,0,0,0.8); }
+        .uranus-planet-s3 { width: 100px; height: 100px; background: radial-gradient(circle at 30% 30%, #ace5ee, #6fb1be); border-radius: 50%; position: relative; transition: all 1s ease-in-out; box-shadow: inset -5px -5px 20px rgba(0,0,0,0.8); }
+        
+        .terminator { position: absolute; width: 100%; height: 100%; border-radius: 50%; background: linear-gradient(to right, transparent 50%, rgba(0,0,0,0.7) 50%); pointer-events: none; z-index: 3; transition: transform 1s; }
+        .axis-line-s3 { position: absolute; width: 2px; height: 140px; background: rgba(255,255,255,0.4); z-index: 1; transition: transform 1s; }
+        
+        .intensity-meter { width: 100%; background: #222; height: 12px; border-radius: 6px; margin-top: 8px; overflow: hidden; position: relative; border: 1px solid #444; }
+        .intensity-fill { height: 100%; background: linear-gradient(to right, #ff8c00, #fff700); transition: width 1s; }
+        
+        .comparison-table { width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 13px; color: #eee; }
+        .comparison-table th, .comparison-table td { border: 1px solid #333; padding: 6px; text-align: center; }
+        .comparison-table th { background: rgba(100, 200, 255, 0.1); color: #64c8ff; }
+
+        /* Slide 4: Advanced Composition Lab */
+        .lab-container { display: flex; width: 100%; gap: 20px; min-height: 500px; margin-top: 10px; }
+        .lab-main { flex: 2; background: rgba(0,10,20,0.6); border: 1px solid #1a4a6e; border-radius: 15px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 0 30px rgba(100, 200, 255, 0.1); }
+        .lab-side { flex: 1; display: flex; flex-direction: column; gap: 15px; }
+        
+        .uranus-lab-viz { width: 320px; height: 320px; position: relative; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #001a33, #000); }
+        .lab-layer { position: absolute; border-radius: 50%; transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .lab-layer-atmosphere { width: 100%; height: 100%; border: 1px solid rgba(172, 229, 238, 0.3); z-index: 5; background: transparent; }
+        .lab-layer-mantle { width: 0%; height: 0%; background: radial-gradient(circle, #4a8d9a, #1a4a6e); z-index: 4; border: 1px dashed rgba(255,255,255,0.1); opacity: 0; }
+        .lab-layer-core { width: 0%; height: 0%; background: radial-gradient(circle, #555, #222, #000); z-index: 3; border: 1px solid #444; opacity: 0; box-shadow: 0 0 20px rgba(255, 80, 0, 0.2); }
+        
+        .material-storage { background: rgba(0,20,40,0.8); border: 1px solid #1a4a6e; border-radius: 12px; padding: 15px; height: 100%; }
+        .material-item { background: rgba(100, 200, 255, 0.1); border: 1px solid #3498db; border-radius: 8px; padding: 10px; margin-bottom: 10px; cursor: grab; transition: all 0.3s; }
+        .material-item:hover { background: rgba(100, 200, 255, 0.2); border-color: #64c8ff; transform: translateX(5px); }
+        .material-item h4 { font-size: 14px; margin-bottom: 2px; color: #64c8ff; }
+        .material-item p { font-size: 10px; color: #aaa; margin: 0; }
+        
+        .lab-gauges { position: absolute; bottom: 20px; left: 20px; right: 20px; display: flex; justify-content: space-around; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 10px; border: 1px solid #1a4a6e; }
+        .gauge-box { text-align: center; }
+        .gauge-label { font-size: 10px; color: #64c8ff; text-transform: uppercase; margin-bottom: 2px; }
+        .gauge-value { font-size: 14px; font-family: monospace; color: #fff; }
+        
+        .spectrum-box { position: absolute; top: 20px; right: 20px; width: 150px; background: rgba(0,0,0,0.7); border: 1px solid #1a4a6e; padding: 10px; border-radius: 8px; font-size: 10px; }
+        .spectrum-beam { height: 4px; width: 100%; background: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet); margin: 5px 0; border-radius: 2px; }
+        .spectrum-arrow { height: 15px; width: 2px; background: #fff; position: absolute; top: 5px; transition: left 0.5s; }
+
+        /* Slide 5: Wind */
+        .storm-container { width: 100%; height: 400px; background: linear-gradient(to right, #2c3e50, #000); overflow: hidden; position: relative; }
+        .wind-streak { position: absolute; height: 2px; background: rgba(255,255,255,0.2); animation: windMove linear infinite; }
+        @keyframes windMove { from { left: -100px; } to { left: 100%; } }
+        .protection-options { display: flex; gap: 20px; margin-top: 20px; }
+        .suit-card { padding: 20px; border: 2px solid #444; border-radius: 10px; cursor: pointer; text-align: center; width: 150px; transition: all 0.3s; }
+        .suit-card:hover { border-color: #64c8ff; }
+        .suit-card.selected { border-color: #64c8ff; background: rgba(100, 200, 255, 0.2); }
+
+        /* Slide 6: Rings */
+        .ring-discovery { position: relative; width: 400px; height: 400px; }
+        .infrared-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 0, 0, 0.1); display: none; pointer-events: none; }
+        .hidden-rings { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 350px; height: 5px; border: 2px solid rgba(255,255,255,0.05); border-radius: 50%; transition: all 0.3s; }
+        
+        /* Slide 7: Moons */
+        .moon-system { position: relative; width: 500px; height: 500px; }
+        .moon { position: absolute; border-radius: 50%; cursor: pointer; transition: transform 0.3s; }
+        .moon:hover { transform: scale(1.5); box-shadow: 0 0 10px #fff; }
+
+        /* Slide 7: Moon Mission Control */
+        .mission-control { display: flex; width: 100%; gap: 20px; min-height: 550px; position: relative; }
+        .orbit-viz { flex: 2; background: #000; border: 1px solid #1a4a6e; border-radius: 15px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .control-side { flex: 1; display: flex; flex-direction: column; gap: 15px; }
+        
+        .moon-orbit-line { position: absolute; border: 1px solid rgba(100, 200, 255, 0.1); border-radius: 50%; transform: rotateX(75deg); pointer-events: none; }
+        .moon-orbit-wrapper { position: absolute; width: 100%; height: 100%; transform: rotateX(75deg); pointer-events: none; }
+        .moon-node { position: absolute; width: 8px; height: 8px; background: #fff; border-radius: 50%; cursor: pointer; z-index: 10; box-shadow: 0 0 10px #fff; transition: transform 0.3s; pointer-events: auto; }
+        .moon-node:hover { transform: scale(2); box-shadow: 0 0 20px #64c8ff; }
+        
+        .orbit-animation { position: absolute; width: 100%; height: 100%; animation: moonRotate linear infinite; }
+        @keyframes moonRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .moon-label { position: absolute; color: #64c8ff; font-size: 11px; font-weight: bold; pointer-events: none; white-space: nowrap; display: block; background: rgba(0,0,0,0.5); padding: 2px 5px; border-radius: 4px; z-index: 15; animation: counterRotate linear infinite; }
+        @keyframes counterRotate { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+        
+        .radar-grid { position: absolute; width: 100%; height: 100%; background: repeating-radial-gradient(circle, transparent, transparent 49px, rgba(0, 255, 100, 0.05) 50px); pointer-events: none; display: none; z-index: 5; }
+        .radar-line { position: absolute; width: 50%; height: 1px; background: linear-gradient(to right, transparent, rgba(0, 255, 100, 0.5)); top: 50%; left: 50%; transform-origin: left; animation: radarScan 4s linear infinite; display: none; }
+        @keyframes radarScan { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
+        .probe-view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 20; display: none; flex-direction: column; align-items: center; justify-content: center; animation: zoomIn 0.5s ease-out; }
+        @keyframes zoomIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        .surface-container { width: 300px; height: 300px; border-radius: 50%; position: relative; overflow: hidden; border: 4px solid #333; box-shadow: 0 0 50px rgba(0,0,0,1); }
+        .surface-texture { width: 200%; height: 100%; position: absolute; background-size: cover; animation: surfaceScroll 20s linear infinite; }
+        @keyframes surfaceScroll { from { left: 0; } to { left: -100%; } }
+        
+        .moon-data-card { background: rgba(0, 20, 40, 0.9); border: 1px solid #1a4a6e; border-radius: 12px; padding: 15px; font-size: 13px; }
+        .data-row { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px dashed #224466; padding-bottom: 2px; }
+        .data-label { color: #64c8ff; font-weight: bold; }
+        
+        .tool-panel { background: rgba(100, 200, 255, 0.1); border: 1px solid #64c8ff; padding: 10px; border-radius: 8px; margin-top: 10px; }
+        
+        .literature-note { font-style: italic; font-size: 11px; color: #a2d2ff; margin-top: 10px; border-left: 2px solid #64c8ff; padding-left: 10px; }
+
+        .fact-panel { background: rgba(100, 200, 255, 0.2); padding: 15px; border-radius: 10px; border: 1px solid #64c8ff; margin-top: 15px; display: none; width: 100%; }
+        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(1px 1px at 20px 30px, #fff, transparent), radial-gradient(1px 1px at 40px 70px, #fff, transparent), radial-gradient(1px 1px at 50px 160px, #fff, transparent); background-size: 200px 200px; }
+    </style>
+</head>
+<body>
+    <div class="stars-bg"></div>
+    <div class="mission-container">
+        <nav class="navbar" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 40px; background: rgba(0, 0, 0, 0.7); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+            <div class="navbar-brand">🚀 Uranus Explorer Mission</div>
+            <div class="navbar-right">
+                <a href="{{ url_for('dashboard') }}" class="btn-logout" style="margin-right: 10px; text-decoration: none; color: #fff; border: 1px solid #fff; padding: 5px 15px; border-radius: 20px;">Dashboard</a>
+                <a href="{{ url_for('game_zone') }}" class="btn-logout" style="text-decoration: none; color: #fff; border: 1px solid #fff; padding: 5px 15px; border-radius: 20px;">Exit</a>
+            </div>
+        </nav>
+        <!-- Progress Bar -->
+        <div style="position: fixed; top: 0; width: 100%; height: 6px; background: #222; z-index: 100;">
+            <div id="progressFill" style="width: 0%; height: 100%; background: #64c8ff; transition: width 0.5s;"></div>
+        </div>
+
+        <!-- Start Screen -->
+        <div class="slide-wrapper active" id="slide0">
+            <div class="slide-header">
+                <h1 class="slide-title" style="font-size: 48px;">🟢 MISSION URANUS</h1>
+                <p style="color: #64c8ff; font-weight: bold; letter-spacing: 2px;">THE SIDEWAYS ICE GIANT</p>
+            </div>
+            <div class="interactive-area">
+                <div class="uranus-realistic" id="introUranus">
+                    <div class="uranus-planet"></div>
+                    <div class="uranus-rings" style="transform: translate(-50%, -50%) rotate(98deg);"></div>
+                </div>
+                <div style="margin-top: 30px; text-align: center;">
+                    <div class="narration-box" id="narration0" style="max-width: 600px;">
+                        <span class="speaker-icon">🎤 AI Voice:</span> Welcome, explorer. Uranus is an ice giant that spins on its side. It has extreme seasons, powerful winds, and faint rings. In this mission, you will explore its orbit, tilt, icy composition, storms, and moons. Complete all tasks to finish Mission Uranus.
+                    </div>
+                    <button class="btn-start" onclick="startMission()">🚀 Start Mission</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 1: Orbit Placement -->
+        <div class="slide-wrapper" id="slide1">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 1 – Orbit Placement Challenge</div>
+                <h1 class="slide-title">🎯 Place Uranus in the Correct Orbit</h1>
+            </div>
+            <div class="narration-box" id="narration1">
+                <span class="speaker-icon">🎤 AI Voice:</span> Count the planets from the Sun and drag Uranus to the correct orbit.
+            </div>
+            <div class="interactive-area">
+                <div class="orbit-container" id="orbitArea">
+                    <div class="sun-center" id="sunCenter"></div>
+                    <div class="orbit-ring" style="width: 80px; height: 80px;" data-orbit="1"><span class="orbit-label">Orbit 1</span></div>
+                    <div class="orbit-ring" style="width: 140px; height: 140px;" data-orbit="2"><span class="orbit-label">Orbit 2</span></div>
+                    <div class="orbit-ring" style="width: 200px; height: 200px;" data-orbit="3"><span class="orbit-label">Orbit 3</span></div>
+                    <div class="orbit-ring" style="width: 260px; height: 260px;" data-orbit="4"><span class="orbit-label">Orbit 4</span></div>
+                    <div class="orbit-ring" style="width: 320px; height: 320px;" data-orbit="5"><span class="orbit-label">Orbit 5</span></div>
+                    <div class="orbit-ring" style="width: 380px; height: 380px;" data-orbit="6"><span class="orbit-label">Orbit 6</span></div>
+                    <div class="orbit-ring" style="width: 440px; height: 440px; border-style: dashed; border-color: rgba(100, 200, 255, 0.8);" data-orbit="7" id="targetOrbit" data-radius="220"><span class="orbit-label" style="color: #64c8ff;">Orbit 7 (Target)</span></div>
+                    <div class="orbit-ring" style="width: 500px; height: 500px;" data-orbit="8"><span class="orbit-label">Orbit 8</span></div>
+                    <div class="orbit-ring" style="width: 560px; height: 560px;" data-orbit="9"><span class="orbit-label">Orbit 9</span></div>
+                    
+                    <div class="draggable-uranus" id="dragUranus" draggable="true" style="bottom: 10px; left: 10px;"></div>
+                </div>
+                <div class="fact-panel" id="fact1">
+                    Excellent. Uranus is the seventh planet from the Sun. It travels very far from the Sun and receives little heat.<br>
+                    <strong>Average distance: 2.9 billion km</strong>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="next1" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 2: Tilt -->
+        <div class="slide-wrapper" id="slide2">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 2 – The Sideways Planet Simulation</div>
+                <h1 class="slide-title">🎯 Why Is Uranus Tilted?</h1>
+            </div>
+            <div class="narration-box" id="narration2">
+                <span class="speaker-icon">🎤 AI Guide:</span> Unlike Earth, Uranus rotates on its side. Its tilt is about ninety-eight degrees. Scientists believe a giant collision long ago caused this unusual position.
+            </div>
+            <div class="interactive-area">
+                <div class="tilt-comparison">
+                    <div class="planet-container">
+                        <div style="position: relative; width: 200px; height: 200px;">
+                            <div class="axis-line" style="transform: translate(-50%, -50%) rotate(23.5deg);"></div>
+                            <div class="uranus-planet" style="width: 120px; height: 120px; margin: 40px auto; background: #4b9cd3; transform: rotate(23.5deg);"></div>
+                        </div>
+                        <p>Earth (23.5°)</p>
+                    </div>
+                    <div class="planet-container">
+                        <div style="position: relative; width: 200px; height: 200px;">
+                            <div class="axis-line" id="uranusAxis" style="transform: translate(-50%, -50%) rotate(0deg);"></div>
+                            <div class="uranus-planet" id="interactiveUranus" style="width: 120px; height: 120px; margin: 40px auto;"></div>
+                        </div>
+                        <p>Uranus Tilt: <span id="tiltVal">0</span>°</p>
+                    </div>
+                </div>
+                <div style="margin-top: 30px; width: 100%; max-width: 400px;">
+                    <input type="range" min="0" max="98" value="0" id="tiltSlider" style="width: 100%;">
+                    <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px;">
+                        <span>0° (Upright)</span>
+                        <span>23.5° (Earth)</span>
+                        <span>98° (Uranus)</span>
+                    </div>
+                </div>
+                
+                <div id="tiltQuiz" style="display: none; margin-top: 20px; text-align: center;">
+                    <p style="margin-bottom: 15px;">🧠 Mini Question: Which planet rotates sideways?</p>
+                    <button class="btn-nav" style="display: inline-block; width: auto; padding: 10px 30px;" onclick="checkTiltQuiz('uranus')">Uranus</button>
+                    <button class="btn-nav" style="display: inline-block; width: auto; padding: 10px 30px; margin-left: 10px;" onclick="checkTiltQuiz('earth')">Earth</button>
+                </div>
+
+                <div class="fact-panel" id="fact2">
+                    Scientists believe a giant collision long ago caused this unusual position.
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="next2" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 3: Seasons (Ultra-Realistic) -->
+        <div class="slide-wrapper" id="slide3">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 3 – EXTREME SEASONS SIMULATION (ULTRA-REALISTIC)</div>
+                <h1 class="slide-title">🎯 21-Year Daylight vs 6-Month Daylight</h1>
+            </div>
+            <div class="narration-box" id="narration3">
+                <span class="speaker-icon">🎤 AI Voice:</span> Compare how sunlight hits Earth and Uranus. Use the buttons to view different poles or advance the orbit to see how the seasons change over time. Notice the direct hit on Uranus' poles!
+            </div>
+            <div class="interactive-area">
+                <div class="observatory-mode">
+                    <!-- Earth Panel -->
+                    <div class="side-panel">
+                        <h3 style="color: #64c8ff; font-size: 16px;">🌍 EARTH (23.5° Tilt)</h3>
+                        <div class="planet-view">
+                            <div class="axis-line-s3" id="earthAxisS3" style="transform: rotate(23.5deg);"></div>
+                            <div class="earth-planet" id="earthS3" style="transform: rotate(23.5deg);">
+                                <div class="terminator" id="earthTerminator"></div>
+                            </div>
+                            <div class="ray-container" id="earthRays"></div>
+                        </div>
+                        <div style="text-align: left; width: 100%; border-top: 1px solid #333; padding-top: 10px;">
+                            <div style="font-size: 14px;">Time: <span id="earthTime" style="color: #64c8ff;">Month 1</span></div>
+                            <div class="intensity-meter">
+                                <div class="intensity-fill" id="earthIntensity" style="width: 60%;"></div>
+                            </div>
+                            <div style="font-size: 12px; margin-top: 5px;">☀ Light Intensity: <span id="earthIntensityVal">Moderate</span></div>
+                            <div style="font-size: 12px;">Daylight: 6 months (Polar)</div>
+                        </div>
+                    </div>
+
+                    <!-- Uranus Panel -->
+                    <div class="side-panel">
+                        <h3 style="color: #ace5ee; font-size: 16px;">🪐 URANUS (98° Tilt)</h3>
+                        <div class="planet-view">
+                            <div class="axis-line-s3" id="uranusAxisS3" style="transform: rotate(98deg);"></div>
+                            <div class="uranus-planet-s3" id="uranusS3" style="transform: rotate(98deg);">
+                                <div class="terminator" id="uranusTerminator"></div>
+                            </div>
+                            <div class="ray-container" id="uranusRays"></div>
+                        </div>
+                        <div style="text-align: left; width: 100%; border-top: 1px solid #333; padding-top: 10px;">
+                            <div style="font-size: 14px;">Time: <span id="uranusTime" style="color: #ace5ee;">Year 1</span></div>
+                            <div class="intensity-meter">
+                                <div class="intensity-fill" id="uranusIntensity" style="width: 30%;"></div>
+                            </div>
+                            <div style="font-size: 12px; margin-top: 5px;">☀ Light Intensity: <span id="uranusIntensityVal">Weak but Constant</span></div>
+                            <div style="font-size: 12px;">Daylight: 21 years (Polar)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px; justify-content: center; flex-wrap: wrap;">
+                    <button class="btn-nav" style="width: auto; padding: 10px 15px;" onclick="setPoleView('north')">🔵 View North Pole</button>
+                    <button class="btn-nav" style="width: auto; padding: 10px 15px;" onclick="setPoleView('south')">🟢 View South Pole</button>
+                    <button class="btn-nav" style="width: auto; padding: 10px 15px;" onclick="advanceOrbitS3()">🟡 Advance Orbit</button>
+                </div>
+
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Earth</th>
+                            <th>Uranus</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Tilt</td>
+                            <td>23.5°</td>
+                            <td>98°</td>
+                        </tr>
+                        <tr>
+                            <td>Orbit Time</td>
+                            <td>1 year</td>
+                            <td>84 years</td>
+                        </tr>
+                        <tr>
+                            <td>Polar Daylight</td>
+                            <td>6 months</td>
+                            <td>21 years</td>
+                        </tr>
+                        <tr>
+                            <td>Polar Darkness</td>
+                            <td>6 months</td>
+                            <td>21 years</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="fact-panel" id="fact3" style="display: block; margin-top: 20px;">
+                    Uranus' sideways tilt means its poles face the sun directly for 21 years at a time, creating the most extreme seasons in the solar system!
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="next3" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 4: Advanced Composition Lab -->
+        <div class="slide-wrapper" id="slide4">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 4 – ICE GIANT COMPOSITION BUILDER (ADVANCED REALISTIC)</div>
+                <h1 class="slide-title">🎯 Build the Interior of Uranus</h1>
+            </div>
+            <div class="narration-box" id="narration4">
+                <span class="speaker-icon">🎤 AI Voice:</span> Build Uranus layer by layer. Start with the Atmosphere, then the Icy Mantle, and finally the Rocky Core. Drag materials from the storage into the planet!
+            </div>
+            <div class="interactive-area">
+                <div class="lab-container">
+                    <!-- Main Simulation Area -->
+                    <div class="lab-main" ondragover="allowDrop(event)" ondrop="dropToLab(event)">
+                        <div class="uranus-lab-viz" id="uranusLabViz">
+                            <div class="lab-layer lab-layer-atmosphere" id="layerAtm">
+                                <div id="stormStreaksS4" style="position: absolute; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle, transparent 70%, rgba(255,255,255,0.05) 100%);"></div>
+                            </div>
+                            <div class="lab-layer lab-layer-mantle" id="layerMantle"></div>
+                            <div class="lab-layer lab-layer-core" id="layerCore"></div>
+                        </div>
+
+                        <div class="spectrum-box">
+                            <div style="margin-bottom: 5px;">Absorption Spectrum</div>
+                            <div class="spectrum-beam"></div>
+                            <div style="position: relative; height: 20px;">
+                                <div class="spectrum-arrow" id="spectrumArrow" style="left: 50%;"></div>
+                            </div>
+                            <div id="spectrumText" style="text-align: center; color: #64c8ff;">Reflecting Blue-Green</div>
+                        </div>
+
+                        <div class="lab-gauges">
+                            <div class="gauge-box">
+                                <div class="gauge-label">Pressure</div>
+                                <div class="gauge-value" id="gaugePressure">1 atm</div>
+                            </div>
+                            <div class="gauge-box">
+                                <div class="gauge-label">Temperature</div>
+                                <div class="gauge-value" id="gaugeTemp">-224°C</div>
+                            </div>
+                            <div class="gauge-box">
+                                <div class="gauge-label">Mass</div>
+                                <div class="gauge-value" id="gaugeMass">0.1x Earth</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Material Storage Panel -->
+                    <div class="lab-side">
+                        <div class="material-storage">
+                            <h3 style="color: #64c8ff; font-size: 16px; margin-bottom: 15px; border-bottom: 1px solid #1a4a6e; padding-bottom: 5px;">📦 MATERIAL STORAGE</h3>
+                            <div class="material-item" draggable="true" ondragstart="dragS4(event, 'gas', 'Hydrogen & Helium')">
+                                <h4>☁ Hydrogen & Helium</h4>
+                                <p>H₂ / He | Gas | -250°C</p>
+                                <p>Essential for Atmosphere</p>
+                            </div>
+                            <div class="material-item" draggable="true" ondragstart="dragS4(event, 'methane', 'Methane')">
+                                <h4>🌫 Methane</h4>
+                                <p>CH₄ | Gas/Ice | -180°C</p>
+                                <p>Controls Color & Light</p>
+                            </div>
+                            <div class="material-item" draggable="true" ondragstart="dragS4(event, 'ice', 'Water & Ammonia')">
+                                <h4>💧 Water & Ammonia</h4>
+                                <p>H₂O / NH₃ | High Pressure Fluid</p>
+                                <p>Main bulk of Ice Giants</p>
+                            </div>
+                            <div class="material-item" draggable="true" ondragstart="dragS4(event, 'rock', 'Silicate & Iron')">
+                                <h4>🪨 Rock & Metal</h4>
+                                <p>Silicates / Fe / Ni | Solid</p>
+                                <p>For the central core</p>
+                            </div>
+                        </div>
+                        
+                        <div id="labFeedback" style="background: rgba(100, 200, 255, 0.1); border: 1px solid #64c8ff; padding: 10px; border-radius: 8px; font-size: 12px; color: #fff;">
+                            Status: Ready to build. Add Atmosphere materials first.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fact-panel" id="fact4" style="margin-top: 15px;">
+                    Uranus is an ice giant because most of its interior is a hot, dense mixture of water, ammonia, and methane fluids.
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="next4" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 5: Wind -->
+        <div class="slide-wrapper" id="slide5">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 5 – Wind Speed Challenge</div>
+                <h1 class="slide-title">🎯 Survive the Winds</h1>
+            </div>
+            <div class="narration-box" id="narration5">
+                <span class="speaker-icon">🎤 AI Voice:</span> Uranus has powerful winds reaching nine hundred kilometers per hour. Choose the correct protection to survive.
+            </div>
+            <div class="interactive-area">
+                <div class="storm-container" id="stormBox">
+                    <div id="explorerChar" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 50px; z-index: 5;">👨‍🚀</div>
+                    <div id="windSpeedMeter" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #ff4444; color: #ff4444; font-family: monospace;">WIND: 0 km/h</div>
+                </div>
+                <div class="protection-options">
+                    <div class="suit-card" onclick="chooseProtection('suit')">
+                        <div style="font-size: 30px;">👕</div>
+                        <p>Basic Suit</p>
+                    </div>
+                    <div class="suit-card" onclick="chooseProtection('pod')">
+                        <div style="font-size: 30px;">🛸</div>
+                        <p>Storm Shield Pod</p>
+                    </div>
+                </div>
+                <div class="fact-panel" id="fact5">
+                    Excellent choice! The Storm Shield Pod kept you stable against 900 km/h winds.
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="next5" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 6: Rings -->
+        <div class="slide-wrapper" id="slide6">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 6 – Ring Discovery Game</div>
+                <h1 class="slide-title">🎯 Find the Hidden Rings</h1>
+            </div>
+            <div class="narration-box" id="narration6">
+                <span class="speaker-icon">🎤 AI Voice:</span> Uranus has faint, narrow rings. They are darker and harder to see than Saturn’s rings. Switch to Infrared View to find them.
+            </div>
+            <div class="interactive-area">
+                <div class="ring-discovery" id="ringBox">
+                    <div class="uranus-planet" style="width: 150px; height: 150px;"></div>
+                    <div class="hidden-rings" id="rings1" style="width: 250px;"></div>
+                    <div class="hidden-rings" id="rings2" style="width: 300px;"></div>
+                    <div class="hidden-rings" id="rings3" style="width: 350px;"></div>
+                    <div class="infrared-overlay" id="irOverlay"></div>
+                </div>
+                <div style="display: flex; gap: 20px; margin-top: 20px;">
+                    <button class="btn-nav" id="btnNormal" onclick="toggleView('normal')">Normal View</button>
+                    <button class="btn-nav" id="btnIR" onclick="toggleView('ir')">Infrared View</button>
+                </div>
+                
+                <div id="ringQuiz" style="display: none; margin-top: 20px; text-align: center;">
+                    <p style="margin-bottom: 15px;">🧠 Mini Quiz: How many giant planets have rings?</p>
+                    <button class="btn-nav" style="display: inline-block; width: auto; padding: 10px 20px;" onclick="checkRingQuiz(1)">Only Saturn</button>
+                    <button class="btn-nav" style="display: inline-block; width: auto; padding: 10px 20px; margin-left: 10px;" onclick="checkRingQuiz(4)">Jupiter, Saturn, Uranus, Neptune</button>
+                </div>
+
+                <div class="fact-panel" id="fact6">
+                    Correct! All four giant planets in our solar system have rings, though some are very faint.
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="next6" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 7: Moon Explorer Mission (Advanced) -->
+        <div class="slide-wrapper" id="slide7">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 7 – MOON EXPLORER MISSION (ADVANCED PRACTICAL)</div>
+                <h1 class="slide-title">🎯 Explore and Investigate the Moons of Uranus</h1>
+            </div>
+            <div class="narration-box" id="narration7">
+                <span class="speaker-icon">🎤 AI Voice:</span> Scanning the Uranian system. Select a moon to begin surface analysis. Each moon orbits in a tilted plane because Uranus itself rotates on its side.
+            </div>
+            <div class="interactive-area">
+                <div class="mission-control">
+                    <!-- Orbital Visualization -->
+                    <div class="orbit-viz" id="moonOrbitViz">
+                        <div class="radar-grid" id="radarGrid"></div>
+                        <div class="radar-line" id="radarLine"></div>
+                        
+                        <!-- Uranus in the middle -->
+                        <div class="uranus-planet" style="width: 80px; height: 80px; transform: rotate(98deg); z-index: 2; box-shadow: inset -5px -5px 20px #000;">
+                            <div style="position: absolute; width: 120px; height: 2px; background: rgba(255,255,255,0.1); top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(90deg);"></div>
+                        </div>
+
+                        <!-- Moons and Orbits (Generated via JS) -->
+                        <div id="moonContainer" style="position: absolute; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;"></div>
+
+                        <!-- Probe Zoom Overlay -->
+                        <div class="probe-view" id="probeView">
+                            <h2 id="probeMoonTitle" style="color: #64c8ff; margin-bottom: 20px;">PROBE DATA: MIRANDA</h2>
+                            <div class="surface-container">
+                                <div class="surface-texture" id="surfaceTexture"></div>
+                            </div>
+                            <div class="tool-panel" id="probeToolPanel" style="width: 80%; margin-top: 20px; text-align: center;">
+                                <div id="toolActionText">Select a tool to begin investigation.</div>
+                                <div style="display: flex; gap: 10px; margin-top: 10px; justify-content: center;">
+                                    <button class="btn-nav" id="btnTool1" style="width: auto; padding: 5px 15px;">Tool 1</button>
+                                    <button class="btn-nav" id="btnTool2" style="width: auto; padding: 5px 15px;">Tool 2</button>
+                                </div>
+                            </div>
+                            <button class="btn-nav" style="width: auto; padding: 5px 20px; margin-top: 20px;" onclick="closeProbe()">↩ Return to Orbit View</button>
+                        </div>
+                    </div>
+
+                    <!-- Side Control Panel -->
+                    <div class="control-side">
+                        <button class="btn-nav" onclick="toggleMoonRadar()" style="background: rgba(0, 255, 100, 0.1); border-color: #00ff64; color: #00ff64;">📡 Scan Uranian System</button>
+                        
+                        <div class="moon-data-card" id="moonDataPanel">
+                            <h3 id="dataMoonName" style="color: #64c8ff; margin-bottom: 10px;">System Status: Idle</h3>
+                            <div id="dataMoonStats">
+                                <p>Select a moon from the orbital map to begin data retrieval.</p>
+                            </div>
+                            <button class="btn-nav" id="deployProbeBtn" style="margin-top: 15px; display: none;" onclick="deployProbe()">🚀 Deploy Research Probe</button>
+                        </div>
+
+                        <div class="tool-panel" style="font-size: 12px;">
+                            <h4 style="color: #64c8ff; margin-bottom: 5px;">🧠 Concept Learning</h4>
+                            <p>Why do Uranus' moons orbit in a tilted plane?</p>
+                            <select id="tiltQuestion" onchange="checkTiltConcept()" style="width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 5px; margin-top: 5px;">
+                                <option value="">Choose answer...</option>
+                                <option value="wrong1">Because of strong solar winds</option>
+                                <option value="correct">Because Uranus is tilted 98°</option>
+                                <option value="wrong2">Because they are from another system</option>
+                            </select>
+                        </div>
+
+                        <div class="literature-note">
+                            <strong>Note:</strong> Most of Uranus' moons are named after characters from Shakespeare and Alexander Pope.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fact-panel" id="fact7" style="margin-top: 20px;">
+                    Uranus has a fascinating system of 27 moons. By studying their surfaces, scientists learn about the early Solar System and the violent history of the Ice Giant.
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <a href="{{ url_for('game_zone') }}" class="btn-nav btn-next" id="next7" style="display: none;">Finish Mission →</a>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const totalSlides = 7;
+
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function updateProgress() {
+            const progress = (currentSlide / totalSlides) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        function startMission() {
+            nextSlide();
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides) {
+                const oldSlide = document.getElementById('slide' + currentSlide);
+                if (oldSlide) oldSlide.classList.remove('active');
+                
+                currentSlide++;
+                const newSlide = document.getElementById('slide' + currentSlide);
+                if (newSlide) newSlide.classList.add('active');
+                
+                updateProgress();
+                initSlide(currentSlide);
+                
+                // Speak narration for the current slide
+                const narration = document.getElementById('narration' + currentSlide);
+                if (narration) {
+                    const text = narration.innerText.replace('🎤 AI Voice:', '').replace('🎤 AI Guide:', '').trim();
+                    speak(text);
+                }
+                window.scrollTo(0, 0);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                const oldSlide = document.getElementById('slide' + currentSlide);
+                if (oldSlide) oldSlide.classList.remove('active');
+                
+                currentSlide--;
+                const newSlide = document.getElementById('slide' + currentSlide);
+                if (newSlide) newSlide.classList.add('active');
+                
+                updateProgress();
+                initSlide(currentSlide);
+
+                // Speak narration for the current slide
+                const narration = document.getElementById('narration' + currentSlide);
+                if (narration) {
+                    const text = narration.innerText.replace('🎤 AI Voice:', '').replace('🎤 AI Guide:', '').trim();
+                    speak(text);
+                }
+                window.scrollTo(0, 0);
+            }
+        }
+
+        function initSlide(n) {
+            if (n === 0) {
+                const narration = document.getElementById('narration0');
+                if (narration) {
+                    speak(narration.innerText.replace('🎤 AI Voice:', '').trim());
+                }
+            } else if (n === 1) {
+                initOrbitGame();
+            } else if (n === 2) {
+                initTiltGame();
+            } else if (n === 3) {
+                initSeasonsS3();
+            } else if (n === 5) {
+                initWindGame();
+            } else if (n === 7) {
+                initMoonMission();
+            }
+        }
+
+        // Auto-speak first slide narration when page loads
+        window.onload = () => {
+            initSlide(0);
+        };
+
+        // Slide 1: Orbit
+        function initOrbitGame() {
+            const uranus = document.getElementById('dragUranus');
+            const orbitArea = document.getElementById('orbitArea');
+            
+            // AI voice instruction
+            speak("Drag Uranus and drop it into its correct orbit.");
+
+            uranus.onmousedown = function(event) {
+                let shiftX = event.clientX - uranus.getBoundingClientRect().left;
+                let shiftY = event.clientY - uranus.getBoundingClientRect().top;
+                
+                uranus.style.position = 'absolute';
+                uranus.style.zIndex = 1000;
+
+                function moveAt(pageX, pageY) {
+                    let areaRect = orbitArea.getBoundingClientRect();
+                    let left = pageX - shiftX - areaRect.left;
+                    let top = pageY - shiftY - areaRect.top;
+                    
+                    // Constrain within orbitArea
+                    left = Math.max(0, Math.min(left, areaRect.width - uranus.offsetWidth));
+                    top = Math.max(0, Math.min(top, areaRect.height - uranus.offsetHeight));
+                    
+                    uranus.style.left = left + 'px';
+                    uranus.style.top = top + 'px';
+                }
+
+                function onMouseMove(event) {
+                    moveAt(event.clientX, event.clientY);
+                }
+
+                document.addEventListener('mousemove', onMouseMove);
+
+                uranus.onmouseup = function() {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    checkOrbit();
+                    uranus.onmouseup = null;
+                };
+            };
+            uranus.ondragstart = function() { return false; };
+        }
+
+        function checkOrbit() {
+            const uranus = document.getElementById('dragUranus');
+            const sun = document.getElementById('sunCenter');
+            const target = document.getElementById('targetOrbit');
+            
+            const rect1 = uranus.getBoundingClientRect();
+            const rectSun = sun.getBoundingClientRect();
+            
+            const centerX1 = rect1.left + rect1.width/2;
+            const centerY1 = rect1.top + rect1.height/2;
+            const centerSunX = rectSun.left + rectSun.width/2;
+            const centerSunY = rectSun.top + rectSun.height/2;
+            
+            // Distance from Sun to Uranus
+            const distFromSun = Math.sqrt(Math.pow(centerX1-centerSunX, 2) + Math.pow(centerY1-centerSunY, 2));
+            const targetRadius = 220; // Updated radius for 7th orbit
+            
+            // Allow 40px tolerance from the orbit line
+            if (Math.abs(distFromSun - targetRadius) < 40) {
+                target.style.borderColor = '#00ffff';
+                target.style.borderStyle = 'solid';
+                target.style.borderWidth = '3px';
+                target.style.background = 'rgba(0, 255, 255, 0.1)';
+                target.style.boxShadow = '0 0 30px #00ffff';
+                document.getElementById('fact1').style.display = 'block';
+                document.getElementById('next1').disabled = false;
+                speak("Excellent. Uranus is the seventh planet from the Sun. It travels very far from the Sun and receives little heat.");
+                
+                // Snap to orbit and start revolving
+                uranus.style.left = '50%';
+                uranus.style.top = '50%';
+                uranus.classList.add('revolving');
+                uranus.onmousedown = null; 
+            } else {
+                target.style.borderColor = '#ff0000';
+                target.style.boxShadow = '0 0 20px #ff0000';
+                speak("Count the planets from the Sun and try again.");
+            }
+        }
+
+        // Slide 2: Tilt
+        function initTiltGame() {
+            const slider = document.getElementById('tiltSlider');
+            slider.oninput = function() {
+                const val = this.value;
+                document.getElementById('tiltVal').innerText = val;
+                document.getElementById('interactiveUranus').style.transform = `rotate(${val}deg)`;
+                document.getElementById('uranusAxis').style.transform = `translate(-50%, -50%) rotate(${val}deg)`;
+                
+                if (val >= 98) {
+                    document.getElementById('tiltQuiz').style.display = 'block';
+                    speak("Unlike Earth, Uranus rotates on its side. Its tilt is about ninety-eight degrees.");
+                }
+            };
+        }
+
+        function checkTiltQuiz(ans) {
+            if (ans === 'uranus') {
+                document.getElementById('fact2').style.display = 'block';
+                document.getElementById('next2').disabled = false;
+            } else {
+                alert("Count the degrees and try again!");
+            }
+        }
+
+        // Slide 3: Seasons (Ultra-Realistic)
+        let s3OrbitPhase = 0; 
+        function initSeasonsS3() {
+            speak("Welcome to the Season Observatory. Compare Earth and Uranus. Advance the orbit to see how sunlight changes. Notice how Uranus' poles face the sun directly!");
+            renderRays('earthRays', 5);
+            renderRays('uranusRays', 5);
+            updateSeasonsVisuals();
+        }
+
+        function renderRays(containerId, count) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                const ray = document.createElement('div');
+                ray.className = 'sun-ray';
+                const arrow = document.createElement('div');
+                arrow.className = 'ray-arrow';
+                ray.appendChild(arrow);
+                container.appendChild(ray);
+            }
+        }
+
+        function setPoleView(pole) {
+            const earth = document.getElementById('earthS3');
+            const uranus = document.getElementById('uranusS3');
+            const earthAxis = document.getElementById('earthAxisS3');
+            const uranusAxis = document.getElementById('uranusAxisS3');
+
+            if (pole === 'north') {
+                earth.style.transform = 'rotate(23.5deg)';
+                earthAxis.style.transform = 'rotate(23.5deg)';
+                uranus.style.transform = 'rotate(98deg)';
+                uranusAxis.style.transform = 'rotate(98deg)';
+                speak("Viewing North Pole. Notice how sunlight hits Uranus' north pole directly overhead.");
+            } else {
+                earth.style.transform = 'rotate(203.5deg)';
+                earthAxis.style.transform = 'rotate(203.5deg)';
+                uranus.style.transform = 'rotate(278deg)';
+                uranusAxis.style.transform = 'rotate(278deg)';
+                speak("Viewing South Pole. The opposite season is occurring here.");
+            }
+            updateSeasonsVisuals();
+        }
+
+        function advanceOrbitS3() {
+            s3OrbitPhase = (s3OrbitPhase + 1) % 4;
+            
+            const earthMonths = [1, 4, 7, 10];
+            const uranusYears = [1, 21, 42, 63];
+            
+            document.getElementById('earthTime').innerText = `Month ${earthMonths[s3OrbitPhase]}`;
+            document.getElementById('uranusTime').innerText = `Year ${uranusYears[s3OrbitPhase]}`;
+            
+            updateSeasonsVisuals();
+            document.getElementById('next3').disabled = false;
+            speak(`Orbit advanced. Earth is now in Month ${earthMonths[s3OrbitPhase]}. Uranus is in Year ${uranusYears[s3OrbitPhase]}.`);
+        }
+
+        function updateSeasonsVisuals() {
+            const earthIntensity = document.getElementById('earthIntensity');
+            const uranusIntensity = document.getElementById('uranusIntensity');
+            const earthIntensityVal = document.getElementById('earthIntensityVal');
+            const uranusIntensityVal = document.getElementById('uranusIntensityVal');
+            const earthTerm = document.getElementById('earthTerminator');
+            const uranusTerm = document.getElementById('uranusTerminator');
+
+            // Get current rotation to compensate terminator
+            const earthRotation = parseFloat(document.getElementById('earthS3').style.transform.replace('rotate(','').replace('deg)','')) || 23.5;
+            const uranusRotation = parseFloat(document.getElementById('uranusS3').style.transform.replace('rotate(','').replace('deg)','')) || 98;
+
+            if (s3OrbitPhase === 0) {
+                earthIntensity.style.width = '70%';
+                earthIntensityVal.innerText = 'Moderate (Summer)';
+                uranusIntensity.style.width = '40%';
+                uranusIntensityVal.innerText = 'Weak but Constant (21-Year Day)';
+                earthTerm.style.transform = `rotate(${-earthRotation}deg)`;
+                uranusTerm.style.transform = `rotate(${-uranusRotation}deg)`;
+            } else if (s3OrbitPhase === 2) {
+                earthIntensity.style.width = '30%';
+                earthIntensityVal.innerText = 'Low (Winter)';
+                uranusIntensity.style.width = '5%';
+                uranusIntensityVal.innerText = 'Minimal (21-Year Night)';
+                earthTerm.style.transform = `rotate(${-earthRotation + 180}deg)`;
+                uranusTerm.style.transform = `rotate(${-uranusRotation + 180}deg)`;
+            } else {
+                earthIntensity.style.width = '50%';
+                earthIntensityVal.innerText = 'Average (Equinox)';
+                uranusIntensity.style.width = '20%';
+                uranusIntensityVal.innerText = 'Fluctuating (Rapid Day/Night)';
+                // Vertical terminator during equinox (relative to screen)
+                earthTerm.style.transform = `rotate(${-earthRotation + 90}deg)`;
+                uranusTerm.style.transform = `rotate(${-uranusRotation + 90}deg)`;
+            }
+        }
+
+        // Slide 4: Advanced Composition Lab
+        function allowDrop(ev) { ev.preventDefault(); }
+
+        let s4State = {
+            atmosphere: 0,
+            methane: 0,
+            mantle: 0,
+            core: 0,
+            step: 1 // 1: Atm, 2: Mantle, 3: Core
+        };
+
+        function dragS4(ev, type, name) {
+            ev.dataTransfer.setData("type", type);
+            ev.dataTransfer.setData("name", name);
+        }
+
+        function dropToLab(ev) {
+            ev.preventDefault();
+            const type = ev.dataTransfer.getData("type");
+            const name = ev.dataTransfer.getData("name");
+            const feedback = document.getElementById('labFeedback');
+
+            if (s4State.step === 1) {
+                if (type === 'gas') {
+                    s4State.atmosphere += 20;
+                    if (s4State.atmosphere > 100) s4State.atmosphere = 100;
+                    updateS4Visuals();
+                    feedback.innerText = "Atmosphere building... Add Methane to control the color.";
+                } else if (type === 'methane') {
+                    s4State.methane += 25;
+                    if (s4State.methane > 100) s4State.methane = 100;
+                    updateS4Visuals();
+                    feedback.innerText = "Methane added. Notice the color shift. Methane absorbs red light.";
+                } else {
+                    feedback.innerText = "Start with Atmosphere materials (Gas & Methane).";
+                }
+
+                if (s4State.atmosphere >= 60 && s4State.methane >= 50) {
+                    s4State.step = 2;
+                    feedback.innerText = "Atmosphere stable. Now add Water & Ammonia for the Icy Mantle.";
+                    speak("Atmosphere stable. Now add Water and Ammonia for the Icy Mantle.");
+                }
+            } else if (s4State.step === 2) {
+                if (type === 'ice') {
+                    s4State.mantle += 25;
+                    if (s4State.mantle > 100) s4State.mantle = 100;
+                    updateS4Visuals();
+                    feedback.innerText = "Icy Mantle forming. Pressure and temperature are rising!";
+                } else if (type === 'methane') {
+                    s4State.methane += 10;
+                    updateS4Visuals();
+                } else {
+                    feedback.innerText = "Add Water & Ammonia to build the main bulk of the planet.";
+                }
+
+                if (s4State.mantle >= 100) {
+                    s4State.step = 3;
+                    feedback.innerText = "Mantle complete. Finally, add Rock & Metal for the Core.";
+                    speak("Mantle complete. Finally, add Rock and Metal for the Core.");
+                }
+            } else if (s4State.step === 3) {
+                if (type === 'rock') {
+                    s4State.core += 50;
+                    if (s4State.core > 100) s4State.core = 100;
+                    updateS4Visuals();
+                    feedback.innerText = "Core integrated. Gravity and magnetic fields established.";
+                }
+
+                if (s4State.core >= 100) {
+                    feedback.innerText = "Uranus Construction Complete! All layers stabilized.";
+                    document.getElementById('next4').disabled = false;
+                    document.getElementById('fact4').style.display = 'block';
+                    speak("Uranus Construction Complete! You've built a scientifically accurate model of an Ice Giant.");
+                }
+            }
+        }
+
+        function updateS4Visuals() {
+            const atm = document.getElementById('layerAtm');
+            const mantle = document.getElementById('layerMantle');
+            const core = document.getElementById('layerCore');
+            const arrow = document.getElementById('spectrumArrow');
+            const sText = document.getElementById('spectrumText');
+
+            // Atmosphere Color (Methane dependent)
+            // 0 methane: pale blue. 100 methane: deep cyan/blue
+            const blue = Math.min(238, 200 + s4State.methane * 0.38);
+            const green = Math.max(150, 229 - s4State.methane * 0.79);
+            const red = Math.max(100, 172 - s4State.methane * 0.72);
+            atm.style.background = `rgba(${red}, ${green}, ${blue}, ${s4State.atmosphere/100})`;
+            
+            // Spectrum Arrow (reflecting more blue/green as methane increases)
+            // 0 methane: middle (50%). 100 methane: right side (blue/green)
+            arrow.style.left = (50 + s4State.methane * 0.3) + '%';
+            if (s4State.methane > 50) sText.innerText = "Absorbing Red Light";
+
+            // Mantle
+            if (s4State.mantle > 0) {
+                mantle.style.width = '80%';
+                mantle.style.height = '80%';
+                mantle.style.opacity = s4State.mantle / 100;
+            }
+
+            // Core
+            if (s4State.core > 0) {
+                core.style.width = '20%';
+                core.style.height = '20%';
+                core.style.opacity = s4State.core / 100;
+            }
+
+            // Gauges
+            const press = 1 + (s4State.mantle * 100000) + (s4State.core * 50000);
+            const temp = -224 + (s4State.mantle * 40) + (s4State.core * 50);
+            const mass = 0.1 + (s4State.atmosphere * 0.05) + (s4State.mantle * 0.1) + (s4State.core * 0.05);
+
+            document.getElementById('gaugePressure').innerText = press.toLocaleString() + " atm";
+            document.getElementById('gaugeTemp').innerText = temp + "°C";
+            document.getElementById('gaugeMass').innerText = mass.toFixed(2) + "x Earth";
+        }
+
+        // Slide 5: Wind
+        function initWindGame() {
+            const box = document.getElementById('stormBox');
+            for (let i = 0; i < 20; i++) {
+                const streak = document.createElement('div');
+                streak.className = 'wind-streak';
+                streak.style.top = Math.random() * 100 + '%';
+                streak.style.width = (Math.random() * 50 + 50) + 'px';
+                streak.style.animationDuration = (Math.random() * 0.5 + 0.2) + 's';
+                streak.style.animationDelay = Math.random() * 2 + 's';
+                box.appendChild(streak);
+            }
+        }
+
+        function chooseProtection(type) {
+            const char = document.getElementById('explorerChar');
+            const meter = document.getElementById('windSpeedMeter');
+            
+            if (type === 'pod') {
+                char.innerText = '🛸';
+                meter.innerText = 'WIND: 900 km/h (STABLE)';
+                document.getElementById('fact5').style.display = 'block';
+                document.getElementById('next5').disabled = false;
+            } else {
+                char.innerText = '👨‍🚀';
+                char.style.transition = 'transform 2s';
+                char.style.transform = 'translate(400px, -200px) rotate(360deg)';
+                meter.innerText = 'WIND: 900 km/h (BLOWN AWAY!)';
+                setTimeout(() => {
+                    char.style.transform = 'translate(-50%, -50%)';
+                }, 2000);
+            }
+        }
+
+        // Slide 6: Rings
+        function toggleView(view) {
+            const overlay = document.getElementById('irOverlay');
+            const rings = document.querySelectorAll('.hidden-rings');
+            if (view === 'ir') {
+                overlay.style.display = 'block';
+                rings.forEach(r => r.style.borderColor = 'rgba(255,255,255,0.6)');
+                document.getElementById('ringQuiz').style.display = 'block';
+            } else {
+                overlay.style.display = 'none';
+                rings.forEach(r => r.style.borderColor = 'rgba(255,255,255,0.05)');
+            }
+        }
+
+        function checkRingQuiz(ans) {
+            if (ans === 4) {
+                document.getElementById('fact6').style.display = 'block';
+                document.getElementById('next6').disabled = false;
+            } else {
+                alert("Look closer at the infrared view!");
+            }
+        }
+
+        // Slide 7: Moon Mission (Advanced)
+        let s7SelectedMoon = null;
+        let s7MoonsInvestigated = new Set();
+        const moonData = {
+            'Miranda': { diameter: '470 km', gravity: '0.079 m/s²', period: '1.4 days', dist: '129,000 km', temp: '-213°C', color: '#ddd', texture: 'linear-gradient(45deg, #444, #888, #444, #999)', task1: 'Digital Scale Tool', task2: 'Topography Scan' },
+            'Titania': { diameter: '1,578 km', gravity: '0.379 m/s²', period: '8.7 days', dist: '436,000 km', temp: '-203°C', color: '#bbb', texture: 'radial-gradient(circle, #777, #bbb, #777)', task1: 'Age Scanner', task2: 'Thermal Mapping' },
+            'Oberon': { diameter: '1,522 km', gravity: '0.346 m/s²', period: '13.5 days', dist: '583,000 km', temp: '-203°C', color: '#999', texture: 'repeating-conic-gradient(#555 0% 25%, #888 25% 50%)', task1: 'Impact Analyzer', task2: 'Mineral Sensor' }
+        };
+
+        function initMoonMission() {
+            const container = document.getElementById('moonContainer');
+            container.innerHTML = '';
+            
+            // Create 3 major moons with orbits
+            const moonNames = ['Miranda', 'Titania', 'Oberon'];
+            const speeds = [15, 25, 35]; // seconds for orbit
+            
+            moonNames.forEach((name, i) => {
+                const radius = 100 + i * 60;
+                
+                // Orbit line - highlighted for major moons
+                const orbit = document.createElement('div');
+                orbit.className = 'moon-orbit-line';
+                orbit.style.width = (radius * 2) + 'px';
+                orbit.style.height = (radius * 2) + 'px';
+                orbit.style.borderColor = 'rgba(100, 200, 255, 0.4)'; // More visible
+                orbit.style.borderWidth = '2px';
+                container.appendChild(orbit);
+                
+                // Orbit Wrapper for Animation
+                const wrapper = document.createElement('div');
+                wrapper.className = 'moon-orbit-wrapper';
+                wrapper.style.width = (radius * 2) + 'px';
+                wrapper.style.height = (radius * 2) + 'px';
+                
+                const anim = document.createElement('div');
+                anim.className = 'orbit-animation';
+                anim.style.animationDuration = speeds[i] + 's';
+                
+                // Moon node
+                const moon = document.createElement('div');
+                moon.className = 'moon-node';
+                moon.style.background = moonData[name].color;
+                moon.style.left = '100%';
+                moon.style.top = '50%';
+                moon.style.transform = 'translate(-50%, -50%)';
+                moon.style.width = '12px'; // Larger for major moons
+                moon.style.height = '12px';
+                moon.onclick = () => selectMoonS7(name);
+                
+                // Label - inverse rotation set in CSS
+                const label = document.createElement('span');
+                label.className = 'moon-label';
+                label.id = `label-${name}`;
+                label.innerText = name;
+                label.style.left = '18px';
+                label.style.top = '-5px';
+                label.style.animationDuration = speeds[i] + 's';
+                
+                moon.appendChild(label);
+                anim.appendChild(moon);
+                wrapper.appendChild(anim);
+                container.appendChild(wrapper);
+            });
+            
+            speak("Uranus has 27 known moons. Mission Control active. Scan the system or select a moon for investigation.");
+        }
+
+        function toggleMoonRadar() {
+            const grid = document.getElementById('radarGrid');
+            const line = document.getElementById('radarLine');
+            const labels = document.querySelectorAll('.moon-label');
+            const isVisible = grid.style.display === 'block';
+            
+            grid.style.display = isVisible ? 'none' : 'block';
+            line.style.display = isVisible ? 'none' : 'block';
+            labels.forEach(l => l.style.display = isVisible ? 'none' : 'block');
+            
+            if (!isVisible) {
+                speak("Scanning Uranian system. Major moons identified: Miranda, Titania, and Oberon.");
+            }
+        }
+
+        function selectMoonS7(name) {
+            s7SelectedMoon = name;
+            const data = moonData[name];
+            document.getElementById('dataMoonName').innerText = `Target: ${name}`;
+            document.getElementById('dataMoonStats').innerHTML = `
+                <div class="data-row"><span class="data-label">Diameter:</span> <span>${data.diameter}</span></div>
+                <div class="data-row"><span class="data-label">Gravity:</span> <span>${data.gravity}</span></div>
+                <div class="data-row"><span class="data-label">Distance:</span> <span>${data.dist}</span></div>
+                <div class="data-row"><span class="data-label">Orbital Period:</span> <span>${data.period}</span></div>
+                <div class="data-row"><span class="data-label">Temperature:</span> <span>${data.temp}</span></div>
+            `;
+            document.getElementById('deployProbeBtn').style.display = 'block';
+            speak(`${name} selected. Orbital data retrieved. Ready to deploy research probe.`);
+        }
+
+        function deployProbe() {
+            if (!s7SelectedMoon) return;
+            const view = document.getElementById('probeView');
+            const title = document.getElementById('probeMoonTitle');
+            const texture = document.getElementById('surfaceTexture');
+            const data = moonData[s7SelectedMoon];
+            
+            title.innerText = `PROBE DATA: ${s7SelectedMoon.toUpperCase()}`;
+            texture.style.background = data.texture;
+            
+            const btn1 = document.getElementById('btnTool1');
+            const btn2 = document.getElementById('btnTool2');
+            btn1.innerText = data.task1;
+            btn2.innerText = data.task2;
+            btn1.onclick = () => runTask(1);
+            btn2.onclick = () => runTask(2);
+            
+            document.getElementById('toolActionText').innerText = "Probe landed. Select a tool to begin investigation.";
+            view.style.display = 'flex';
+            speak(`Probe deployed to ${s7SelectedMoon}. Initiating surface analysis.`);
+        }
+
+        function runTask(taskNum) {
+            const data = moonData[s7SelectedMoon];
+            const text = document.getElementById('toolActionText');
+            if (taskNum === 1) {
+                if (s7SelectedMoon === 'Miranda') {
+                    text.innerText = "Digital Scale: Measuring Verona Rupes cliffs... Height: 20 km detected!";
+                } else if (s7SelectedMoon === 'Titania') {
+                    text.innerText = "Age Scanner: Counting crater density... Ancient surface confirmed (approx 4 billion years).";
+                } else if (s7SelectedMoon === 'Oberon') {
+                    text.innerText = "Impact Analyzer: Analyzing 'Hamlet' crater... Diameter: 206 km. Multi-ring structure detected.";
+                }
+            } else {
+                text.innerText = "Initiating secondary scan... Analysis complete. Scientific data logged to mission control.";
+            }
+            
+            s7MoonsInvestigated.add(s7SelectedMoon);
+            checkMissionComplete();
+            speak(text.innerText);
+        }
+
+        function closeProbe() {
+            document.getElementById('probeView').style.display = 'none';
+        }
+
+        function checkTiltConcept() {
+            const val = document.getElementById('tiltQuestion').value;
+            if (val === 'correct') {
+                speak("Correct! The moons orbit in a tilted plane because Uranus itself is tilted ninety-eight degrees. This suggests the moon system formed after the event that tilted the planet.");
+                s7MoonsInvestigated.add('concept');
+                checkMissionComplete();
+            } else if (val !== "") {
+                speak("Incorrect. Think about how the whole system is oriented.");
+            }
+        }
+
+        function checkMissionComplete() {
+            if (s7MoonsInvestigated.size >= 4) { // 3 moons + concept
+                document.getElementById('fact7').style.display = 'block';
+                document.getElementById('next7').style.display = 'flex';
+            }
+        }
+    </script>
+</body>
+</html>

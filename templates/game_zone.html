@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Zone - Space Explorer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <div class="dashboard-container">
+        <nav class="navbar">
+            <div class="navbar-brand">🚀 SOLAR LAB</div>
+            <div class="navbar-right">
+                <div class="user-info">
+                    <span class="user-email">{{ user_email }}</span>
+                </div>
+                <a href="{{ url_for('dashboard') }}" class="btn-logout">Back</a>
+            </div>
+        </nav>
+
+        <div class="dashboard-header" style="text-align: center;">
+            <h1 class="dashboard-title">GAME ZONE</h1>
+            <p class="dashboard-subtitle" style="color: #a0a0b0; font-size: 18px; margin-top: 10px;">Select a planetary mission to begin your training</p>
+        </div>
+
+        <div class="cards-container">
+            <!-- Sun -->
+            <a href="{{ url_for('sun_explorer_mission') }}" class="card game-zone-card">
+                <div class="card-glass-glow"></div>
+                <div class="card-inner-depth"></div>
+                <div class="card-image-container">
+                    <div class="orbit-line orbit-1" style="width: 180px; height: 180px;"><div class="orbit-dot"></div></div>
+                    <img src="https://scitechdaily.com/images/Sun-Realistic-Visualization.png" alt="Sun" class="card-planet-img">
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Sun Mission</h2>
+                    <button class="btn-card">Explore</button>
+                </div>
+            </a>
+
+            <!-- Mercury -->
+            <a href="{{ url_for('mercury_game') }}" class="card game-zone-card">
+                <div class="card-glass-glow"></div>
+                <div class="card-inner-depth"></div>
+                <div class="card-image-container">
+                    <div class="orbit-line orbit-1" style="width: 170px; height: 170px;"><div class="orbit-dot"></div></div>
+                    <img src="https://images-assets.nasa.gov/image/PIA15162/PIA15162~orig.jpg" alt="Mercury" class="card-planet-img">
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Mercury Mission</h2>
+                    <button class="btn-card">Explore</button>
+                </div>
+            </a>
+
+            <!-- Venus -->
+            <a href="{{ url_for('venus_game') }}" class="card game-zone-card">
+                <div class="card-glass-glow"></div>
+                <div class="card-inner-depth"></div>
+                <div class="card-image-container">
+                    <div class="orbit-line orbit-1" style="width: 170px; height: 170px;"><div class="orbit-dot"></div></div>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/e/e5/Venus-real_color.jpg" alt="Venus" class="card-planet-img">
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Venus Mission</h2>
+                    <button class="btn-card">Explore</button>
+                </div>
+            </a>
+
+            <!-- Earth -->
+            <a href="{{ url_for('earth_game') }}" class="card game-zone-card">
+                <div class="card-glass-glow"></div>
+                <div class="card-inner-depth"></div>
+                <div class="card-image-container">
+                    <div class="orbit-line orbit-1" style="width: 170px; height: 170px;"><div class="orbit-dot"></div></div>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/1200px-The_Earth_seen_from_Apollo_17.jpg" alt="Earth" class="card-planet-img">
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Earth Mission</h2>
+                    <button class="btn-card">Explore</button>
+                </div>
+            </a>
+
+            <!-- Moon -->
+            <a href="{{ url_for('moon_explorer') }}" class="card game-zone-card">
+                <div class="card-glass-glow"></div>
+                <div class="card-inner-depth"></div>
+                <div class="card-image-container">
+                    <div class="orbit-line orbit-1" style="width: 170px; height: 170px;"><div class="orbit-dot"></div></div>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/FullMoon2010.jpg" alt="Moon" class="card-planet-img">
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Moon Mission</h2>
+                    <button class="btn-card">Explore</button>
+                </div>
+            </a>
+
+            <!-- Mars -->
+            <a href="{{ url_for('mars_game') }}" class="card game-zone-card">
+                <div class="card-glass-glow"></div>
+                <div class="card-inner-depth"></div>
+                <div class="card-image-container">
+                    <div class="orbit-line orbit-1" style="width: 170px; height: 170px;"><div class="orbit-dot"></div></div>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/0/02/OSIRIS_Mars_true_color.jpg" alt="Mars" class="card-planet-img">
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Mars Mission</h2>
+                    <button class="btn-card">Explore</button>
+                </div>
+            </a>
+
+            <!-- Jupiter -->
+            <a href="{{ url_for('jupiter_explorer') }}" class="card game-zone-card">
+                <div class="card-glass-glow"></div>
+                <div class="card-inner-depth"></div>
+                <div class="card-image-container">
+                    <div class="orbit-line orbit-1" style="width: 170px; height: 170px;"><div class="orbit-dot"></div></div>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/e/e2/Jupiter.jpg" alt="Jupiter" class="card-planet-img">
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Jupiter Mission</h2>
+                    <button class="btn-card">Explore</button>
+                </div>
+            </a>
+
+            <!-- Saturn -->
+            <a href="{{ url_for('saturn_explorer') }}" class="card game-zone-card">
+                <div class="card-glass-glow"></div>
+                <div class="card-inner-depth"></div>
+                <div class="card-image-container">
+                    <div class="orbit-line orbit-1" style="width: 180px; height: 180px;"><div class="orbit-dot"></div></div>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c7/Saturn_during_Equinox.jpg" alt="Saturn" class="card-planet-img">
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Saturn Mission</h2>
+                    <button class="btn-card">Explore</button>
+                </div>
+            </a>
+
+            <!-- Uranus -->
+            <a href="{{ url_for('uranus_explorer') }}" class="card game-zone-card">
+                <div class="card-glass-glow"></div>
+                <div class="card-inner-depth"></div>
+                <div class="card-image-container">
+                    <div class="orbit-line orbit-1" style="width: 170px; height: 170px;"><div class="orbit-dot"></div></div>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/3/3d/Uranus2.jpg" alt="Uranus" class="card-planet-img">
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Uranus Mission</h2>
+                    <button class="btn-card">Explore</button>
+                </div>
+            </a>
+
+            <!-- Neptune -->
+            <a href="{{ url_for('neptune_explorer') }}" class="card game-zone-card">
+                <div class="card-glass-glow"></div>
+                <div class="card-inner-depth"></div>
+                <div class="card-image-container">
+                    <div class="orbit-line orbit-1" style="width: 170px; height: 170px;"><div class="orbit-dot"></div></div>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/56/Neptune_Full.jpg" alt="Neptune" class="card-planet-img">
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">Neptune Mission</h2>
+                    <button class="btn-card">Explore</button>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 50;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                const size = Math.random() * 3 + 1;
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                
+                const duration = Math.random() * 20 + 10;
+                particle.style.animationDuration = duration + 's';
+                particle.style.animationDelay = Math.random() * 10 + 's';
+                
+                particlesContainer.appendChild(particle);
+            }
+        }
+        
+        createParticles();
+    </script>
+</body>
+</html>

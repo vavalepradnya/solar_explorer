@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbit Speed Comparison - Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/orbit_speed.css') }}">
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <div class="dashboard-container">
+        <div class="floating-planets">
+            <div class="planet planet1"></div>
+            <div class="planet planet2"></div>
+            <div class="planet planet3"></div>
+        </div>
+
+        <nav class="navbar">
+            <div class="navbar-brand">🚀 Space Explorer</div>
+            <div class="navbar-right">
+                <div class="user-info">
+                    <span class="user-email">{{ user_email }}</span>
+                </div>
+                <a href="{{ url_for('game_zone') }}" class="btn-logout">Back</a>
+            </div>
+        </nav>
+
+        <div class="orbit-speed-container">
+            <div class="game-header">
+                <h1 class="game-title">🎮 Slide 2 – Orbit Speed Comparison</h1>
+                <p class="game-subtitle">🪐 "See How Fast Mercury Moves!"</p>
+            </div>
+
+            <div class="game-content">
+                <div class="canvas-container">
+                    <canvas id="orbitCanvas"></canvas>
+                </div>
+
+                <div class="info-panel">
+                    <h3 class="panel-title">📊 Speed Information</h3>
+                    <table class="speed-table">
+                        <tr>
+                            <th>Planet</th>
+                            <th>Avg Speed</th>
+                            <th>1 Orbit Time</th>
+                        </tr>
+                        <tr>
+                            <td>🪨 Mercury</td>
+                            <td>~47 km/s</td>
+                            <td>88 days</td>
+                        </tr>
+                        <tr>
+                            <td>🌍 Earth</td>
+                            <td>~30 km/s</td>
+                            <td>365 days</td>
+                        </tr>
+                    </table>
+
+                    <div class="orbit-timer">
+                        <p><strong>⏱ Mercury Orbits:</strong> <span id="mercuryOrbits">0</span></p>
+                        <p><strong>⏱ Earth Orbits:</strong> <span id="earthOrbits">0</span></p>
+                        <p><strong>⏱ Time Elapsed:</strong> <span id="timeElapsed">0</span>s</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="speed-indicators">
+                <div class="speed-meter">
+                    <p class="meter-label">🪨 Mercury Speed</p>
+                    <div class="speed-bar">
+                        <div class="speed-fill mercury-speed" id="mercurySpeedBar"></div>
+                    </div>
+                </div>
+                <div class="speed-meter">
+                    <p class="meter-label">🌍 Earth Speed</p>
+                    <div class="speed-bar">
+                        <div class="speed-fill earth-speed" id="earthSpeedBar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-info">
+                <div class="feedback-message" id="feedbackMessage"></div>
+                <p class="task-info">✨ Click Start to see how Mercury and Earth orbit at different speeds!</p>
+            </div>
+
+            <div class="game-controls">
+                <button id="startBtn" class="btn-game btn-start">▶ Start</button>
+                <button id="pauseBtn" class="btn-game btn-pause" disabled>⏸ Pause</button>
+                <button id="resetBtn" class="btn-game btn-reset">🔄 Reset</button>
+            </div>
+        </div>
+
+        <div class="bottom-controls">
+            <a href="{{ url_for('mercury_game') }}" class="btn-back">⬅ Previous: Orbit Game</a>
+            <a href="{{ url_for('gravity_weight') }}" class="btn-next">Next: Gravity & Weight ⮕</a>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/orbit_speed.js') }}"></script>
+    <script>
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            const starCount = 100;
+            
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+        
+        createStars();
+    </script>
+</body>
+</html>

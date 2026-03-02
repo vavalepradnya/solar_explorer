@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Can You Survive on Mercury? - Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mercury_survival.css') }}">
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <div class="dashboard-container">
+        <div class="floating-planets">
+            <div class="planet planet1"></div>
+            <div class="planet planet2"></div>
+            <div class="planet planet3"></div>
+        </div>
+
+        <nav class="navbar">
+            <div class="navbar-brand">🚀 Space Explorer</div>
+            <div class="navbar-right">
+                <div class="user-info">
+                    <span class="user-email">{{ user_email }}</span>
+                </div>
+                <a href="{{ url_for('game_zone') }}" class="btn-logout">Back</a>
+            </div>
+        </nav>
+
+        <div class="mercury-survival-container">
+            <div class="game-header">
+                <h1 class="game-title">🎮 Slide 4 – Interactive Survival Game</h1>
+                <p class="game-subtitle">🚀 "Can You Survive on Mercury?"</p>
+            </div>
+
+            <div class="game-main">
+                <div class="sun-container">
+                    <div class="sun glowing-sun"></div>
+                </div>
+
+                <div class="mercury-container">
+                    <div id="mercury" class="mercury-planet">
+                        <div id="atmosphere" class="atmosphere-layer"></div>
+                        <div id="ice-poles" class="ice-layer"></div>
+                        <div id="radar" class="radar-animation"></div>
+                    </div>
+                    <div id="temperature-meter" class="temp-meter">
+                        <div class="temp-fill" id="tempFill"></div>
+                        <span id="tempText">25°C</span>
+                    </div>
+                </div>
+
+                <div class="ai-feedback">
+                    <div class="ai-avatar">🤖</div>
+                    <div class="ai-message" id="aiMessage">Welcome explorer! Use the control panel to start your survival mission.</div>
+                </div>
+            </div>
+
+            <div class="control-panel">
+                <div class="control-group">
+                    <button id="dayBtn" class="btn-ctrl">☀ Switch to Day</button>
+                    <button id="nightBtn" class="btn-ctrl">🌑 Switch to Night</button>
+                </div>
+                <div class="control-group">
+                    <button id="atmosphereBtn" class="btn-ctrl">🌫 Add Atmosphere</button>
+                    <button id="scannerBtn" class="btn-ctrl">🛰 Moon Scanner</button>
+                    <button id="waterBtn" class="btn-ctrl">💧 Scan for Water</button>
+                </div>
+                <div class="suit-selection">
+                    <p class="label">🧥 Choose Space Suit:</p>
+                    <div class="suit-options">
+                        <button class="suit-btn" data-suit="basic">Basic Suit</button>
+                        <button class="suit-btn" data-suit="heat">Heat Shield Suit</button>
+                        <button class="suit-btn" data-suit="thermal">Thermal Control Suit</button>
+                    </div>
+                </div>
+                <button id="resetBtn" class="btn-game btn-reset">Reset Mission</button>
+            </div>
+        </div>
+
+        <div class="bottom-controls">
+            <a href="{{ url_for('gravity_weight') }}" class="btn-back">⬅ Previous: Gravity & Weight</a>
+            <a href="{{ url_for('game_zone') }}" class="btn-next">Finish & Return 🏆</a>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/mercury_survival.js') }}"></script>
+    <script>
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            const starCount = 100;
+            
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+        createStars();
+    </script>
+</body>
+</html>

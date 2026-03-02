@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission Jupiter - Interactive Explorer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
+        .mission-container { min-height: 100vh; position: relative; z-index: 2; padding-bottom: 50px; }
+        .slide-wrapper { display: none; padding: 40px 20px; max-width: 1200px; margin: 0 auto; min-height: 100vh; animation: slideIn 0.5s ease-in-out; }
+        .slide-wrapper.active { display: block; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .slide-header { text-align: center; margin-bottom: 30px; }
+        .slide-number { font-size: 14px; color: #ffb703; font-weight: bold; margin-bottom: 10px; }
+        .slide-title { font-size: 36px; color: #ffffff; margin-bottom: 15px; background: linear-gradient(135deg, #ffb703 0%, #fb8500 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .narration-box { background: rgba(255, 183, 3, 0.1); border-left: 4px solid #ffb703; padding: 15px; margin-bottom: 25px; border-radius: 8px; font-size: 18px; line-height: 1.6; cursor: pointer; transition: background 0.3s; }
+        .narration-box:hover { background: rgba(255, 183, 3, 0.2); }
+        .speaker-icon { color: #ffb703; font-weight: bold; margin-right: 10px; }
+        
+        .interactive-area { background: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 12px; border: 1px solid #444; margin-bottom: 25px; position: relative; overflow: hidden; min-height: 500px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        .navigation { display: flex; justify-content: space-between; gap: 15px; margin-top: 30px; }
+        .btn-nav { flex: 1; padding: 12px; font-size: 14px; border: 2px solid; border-radius: 8px; cursor: pointer; transition: all 0.3s; font-weight: bold; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; }
+        .btn-prev { border-color: #ffb703; color: #ffb703; background: transparent; }
+        .btn-next { border-color: #fb8500; color: #fb8500; background: transparent; }
+        .btn-next:disabled { border-color: #555; color: #555; cursor: not-allowed; }
+        
+        .btn-start { padding: 15px 40px; font-size: 24px; background: #fb8500; color: #fff; border: none; border-radius: 30px; cursor: pointer; transition: transform 0.2s; font-weight: bold; }
+        .btn-start:hover { transform: scale(1.1); }
+
+        /* Game Specific Styles */
+        .jupiter-main { width: 300px; height: 300px; background: url('https://upload.wikimedia.org/wikipedia/commons/e/e2/Jupiter.jpg'); background-size: cover; border-radius: 50%; box-shadow: inset -20px -20px 50px rgba(0,0,0,0.8), 0 0 20px rgba(251, 133, 0, 0.3); animation: rotateJupiter 20s linear infinite; }
+        @keyframes rotateJupiter { from { background-position: 0 0; } to { background-position: 600px 0; } }
+
+        /* Orbit Game */
+        .orbit-container { position: relative; width: 100%; height: 600px; }
+        .sun-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; background: radial-gradient(circle, #fff700, #ff8c00); border-radius: 50%; box-shadow: 0 0 50px #ff8c00; }
+        .orbit-ring { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; transition: all 0.3s; }
+        .orbit-ring.target-highlight { border: 2px dashed #007bff; border-color: #007bff !important; }
+        .orbit-label { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); color: #aaa; font-size: 12px; pointer-events: none; white-space: nowrap; }
+        .target-label { color: #007bff !important; }
+        .draggable-jupiter { width: 50px; height: 50px; background: url('https://upload.wikimedia.org/wikipedia/commons/e/e2/Jupiter.jpg'); background-size: cover; border-radius: 50%; cursor: move; position: absolute; z-index: 10; box-shadow: 0 0 15px rgba(251, 133, 0, 0.5); }
+        .revolving-jupiter { animation: revolveJupiter 40s linear infinite; pointer-events: none; }
+        @keyframes revolveJupiter {
+            from { transform: translate(-50%, -50%) rotate(0deg) translateY(-190px) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg) translateY(-190px) rotate(-360deg); }
+        }
+        
+        /* Size Comparison */
+        .comparison-container { display: flex; align-items: center; justify-content: space-around; width: 100%; }
+        .earth-icon { width: 15px; height: 15px; background: #4b9cd3; border-radius: 50%; cursor: pointer; margin: 2px; display: inline-block; }
+        .jupiter-silhouette { width: 400px; height: 400px; border: 2px dashed #ffb703; border-radius: 50%; position: relative; display: flex; flex-wrap: wrap; align-content: flex-start; padding: 20px; overflow: hidden; background: rgba(255,183,3,0.05); }
+
+        /* Landing Sim - Advanced */
+        .descent-container { width: 100%; height: 500px; background: #000; border-radius: 15px; position: relative; overflow: hidden; display: flex; box-shadow: 0 0 30px rgba(0,0,0,0.5); border: 1px solid #333; }
+        .sim-view { flex: 2; position: relative; overflow: hidden; background: linear-gradient(#1a1a2e, #16213e); }
+        .sim-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 5; background: radial-gradient(circle at center, transparent, rgba(0,0,0,0.4)); }
+        .layer-bg { position: absolute; inset: 0; transition: background 2s ease-in-out; }
+        .cloud-particle { position: absolute; background: rgba(255,255,255,0.2); border-radius: 50%; pointer-events: none; }
+        .lightning-flash { position: absolute; inset: 0; background: white; opacity: 0; z-index: 10; pointer-events: none; }
+        
+        .rocket-container { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); z-index: 10; transition: all 2s ease-in-out; text-align: center; }
+        .rocket-sim { font-size: 50px; display: inline-block; transition: all 1s; }
+        .rocket-glow { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; border-radius: 50%; background: radial-gradient(circle, rgba(255,100,0,0.6), transparent); display: none; filter: blur(10px); }
+        
+        .gauges-panel { position: absolute; left: 15px; top: 15px; display: flex; flex-direction: column; gap: 10px; z-index: 15; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; border: 1px solid #444; width: 180px; }
+        .gauge-item { font-size: 11px; color: #aaa; }
+        .gauge-bar-bg { width: 100%; height: 6px; background: #222; border-radius: 3px; margin-top: 4px; overflow: hidden; }
+        .gauge-bar-fill { height: 100%; width: 0%; background: #ffb703; transition: width 1s linear; }
+        .gauge-val { color: #fff; font-family: monospace; float: right; }
+
+        .science-panel { flex: 1; background: #111; border-left: 1px solid #333; padding: 15px; display: flex; flex-direction: column; gap: 15px; z-index: 20; overflow-y: auto; }
+        .science-title { color: #ffb703; font-size: 14px; font-weight: bold; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        .comp-list { list-style: none; font-size: 12px; }
+        .comp-item { margin-bottom: 8px; }
+        .comp-bar { height: 4px; background: #333; border-radius: 2px; margin-top: 3px; overflow: hidden; }
+        .comp-fill { height: 100%; background: #4b9cd3; transition: width 2s; }
+        
+        .phase-info { background: rgba(255,183,3,0.1); border: 1px solid #ffb703; padding: 10px; border-radius: 6px; font-size: 13px; color: #fff; }
+        .phase-name { font-weight: bold; color: #ffb703; margin-bottom: 5px; display: block; }
+        
+        .final-infographic { position: absolute; inset: 0; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center; animation: fadeIn 0.8s; }
+        .comparison-box { display: flex; gap: 40px; margin: 20px 0; }
+        .planet-comp { text-align: center; }
+        .planet-mini { width: 60px; height: 60px; border-radius: 50%; margin-bottom: 10px; display: inline-block; }
+        .comp-facts { text-align: left; font-size: 14px; color: #ccc; list-style: none; }
+        .comp-facts li { margin-bottom: 5px; }
+        .comp-facts li::before { content: "❌ "; }
+        .comp-facts.green li::before { content: "✅ "; }
+
+        @keyframes shake {
+            0% { transform: translate(-50%, 0) rotate(0deg); }
+            25% { transform: translate(-52%, 2px) rotate(1deg); }
+            50% { transform: translate(-48%, -2px) rotate(-1deg); }
+            75% { transform: translate(-51%, 1px) rotate(0.5deg); }
+            100% { transform: translate(-50%, 0) rotate(0deg); }
+        }
+        .shaking { animation: shake 0.2s infinite; }
+        .crushing { transform: translateX(-50%) scaleY(0.1) scaleX(1.5) !important; opacity: 0; transition: all 0.5s !important; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* Storm */
+        .storm-container { width: 100%; height: 400px; overflow: hidden; position: relative; cursor: zoom-in; }
+        .storm-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+        
+        /* Moon Explorer */
+        .moons-container { display: flex; gap: 20px; justify-content: center; margin-top: 20px; }
+        .moon-card { width: 120px; text-align: center; cursor: pointer; transition: transform 0.3s; }
+        .moon-card:hover { transform: scale(1.1); }
+        .moon-img { width: 80px; height: 80px; border-radius: 50%; margin-bottom: 10px; box-shadow: 0 0 10px rgba(255,255,255,0.3); }
+
+        /* Advanced Galilean Moon Explorer Styles */
+        .moon-game-container { position: relative; width: 100%; height: 600px; display: flex; flex-direction: column; overflow: hidden; background: #000; border: 1px solid #444; border-radius: 12px; }
+        .moon-game-header { padding: 10px 20px; background: rgba(255,183,3,0.1); border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+        .game-part-indicator { font-size: 12px; color: #ffb703; font-weight: bold; }
+        
+        .moon-game-body { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .part-screen { position: absolute; inset: 0; display: none; padding: 20px; animation: fadeIn 0.5s ease-out; }
+        .part-screen.active { display: flex; flex-direction: column; }
+        
+        /* Part 1: Moon Builder */
+        .orbit-builder { position: relative; width: 500px; height: 500px; border-radius: 50%; }
+        .jupiter-builder { width: 100px; height: 100px; background: url('https://upload.wikimedia.org/wikipedia/commons/e/e2/Jupiter.jpg'); background-size: cover; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 30px rgba(251,133,0,0.4); pointer-events: none; }
+        .empty-orbit { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border: 2px dashed rgba(255,255,255,0.2); border-radius: 50%; transition: border-color 0.3s; }
+        .empty-orbit.highlight { border-color: #ffb703; background: rgba(255,183,3,0.05); }
+        .empty-orbit.filled { border: 1px solid rgba(255,255,255,0.4); }
+        .empty-orbit.orbiting { animation: orbit var(--duration) linear infinite; }
+        
+        .moons-sidebar { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 15px; z-index: 100; }
+        .draggable-moon { width: 60px; height: 60px; border-radius: 50%; cursor: grab; background-size: cover; border: 2px solid #555; transition: transform 0.2s; position: relative; }
+        .draggable-moon:active { cursor: grabbing; }
+        .draggable-moon:hover { transform: scale(1.1); border-color: #fff; }
+        .draggable-moon span { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 10px; white-space: nowrap; font-weight: bold; }
+        
+        /* Part 2: Tidal Heating */
+        .io-heating-view { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px; width: 100%; }
+        .io-sphere { width: 180px; height: 180px; background: url('https://upload.wikimedia.org/wikipedia/commons/7/7b/Io_highest_resolution_true_color.jpg'); background-size: cover; border-radius: 50%; transition: all 0.2s; position: relative; box-shadow: 0 0 20px rgba(255,183,3,0.3); }
+        .io-glow { position: absolute; inset: -10px; border-radius: 50%; background: radial-gradient(circle, rgba(255,0,0,0.6) 0%, transparent 70%); opacity: 0; transition: opacity 0.5s; pointer-events: none; }
+        .volcano-erupt { position: absolute; top: 30%; left: 40%; width: 20px; height: 20px; background: #ff4400; filter: blur(5px); border-radius: 50%; opacity: 0; transition: opacity 0.3s; }
+        
+        /* Part 3: Europa Drill */
+        .drill-mission-view { display: flex; gap: 20px; height: 100%; width: 100%; }
+        .drill-view { flex: 1; background: linear-gradient(#fff, #88ccff, #001f3f); border-radius: 8px; position: relative; overflow: hidden; }
+        .drill-head { position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 30px; height: 100px; background: #666; border-radius: 0 0 15px 15px; z-index: 5; transition: top 0.1s linear; }
+        .ice-layer-ui { position: absolute; top: 0; left: 0; width: 100%; height: 0; background: rgba(0,0,0,0.1); border-bottom: 2px dashed #fff; transition: height 0.1s linear; }
+        .ocean-reveal { position: absolute; bottom: 0; left: 0; width: 100%; height: 100px; background: rgba(0, 100, 255, 0.4); display: none; align-items: center; justify-content: center; font-weight: bold; color: #fff; z-index: 2; }
+        
+        /* Part 4: Jump Test */
+        .jump-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; width: 100%; height: 100%; }
+        .moon-jump-box { background: rgba(255,255,255,0.05); border: 1px solid #333; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; align-items: center; position: relative; }
+        .jump-arena { flex: 1; width: 100%; position: relative; border-bottom: 2px solid #555; margin: 10px 0; overflow: hidden; }
+        .astronaut-jumper { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); font-size: 24px; transition: bottom 0.5s cubic-bezier(0.1, 0.5, 0.1, 1); }
+        
+        /* Part 5: Callisto Crater Analysis */
+        .callisto-crater-view { position: relative; width: 300px; height: 300px; }
+        .callisto-base { width: 100%; height: 100%; background: url('https://upload.wikimedia.org/wikipedia/commons/e/e9/Callisto.jpg'); background-size: cover; border-radius: 50%; position: relative; }
+        .crater-overlay { position: absolute; inset: 0; border-radius: 50%; opacity: 0; transition: opacity 0.5s; pointer-events: none; mix-blend-mode: multiply; }
+        
+        .game-controls { padding: 15px; background: rgba(0,0,0,0.5); display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+        .slider-control { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+        .slider-label { font-size: 11px; color: #aaa; font-weight: bold; }
+        
+        input[type=range] { -webkit-appearance: none; width: 100%; background: #333; height: 4px; border-radius: 2px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #fb8500; border-radius: 50%; cursor: pointer; border: 2px solid #fff; }
+
+        /* Ultra-Realistic & NASA Simulation Styles */
+        .simulation-container.ultra-realistic { display: flex; gap: 0; width: 100%; height: 650px; background: #000; border: 1px solid #1a1a2e; border-radius: 4px; overflow: hidden; margin-top: 20px; box-shadow: 0 0 40px rgba(0, 0, 0, 0.8); }
+        
+        .main-sim-screen { flex: 1; position: relative; background: radial-gradient(circle at 10% 50%, #050510 0%, #000 100%); overflow: hidden; cursor: crosshair; }
+        .sun-glow-realistic { position: absolute; left: -150px; top: 50%; transform: translateY(-50%); width: 300px; height: 600px; background: radial-gradient(ellipse at center, rgba(255, 200, 50, 0.15), transparent 70%); filter: blur(20px); }
+        
+        .nasa-style-panel { width: 320px; background: #0a0a0f; border-left: 1px solid #1a1a2e; padding: 20px; display: flex; flex-direction: column; gap: 20px; font-family: 'Segoe UI', sans-serif; box-shadow: inset 5px 0 15px rgba(0,0,0,0.5); }
+        .panel-header { border-bottom: 1px solid #1a3a5a; padding-bottom: 10px; }
+        .mission-id { font-size: 10px; color: #4dabf7; font-weight: bold; letter-spacing: 2px; }
+        .panel-title-nasa { font-size: 14px; color: #fff; font-weight: 300; letter-spacing: 1px; }
+
+        .telemetry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .telemetry-item { background: rgba(26, 26, 46, 0.4); border: 1px solid #1a3a5a; padding: 8px; border-radius: 2px; }
+        .tel-label { display: block; font-size: 9px; color: #4dabf7; margin-bottom: 4px; }
+        .tel-value { display: block; font-size: 12px; color: #fff; font-family: 'Consolas', monospace; }
+
+        .telemetry-graph-container { height: 60px; background: rgba(0,0,0,0.5); border: 1px solid #1a3a5a; margin-top: 10px; position: relative; }
+        
+        .prob-group { margin-bottom: 12px; }
+        .prob-meta { display: flex; justify-content: space-between; font-size: 10px; color: #aaa; margin-bottom: 5px; }
+        .prob-pct { color: #fff; font-weight: bold; }
+        .prob-progress { height: 4px; background: #111; border-radius: 2px; overflow: hidden; }
+        .prob-fill-nasa { height: 100%; width: 0%; background: #4dabf7; transition: width 0.5s; box-shadow: 0 0 10px rgba(77, 171, 247, 0.5); }
+        .prob-fill-nasa.high { background: #ff4d4d; box-shadow: 0 0 10px rgba(255, 77, 77, 0.5); }
+
+        .nasa-controls { border-top: 1px solid #1a3a5a; padding-top: 15px; }
+        .control-tab { font-size: 10px; color: #4dabf7; margin-bottom: 15px; font-weight: bold; }
+        
+        .slider-box { margin-bottom: 15px; }
+        .slider-labels { display: flex; justify-content: space-between; font-size: 11px; color: #fff; margin-bottom: 8px; }
+        .nasa-slider { -webkit-appearance: none; width: 100%; background: #1a3a5a; height: 2px; outline: none; }
+        .nasa-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: #fff; border: 2px solid #4dabf7; border-radius: 50%; cursor: pointer; transition: 0.2s; }
+        .nasa-slider::-webkit-slider-thumb:hover { transform: scale(1.2); box-shadow: 0 0 10px #4dabf7; }
+
+        .button-grid-nasa { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn-nasa { background: transparent; border: 1px solid #1a3a5a; color: #4dabf7; padding: 8px; font-size: 10px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-nasa:hover { background: rgba(77, 171, 247, 0.1); border-color: #4dabf7; color: #fff; }
+        .btn-nasa.active { background: #4dabf7; color: #000; border-color: #fff; }
+
+        .force-meter-ultra { position: absolute; bottom: 20px; left: 20px; width: 150px; background: rgba(10,10,15,0.8); padding: 10px; border: 1px solid #1a3a5a; border-radius: 2px; }
+        .meter-fill-ultra { height: 100%; width: 0%; background: linear-gradient(to right, #4dabf7, #ff4d4d); transition: width 0.1s; }
+
+        .planet-label { position: absolute; color: rgba(255,255,255,0.4); font-size: 9px; font-weight: bold; pointer-events: none; text-transform: uppercase; letter-spacing: 1px; transform: translate(-50%, -25px); }
+        
+        .impact-overlay { position: absolute; inset: 0; background: radial-gradient(circle, rgba(255,50,0,0.2), rgba(0,0,0,0.8)); display: none; align-items: center; justify-content: center; z-index: 100; animation: impactFlash 0.5s ease-out; }
+        .impact-content { text-align: center; }
+        .impact-title { font-size: 24px; color: #ff4d4d; font-weight: bold; margin-bottom: 10px; text-shadow: 0 0 20px #ff4d4d; }
+        .impact-desc { font-size: 14px; color: #fff; opacity: 0.8; }
+        .impact-visual { font-size: 80px; margin-top: 20px; filter: drop-shadow(0 0 30px #ff4d4d); }
+
+        .stat-overlay-mini { margin-top: auto; border-top: 1px solid #1a3a5a; padding-top: 15px; }
+        .stat-title { font-size: 10px; color: #aaa; margin-bottom: 10px; text-align: center; }
+        .stat-graph-mini { display: flex; gap: 20px; justify-content: center; height: 60px; align-items: flex-end; }
+        .stat-bar-container { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1; }
+        .stat-bar { width: 100%; background: #333; transition: height 1s cubic-bezier(0.4, 0, 0.2, 1); }
+        .stat-bar.no-jup { background: #ff4d4d; box-shadow: 0 0 10px rgba(255, 77, 77, 0.3); }
+        .stat-bar.with-jup { background: #4dabf7; box-shadow: 0 0 10px rgba(77, 171, 247, 0.3); }
+        .stat-bar-container span { font-size: 8px; color: #777; text-align: center; white-space: nowrap; }
+
+        @keyframes impactFlash { 0% { background: rgba(255,255,255,0.8); } 100% { background: radial-gradient(circle, rgba(255,50,0,0.2), rgba(0,0,0,0.8)); } }
+
+        /* General UI */
+        .fact-panel { background: rgba(255, 183, 3, 0.2); padding: 15px; border-radius: 10px; border: 1px solid #ffb703; margin-top: 15px; display: none; }
+        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(1px 1px at 20px 30px, #fff, transparent), radial-gradient(1px 1px at 40px 70px, #fff, transparent), radial-gradient(1px 1px at 50px 160px, #fff, transparent); background-size: 200px 200px; }
+    </style>
+</head>
+<body>
+    <div class="stars-bg"></div>
+    <div class="mission-container">
+        <nav class="navbar" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 40px; background: rgba(0, 0, 0, 0.7); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+            <div class="navbar-brand">🚀 Jupiter Explorer Mission</div>
+            <div class="navbar-right">
+                <a href="{{ url_for('dashboard') }}" class="btn-logout" style="margin-right: 10px; text-decoration: none; color: #fff; border: 1px solid #fff; padding: 5px 15px; border-radius: 20px;">Dashboard</a>
+                <a href="{{ url_for('game_zone') }}" class="btn-logout" style="text-decoration: none; color: #fff; border: 1px solid #fff; padding: 5px 15px; border-radius: 20px;">Exit</a>
+            </div>
+        </nav>
+        <!-- Progress Bar -->
+        <div style="position: fixed; top: 0; width: 100%; height: 6px; background: #222; z-index: 100;">
+            <div id="progressFill" style="width: 0%; height: 100%; background: #ffb703; transition: width 0.5s;"></div>
+        </div>
+
+        <!-- Start Screen -->
+        <div class="slide-wrapper active" id="slide0">
+            <div class="slide-header">
+                <h1 class="slide-title" style="font-size: 48px;">🪐 MISSION JUPITER</h1>
+                <p style="color: #ffb703; font-weight: bold; letter-spacing: 2px;">REALISTIC INTERACTIVE EXPLORER</p>
+            </div>
+            <div class="interactive-area">
+                <div class="jupiter-main"></div>
+                <div style="margin-top: 30px; text-align: center;">
+                    <div class="narration-box" id="narration0" style="max-width: 600px;">
+                        <span class="speaker-icon">🎤 AI Voice:</span> Welcome, astronaut. You are about to begin Mission Jupiter. Each slide contains a challenge. Follow the instructions on screen. Complete all missions to finish your journey.
+                    </div>
+                    <button class="btn-start" onclick="startMission()">🚀 Start Mission</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 1: Orbit -->
+        <div class="slide-wrapper" id="slide1">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 1 – Orbit Position Game</div>
+                <h1 class="slide-title">🎯 Place Jupiter in the Correct Orbit</h1>
+            </div>
+            <div class="narration-box" id="narration1">
+                <span class="speaker-icon">🎤 AI Voice:</span> Welcome to the orbit selector. Jupiter is the fifth planet from the Sun. Drag the planet to the correct orbit ring. Count the rings carefully starting from the Sun!
+            </div>
+            <div class="interactive-area">
+                <div class="orbit-container" id="orbitArea">
+                    <div class="sun-center"></div>
+                    <!-- Orbit Rings -->
+                    <div class="orbit-ring" style="width: 120px; height: 120px;" data-orbit="1"><span class="orbit-label">Orbit 1</span></div>
+                    <div class="orbit-ring" style="width: 180px; height: 180px;" data-orbit="2"><span class="orbit-label">Orbit 2</span></div>
+                    <div class="orbit-ring" style="width: 240px; height: 240px;" data-orbit="3"><span class="orbit-label">Orbit 3</span></div>
+                    <div class="orbit-ring" style="width: 300px; height: 300px;" data-orbit="4"><span class="orbit-label">Orbit 4</span></div>
+                    <div class="orbit-ring target-highlight" style="width: 380px; height: 380px;" data-orbit="5" id="targetOrbit">
+                        <span class="orbit-label target-label">Orbit 5 (Target)</span>
+                    </div>
+                    <div class="orbit-ring" style="width: 460px; height: 460px;" data-orbit="6"><span class="orbit-label">Orbit 6</span></div>
+                    <div class="orbit-ring" style="width: 540px; height: 540px;" data-orbit="7"><span class="orbit-label">Orbit 7</span></div>
+                    <div class="orbit-ring" style="width: 620px; height: 620px;" data-orbit="8"><span class="orbit-label">Orbit 8</span></div>
+                    
+                    <div class="draggable-jupiter" id="dragJupiter" draggable="true" style="bottom: 40px; left: 40px;"></div>
+                </div>
+                <div class="fact-panel" id="fact1">
+                    Excellent work! Jupiter is the <strong>fifth</strong> planet from the Sun. <br>
+                    Average distance: 778 million km.
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="next1" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 2: Size Comparison -->
+        <div class="slide-wrapper" id="slide2">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 2 – Size Comparison Game</div>
+                <h1 class="slide-title">🎯 Fit Earth Inside Jupiter</h1>
+            </div>
+            <div class="narration-box" id="narration2">
+                <span class="speaker-icon">🎤 AI Voice:</span> Now let’s see how big Jupiter really is. Drag Earth into Jupiter. Keep adding until the space is full.
+            </div>
+            <div class="interactive-area">
+                <div style="margin-bottom: 10px; font-weight: bold; color: #ffb703;">Earths Added: <span id="earthCounter">0</span> / 1300</div>
+                <div class="comparison-container">
+                    <div id="earthSource" style="width: 100px; text-align: center;">
+                        <div class="earth-icon" style="width: 40px; height: 40px;" onclick="addEarthBatch()"></div>
+                        <p>Click Earth</p>
+                    </div>
+                    <div class="jupiter-silhouette" id="jupiterContainer"></div>
+                </div>
+                <div class="fact-panel" id="fact2">
+                    Amazing. Over <strong>1,300 Earths</strong> could fit inside Jupiter.
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="next2" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 3: Advanced Landing -->
+        <div class="slide-wrapper" id="slide3">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 3 – Jupiter Descent Mission</div>
+                <h1 class="slide-title">🎯 Explore the Gas Giant's Depths</h1>
+            </div>
+            <div class="narration-box" id="narration3">
+                <span class="speaker-icon">🎤 AI Voice:</span> You are about to descend into Jupiter’s atmosphere. Observe carefully as conditions change.
+            </div>
+            <div class="interactive-area">
+                <div class="descent-container">
+                    <div class="sim-view" id="simView">
+                        <div class="layer-bg" id="layerBg"></div>
+                        <div class="sim-overlay"></div>
+                        <div class="lightning-flash" id="lightningFlash"></div>
+                        
+                        <div class="gauges-panel">
+                            <div class="gauge-item">
+                                DEPTH <span class="gauge-val" id="depthVal">0 km</span>
+                                <div class="gauge-bar-bg"><div class="gauge-bar-fill" id="depthBar"></div></div>
+                            </div>
+                            <div class="gauge-item">
+                                TEMPERATURE <span class="gauge-val" id="tempVal">-145°C</span>
+                                <div class="gauge-bar-bg"><div class="gauge-bar-fill" id="tempBar" style="background: #ff4d4d;"></div></div>
+                            </div>
+                            <div class="gauge-item">
+                                PRESSURE <span class="gauge-val" id="pressVal">1 atm</span>
+                                <div class="gauge-bar-bg"><div class="gauge-bar-fill" id="pressBar" style="background: #4d94ff;"></div></div>
+                            </div>
+                        </div>
+
+                        <div class="rocket-container" id="rocketContainer">
+                            <div class="rocket-glow" id="rocketGlow"></div>
+                            <div class="rocket-sim" id="rocketIcon">🚀</div>
+                        </div>
+
+                        <div class="final-infographic" id="finalInfo">
+                            <h2 style="color: #ffb703; margin-bottom: 15px;">❌ MISSION FAILED: SIGNAL LOST</h2>
+                            <p style="font-size: 18px;">Jupiter has no solid surface to land on!</p>
+                            
+                            <div class="comparison-box">
+                                <div class="planet-comp">
+                                    <div class="planet-mini" style="background: radial-gradient(circle at 30% 30%, #4b9cd3, #1a2a6c);"></div>
+                                    <h4 style="color: #4b9cd3;">EARTH</h4>
+                                    <ul class="comp-facts green">
+                                        <li>Solid Crust</li>
+                                        <li>Safe Pressure</li>
+                                        <li>Mild Temp</li>
+                                    </ul>
+                                </div>
+                                <div class="planet-comp">
+                                    <div class="planet-mini" style="background: url('https://upload.wikimedia.org/wikipedia/commons/e/e2/Jupiter.jpg'); background-size: cover;"></div>
+                                    <h4 style="color: #ffb703;">JUPITER</h4>
+                                    <ul class="comp-facts">
+                                        <li>No Solid Ground</li>
+                                        <li>Crushing Pressure</li>
+                                        <li>Extreme Heat</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="phase-info" style="max-width: 500px;">
+                                <span class="phase-name">Why can't we land?</span>
+                                As you go deeper, the gas simply becomes thicker and thicker until it turns into a hot, metallic liquid. There is never a place to stand!
+                            </div>
+                            
+                            <button class="btn-start" style="margin-top: 20px; font-size: 18px;" onclick="nextSlide()">Continue Mission</button>
+                        </div>
+                    </div>
+
+                    <div class="science-panel">
+                        <div class="science-title">🔬 SENSOR DATA</div>
+                        
+                        <div class="phase-info" id="phaseDisplay">
+                            <span class="phase-name" id="phaseTitle">Ready for Descent</span>
+                            <span id="phaseDesc">Press Begin to start the mission.</span>
+                        </div>
+
+                        <div class="comp-list">
+                            <div class="comp-item">
+                                Hydrogen (H₂) <span style="float: right;" id="h2Val">90%</span>
+                                <div class="comp-bar"><div class="comp-fill" id="h2Bar" style="width: 90%;"></div></div>
+                            </div>
+                            <div class="comp-item">
+                                Helium (He) <span style="float: right;" id="heVal">10%</span>
+                                <div class="comp-bar"><div class="comp-fill" id="heBar" style="width: 10%; background: #ffb703;"></div></div>
+                            </div>
+                            <div class="comp-item">
+                                Others <span style="float: right;" id="otherVal">< 1%</span>
+                                <div class="comp-bar"><div class="comp-fill" id="otherBar" style="width: 2%; background: #ff4d4d;"></div></div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: auto;">
+                            <button class="btn-start" id="startDescentBtn" style="width: 100%; font-size: 16px; padding: 10px;" onclick="startDescent()">🚀 Begin Descent</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="fact-panel" id="fact3">
+                    Jupiter has no solid surface. As pressure increases, gas transitions into liquid under extreme compression. No spacecraft can survive this descent.
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="next3" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 4: Great Red Spot -->
+        <div class="slide-wrapper" id="slide4">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 4 – Great Red Spot Storm</div>
+                <h1 class="slide-title">🎯 Explore the Giant Storm</h1>
+            </div>
+            <div class="narration-box" id="narration4">
+                <span class="speaker-icon">🎤 AI Voice:</span> Click on the Great Red Spot. Zoom in to explore this giant storm.
+            </div>
+            <div class="interactive-area">
+                <div class="storm-container" onclick="zoomStorm()">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/e/e2/Jupiter.jpg" class="storm-img" id="stormImg" alt="Jupiter Storm">
+                    <div style="position: absolute; top: 60%; left: 55%; width: 50px; height: 30px; border: 2px solid red; border-radius: 50%; pointer-events: none;"></div>
+                </div>
+                <p style="margin-top: 10px;">Wind Speed: <span id="windSpeed">430</span> km/h</p>
+                <div class="fact-panel" id="fact4">
+                    This storm is larger than Earth and has been active for over 300 years!
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="next4" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 5: Gravity -->
+        <div class="slide-wrapper" id="slide5">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 5 – Gravity Weight Challenge</div>
+                <h1 class="slide-title">🎯 Calculate Your Weight on Jupiter</h1>
+            </div>
+            <div class="narration-box" id="narration5">
+                <span class="speaker-icon">🎤 AI Voice:</span> Enter your Earth weight. Jupiter’s gravity is two and a half times stronger.
+            </div>
+            <div class="interactive-area">
+                <div style="display: flex; gap: 50px; align-items: center;">
+                    <div style="text-align: center;">
+                        <p>Earth</p>
+                        <div style="font-size: 50px;">🧍</div>
+                        <input type="number" id="earthWeight" placeholder="Weight in kg" style="padding: 10px; border-radius: 5px; width: 120px; border: 1px solid #444; background: #222; color: #fff;">
+                    </div>
+                    <button class="btn-start" style="font-size: 18px;" onclick="calculateWeight()">Calculate</button>
+                    <div style="text-align: center;">
+                        <p>Jupiter</p>
+                        <div id="jupiterAvatar" style="font-size: 50px; transition: transform 0.5s;">🧍</div>
+                        <div id="jupiterWeight" style="font-size: 24px; font-weight: bold; color: #ffb703;">? kg</div>
+                    </div>
+                </div>
+                <div class="fact-panel" id="fact5">
+                    You would feel much heavier because Jupiter has stronger gravity!
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="next5" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 6: ADVANCED GALILEAN MOON EXPLORER -->
+        <div class="slide-wrapper" id="slide6">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 6 – ADVANCED GALILEAN MOON EXPLORER</div>
+                <h1 class="slide-title">🌌 Galilean Moon Discovery Mission</h1>
+            </div>
+            
+            <div class="moon-game-container">
+                <div class="moon-game-header">
+                    <div class="game-part-indicator" id="partIndicator">PART 1: BUILD JUPITER'S MOON SYSTEM</div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-nav" id="btnPrevPart" onclick="changeGamePart(-1)" style="padding: 5px 10px; font-size: 10px;" disabled>← Previous Part</button>
+                        <button class="btn-nav" id="btnNextPart" onclick="changeGamePart(1)" style="padding: 5px 10px; font-size: 10px;" disabled>Next Part →</button>
+                    </div>
+                </div>
+
+                <div class="moon-game-body">
+                    <!-- PART 1: Build Moon System -->
+                    <div class="part-screen active" id="part1">
+                        <div style="text-align: center; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; gap: 20px;">
+                            <p style="color: #ffb703; font-weight: bold; margin: 0;">🎯 Task: Place the moons in correct orbital order from Jupiter.</p>
+                            <button onclick="resetMoonSystem()" style="padding: 5px 15px; background: #444; color: #fff; border: 1px solid #666; border-radius: 4px; cursor: pointer; font-size: 12px;">🔄 Reset System</button>
+                        </div>
+                        <div class="orbit-builder" id="orbitBuilderArea">
+                            <div class="jupiter-builder"></div>
+                            <!-- Smallest last (top) so they don't block outer rings -->
+                            <div class="empty-orbit" style="width: 450px; height: 450px; z-index: 1;" data-orbit="4"></div>
+                            <div class="empty-orbit" style="width: 350px; height: 350px; z-index: 2;" data-orbit="3"></div>
+                            <div class="empty-orbit" style="width: 250px; height: 250px; z-index: 3;" data-orbit="2"></div>
+                            <div class="empty-orbit" style="width: 150px; height: 150px; z-index: 4;" data-orbit="1"></div>
+                        </div>
+                        <div class="moons-sidebar">
+                            <div class="draggable-moon" draggable="true" id="moon-ganymede" data-moon="3" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/8/86/Ganymede_G1_true.jpg');"><span>Ganymede</span></div>
+                            <div class="draggable-moon" draggable="true" id="moon-io" data-moon="1" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/7/7b/Io_highest_resolution_true_color.jpg');"><span>Io</span></div>
+                            <div class="draggable-moon" draggable="true" id="moon-callisto" data-moon="4" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/e/e9/Callisto.jpg');"><span>Callisto</span></div>
+                            <div class="draggable-moon" draggable="true" id="moon-europa" data-moon="2" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/5/54/Europa-moon.jpg');"><span>Europa</span></div>
+                        </div>
+                    </div>
+
+                    <!-- PART 2: Tidal Heating -->
+                    <div class="part-screen" id="part2">
+                        <div class="io-heating-view">
+                            <div style="text-align: center;">
+                                <h3 style="color: #ffb703;">🌋 TIDAL HEATING SIMULATION</h3>
+                                <p style="font-size: 14px; color: #ccc;">Control Jupiter's gravity to see how it affects Io.</p>
+                            </div>
+                            <div class="io-sphere" id="ioSphere">
+                                <div class="io-glow" id="ioGlow"></div>
+                                <div class="volcano-erupt" id="volcano1"></div>
+                                <div class="volcano-erupt" id="volcano2" style="top: 60%; left: 70%;"></div>
+                            </div>
+                        </div>
+                        <div class="game-controls">
+                            <div class="slider-control">
+                                <span class="slider-label">JUPITER GRAVITY STRENGTH</span>
+                                <input type="range" min="1" max="100" value="1" id="gravitySlider" oninput="updateTidalHeating(this.value)">
+                            </div>
+                            <div id="heatingStatus" style="width: 150px; text-align: right; color: #ffb703; font-weight: bold;">STATUS: STABLE</div>
+                        </div>
+                    </div>
+
+                    <!-- PART 3: Europa Drill -->
+                    <div class="part-screen" id="part3">
+                        <div style="text-align: center; margin-bottom: 10px;">
+                            <h3 style="color: #88ccff;">🌊 EUROPA OCEAN DRILL MISSION</h3>
+                        </div>
+                        <div class="drill-mission-view">
+                            <div class="drill-view">
+                                <div class="ice-layer-ui" id="iceLayerUI"></div>
+                                <div class="drill-head" id="drillHead"></div>
+                                <div class="ocean-reveal" id="oceanReveal">OCEAN DISCOVERED!</div>
+                            </div>
+                            <div style="width: 200px; padding: 10px; background: rgba(255,255,255,0.05);">
+                                <p style="font-size: 12px; margin-bottom: 10px;">DRILL DEPTH: <span id="drillDepthVal">0</span> km</p>
+                                <div id="drillStatusText" style="font-size: 11px; color: #aaa; margin-bottom: 15px; min-height: 60px; line-height: 1.4;">
+                                    Standby for drilling...
+                                </div>
+                                <div id="drillDecision" style="display: none;">
+                                    <p style="font-size: 12px; margin-bottom: 10px; color: #ffb703;">Mission Decision: Deploy submarine?</p>
+                                    <button onclick="deploySubmarine()" style="width: 100%; padding: 8px; background: #fb8500; border: none; color: #fff; cursor: pointer; border-radius: 4px; font-weight: bold;">🚀 DEPLOY SUB</button>
+                                </div>
+                                <div id="subAnimation" style="display: none; margin-top: 20px; text-align: center;">
+                                    <span style="font-size: 40px; display: block; animation: float 2s infinite;">🚢</span>
+                                    <p style="font-size: 11px; color: #00ff00;">Hydrothermal vents found!</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="game-controls">
+                            <div class="slider-control">
+                                <span class="slider-label">DRILL DEPTH CONTROL</span>
+                                <input type="range" min="0" max="100" value="0" id="drillSlider" oninput="updateDrill(this.value)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PART 4: Gravity Jump -->
+                    <div class="part-screen" id="part4">
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <h3 style="color: #ffb703;">🪐 GRAVITY JUMP TEST</h3>
+                            <p style="font-size: 12px; color: #ccc;">Compare your jumping ability across the Galilean moons.</p>
+                        </div>
+                        <div class="jump-grid">
+                            <div class="moon-jump-box">
+                                <span style="font-weight: bold; color: #ffb703;">IO</span>
+                                <div class="jump-arena"><div class="astronaut-jumper" id="jump-io">👨‍🚀</div></div>
+                                <button onclick="jumpTest('io', 120)" style="font-size: 10px; padding: 5px 10px;">Jump Test</button>
+                            </div>
+                            <div class="moon-jump-box">
+                                <span style="font-weight: bold; color: #88ccff;">EUROPA</span>
+                                <div class="jump-arena"><div class="astronaut-jumper" id="jump-europa">👨‍🚀</div></div>
+                                <button onclick="jumpTest('europa', 180)" style="font-size: 10px; padding: 5px 10px;">Jump Test</button>
+                            </div>
+                            <div class="moon-jump-box">
+                                <span style="font-weight: bold; color: #999;">GANYMEDE</span>
+                                <div class="jump-arena"><div class="astronaut-jumper" id="jump-ganymede">👨‍🚀</div></div>
+                                <button onclick="jumpTest('ganymede', 100)" style="font-size: 10px; padding: 5px 10px;">Jump Test</button>
+                            </div>
+                            <div class="moon-jump-box">
+                                <span style="font-weight: bold; color: #555;">CALLISTO</span>
+                                <div class="jump-arena"><div class="astronaut-jumper" id="jump-callisto">👨‍🚀</div></div>
+                                <button onclick="jumpTest('callisto', 200)" style="font-size: 10px; padding: 5px 10px;">Jump Test</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PART 5: Crater Analysis -->
+                    <div class="part-screen" id="part5">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <h3 style="color: #aaa;">🌑 CRATER AGE ANALYSIS</h3>
+                            <p style="font-size: 14px; color: #ccc;">Adjust time to see how Callisto's surface changed.</p>
+                        </div>
+                        <div class="callisto-crater-view">
+                            <div class="callisto-base">
+                                <div class="crater-overlay" id="craterOverlay" style="background: radial-gradient(circle, rgba(0,0,0,0.5) 20%, transparent 21%) 0 0, radial-gradient(circle, rgba(0,0,0,0.5) 20%, transparent 21%) 25px 25px; background-size: 50px 50px;"></div>
+                            </div>
+                        </div>
+                        <div class="game-controls" style="margin-top: 30px;">
+                            <div class="slider-control">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span class="slider-label">4 BILLION YEARS AGO</span>
+                                    <span class="slider-label">PRESENT DAY</span>
+                                </div>
+                                <input type="range" min="0" max="100" value="100" id="timeSlider" oninput="updateCraters(this.value)">
+                            </div>
+                        </div>
+                        <div id="craterConclusion" style="margin-top: 20px; text-align: center; color: #ffb703; font-weight: bold; display: none;">
+                            Conclusion: More craters = Older surface.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fact-panel" id="fact6" style="margin: 0; border-radius: 0; border-top: 1px solid #444;">
+                    Great work! You have mastered the moon system.
+                </div>
+            </div>
+
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="next6" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 7: Asteroid Shield -->
+        <div class="slide-wrapper" id="slide7">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 7 – GRAVITATIONAL SHIELD SIMULATION</div>
+                <h1 class="slide-title">Jupiter: Guardian of the Inner Solar System</h1>
+            </div>
+
+            <div class="narration-box" id="narration7">
+                <span class="speaker-icon">🎤 AI Voice:</span> Welcome to the Space Defense Lab. Here, we analyze how Jupiter acts as a gravitational shield for the inner solar system.
+            </div>
+
+            <div class="simulation-container ultra-realistic">
+                <!-- Main Simulation Screen -->
+                <div class="main-sim-screen" id="simScreen">
+                    <canvas id="simCanvas"></canvas>
+                    <div class="overlay-elements">
+                        <div class="sun-glow-realistic"></div>
+                        <div class="parallax-stars"></div>
+                        
+                        <!-- Planets (rendered on canvas but UI labels here) -->
+                        <div class="planet-labels">
+                            <div id="labelMercury" class="planet-label">Mercury</div>
+                            <div id="labelVenus" class="planet-label">Venus</div>
+                            <div id="labelEarth" class="planet-label">Earth</div>
+                            <div id="labelMars" class="planet-label">Mars</div>
+                            <div id="labelJupiter" class="planet-label">Jupiter</div>
+                        </div>
+
+                        <div id="forceMeter" class="force-meter-ultra">
+                            <div class="meter-label">GRAVITATIONAL INTENSITY</div>
+                            <div class="meter-bar"><div id="forceFill" class="meter-fill-ultra"></div></div>
+                        </div>
+
+                        <!-- Impact Cinematic Overlay -->
+                        <div id="impactCinematic" class="impact-overlay">
+                            <div class="impact-content">
+                                <div id="impactTitle" class="impact-title">EARTH IMPACT DETECTED</div>
+                                <div id="impactDesc" class="impact-desc">Global atmospheric shockwave spreading...</div>
+                                <div class="impact-visual">🔥</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NASA-STYLE RIGHT PANEL -->
+                <div class="control-panel nasa-style-panel">
+                    <div class="panel-header">
+                        <div class="mission-id">SYS-DEF: LAB 07</div>
+                        <div class="panel-title-nasa">GRAVITATIONAL DEFENSE COMMAND</div>
+                    </div>
+
+                    <div class="telemetry-section">
+                        <div class="telemetry-grid">
+                            <div class="telemetry-item">
+                                <span class="tel-label">ASTEROID VELOCITY</span>
+                                <span class="tel-value" id="telVel">0.00 km/s</span>
+                            </div>
+                            <div class="telemetry-item">
+                                <span class="tel-label">DIST. TO JUPITER</span>
+                                <span class="tel-value" id="telDist">0.00M km</span>
+                            </div>
+                            <div class="telemetry-item">
+                                <span class="tel-label">GRAV. FORCE (N)</span>
+                                <span class="tel-value" id="telForce">0.00</span>
+                            </div>
+                            <div class="telemetry-item">
+                                <span class="tel-label">DEFLECTION ANGLE</span>
+                                <span class="tel-value" id="telAngle">0.00°</span>
+                            </div>
+                        </div>
+
+                        <div class="telemetry-graph-container">
+                            <canvas id="telemetryGraph"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="probability-analytics">
+                        <div class="prob-group">
+                            <div class="prob-meta">
+                                <span>Impact Probability (Inner System)</span>
+                                <span id="valImpact" class="prob-pct">0%</span>
+                            </div>
+                            <div class="prob-progress"><div id="barImpact" class="prob-fill-nasa high"></div></div>
+                        </div>
+                        <div class="prob-group">
+                            <div class="prob-meta">
+                                <span>Capture Probability</span>
+                                <span id="valCapture" class="prob-pct">0%</span>
+                            </div>
+                            <div class="prob-progress"><div id="barCapture" class="prob-fill-nasa"></div></div>
+                        </div>
+                    </div>
+
+                    <div class="nasa-controls">
+                        <div class="control-tab">EXPERIMENTAL CONFIG</div>
+                        
+                        <div class="slider-box">
+                            <div class="slider-labels">
+                                <span>Jupiter Mass</span>
+                                <span id="massLabel">NORMAL</span>
+                            </div>
+                            <input type="range" min="0" max="200" value="100" class="nasa-slider" oninput="setJupiterMassScaled(this.value)">
+                        </div>
+
+                        <div class="slider-box">
+                            <div class="slider-labels">
+                                <span>Asteroid Speed</span>
+                                <span id="speedLabel">5.0</span>
+                            </div>
+                            <input type="range" min="1" max="15" step="0.5" value="5" class="nasa-slider" oninput="updateSpeed(this.value)">
+                        </div>
+
+                        <div class="button-grid-nasa">
+                            <button class="btn-nasa" onclick="spawnAsteroid()">SPAWN ASTEROID</button>
+                            <button class="btn-nasa" onclick="toggleStorm()">ASTEROID STORM</button>
+                            <button class="btn-nasa" onclick="toggleGrid()" id="btnRelativity">RELATIVITY VIEW</button>
+                            <button class="btn-nasa" onclick="showStatisticalShield()" id="btnStats">STATISTICAL DATA</button>
+                        </div>
+                    </div>
+
+                    <div id="statPanel" class="stat-overlay-mini">
+                        <div class="stat-title">STATISTICAL SHIELDING EFFECT</div>
+                        <div class="stat-graph-mini" id="statGraph">
+                            <div class="stat-bar-container"><div class="stat-bar no-jup" style="height: 18%"></div><span>WITHOUT JUPITER (18%)</span></div>
+                            <div class="stat-bar-container"><div class="stat-bar with-jup" style="height: 6%"></div><span>WITH JUPITER (6%)</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <a href="{{ url_for('game_zone') }}" class="btn-nav btn-next" id="finishBtn" style="display: none;">Finish Mission 🚀</a>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const totalSlides = 7;
+
+        // Initialize voice click listeners
+        document.querySelectorAll('.narration-box').forEach(box => {
+            box.addEventListener('click', () => {
+                const text = box.innerText.replace('🎤 AI Voice:', '').trim();
+                speak(text);
+            });
+        });
+
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function updateProgress() {
+            const progress = (currentSlide / totalSlides) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        function startMission() {
+            const narration = document.getElementById('narration0').innerText.replace('🎤 AI Voice:', '').trim();
+            speak(narration);
+            setTimeout(nextSlide, 5000); // Give time for intro or just move next
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides) {
+                document.getElementById('slide' + currentSlide).classList.remove('active');
+                currentSlide++;
+                document.getElementById('slide' + currentSlide).classList.add('active');
+                updateProgress();
+                
+                const narration = document.getElementById('narration' + currentSlide).innerText.replace('🎤 AI Voice:', '').trim();
+                speak(narration);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                document.getElementById('slide' + currentSlide).classList.remove('active');
+                currentSlide--;
+                document.getElementById('slide' + currentSlide).classList.add('active');
+                updateProgress();
+                
+                const narration = document.getElementById('narration' + currentSlide).innerText.replace('🎤 AI Voice:', '').trim();
+                speak(narration);
+            }
+        }
+
+        // Slide 1: Orbit Game Logic
+        const dragJupiter = document.getElementById('dragJupiter');
+        const orbitArea = document.getElementById('orbitArea');
+        const targetOrbit = document.getElementById('targetOrbit');
+
+        dragJupiter.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', 'jupiter');
+        });
+
+        orbitArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+
+        orbitArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const rect = targetOrbit.getBoundingClientRect();
+            const mouseX = e.clientX;
+            const mouseY = e.clientY;
+
+            // Calculate distance from center of orbits (sun)
+            const sunRect = document.querySelector('.sun-center').getBoundingClientRect();
+            const sunX = sunRect.left + sunRect.width / 2;
+            const sunY = sunRect.top + sunRect.height / 2;
+            
+            const dist = Math.sqrt(Math.pow(mouseX - sunX, 2) + Math.pow(mouseY - sunY, 2));
+            
+            // Orbit 5 has width 380px, radius 190px
+            const targetRadius = 190;
+            const error = Math.abs(dist - targetRadius);
+
+            if (error < 60) {
+                dragJupiter.style.left = '50%';
+                dragJupiter.style.top = '50%';
+                dragJupiter.classList.add('revolving-jupiter');
+                
+                targetOrbit.style.borderColor = '#00ff00';
+                targetOrbit.style.borderWidth = '3px';
+                document.getElementById('fact1').style.display = 'block';
+                document.getElementById('next1').disabled = false;
+                const msg = "Excellent work! Jupiter is the fifth planet from the Sun, located between Mars and Saturn. It is so large that all other planets could fit inside it!";
+                document.getElementById('narration1').innerHTML = '<span class="speaker-icon">🎤 AI Voice:</span> ' + msg;
+                speak(msg);
+            } else {
+                const msg = "That's not the correct orbit. Remember, Jupiter is the fifth planet from the Sun. Try counting the rings again!";
+                document.getElementById('narration1').innerHTML = '<span class="speaker-icon">🎤 AI Voice:</span> ' + msg;
+                speak(msg);
+            }
+        });
+
+        // Slide 2: Size Comparison
+        let earthCount = 0;
+        function addEarthBatch() {
+            if (earthCount >= 1300) return;
+            
+            const batch = 100;
+            for(let i=0; i<batch; i++) {
+                if (earthCount >= 1300) break;
+                const earth = document.createElement('div');
+                earth.className = 'earth-icon';
+                document.getElementById('jupiterContainer').appendChild(earth);
+                earthCount++;
+            }
+            
+            document.getElementById('earthCounter').innerText = earthCount;
+            
+            if (earthCount >= 1300) {
+                document.getElementById('fact2').style.display = 'block';
+                document.getElementById('next2').disabled = false;
+                const msg = "Amazing. Over one thousand Earths could fit inside Jupiter.";
+                document.getElementById('narration2').innerHTML = '<span class="speaker-icon">🎤 AI Voice:</span> ' + msg;
+                speak(msg);
+            }
+        }
+
+        // Slide 3: Advanced Descent Simulation
+        const descentPhases = [
+            {
+                title: "PHASE 1 – UPPER CLOUD LAYER",
+                desc: "Entering the cloud tops. Atmosphere is 90% Hydrogen and 10% Helium.",
+                voice: "You are entering Jupiter's upper cloud layer. The atmosphere is mostly hydrogen and helium.",
+                depth: 0, temp: -145, press: 1,
+                bg: "linear-gradient(#1a1a2e, #16213e)",
+                shake: false, glow: false
+            },
+            {
+                title: "PHASE 2 – AMMONIA CLOUDS",
+                desc: "Clouds composed of frozen ammonia ice crystals.",
+                voice: "These clouds are made of frozen ammonia crystals.",
+                depth: 50, temp: -100, press: 2,
+                bg: "linear-gradient(#2c3e50, #000000)",
+                shake: true, glow: false
+            },
+            {
+                title: "PHASE 3 – AMMONIUM HYDROSULFIDE",
+                desc: "Pressure and temperature increasing rapidly as we go deeper.",
+                voice: "Pressure is rising quickly as we descend deeper.",
+                depth: 150, temp: -20, press: 10,
+                bg: "linear-gradient(#5a3e2b, #2f1b10)",
+                shake: true, glow: false
+            },
+            {
+                title: "PHASE 4 – WATER CLOUD LAYER",
+                desc: "Intense lightning. Temperatures rising above freezing.",
+                voice: "Water clouds form deeper inside where temperatures are higher. Watch out for lightning!",
+                depth: 300, temp: 20, press: 50,
+                bg: "linear-gradient(#2c3e50, #1a1a2e)",
+                shake: true, glow: true, lightning: true
+            },
+            {
+                title: "PHASE 5 – DEEP HYDROGEN GAS",
+                desc: "Pressure thousands of times Earth. Rocket hull beginning to heat up.",
+                voice: "The hydrogen gas becomes extremely compressed under enormous pressure. The heat is becoming intense.",
+                depth: 1000, temp: 2000, press: 5000,
+                bg: "linear-gradient(#4a2c00, #1a0f00)",
+                shake: true, glow: true
+            },
+            {
+                title: "PHASE 6 – LIQUID METALLIC HYDROGEN",
+                desc: "Hydrogen behaves like liquid metal. Rocket structure failing.",
+                voice: "Hydrogen transitions into a metallic liquid state under extreme pressure. The spacecraft cannot hold much longer.",
+                depth: 5000, temp: 10000, press: 100000,
+                bg: "linear-gradient(#333, #000)",
+                shake: true, glow: true, failing: true
+            }
+        ];
+
+        let currentPhase = 0;
+        let descentInterval;
+
+        function startDescent() {
+            document.getElementById('startDescentBtn').disabled = true;
+            currentPhase = 0;
+            runPhase();
+        }
+
+        function runPhase() {
+            if (currentPhase >= descentPhases.length) {
+                setTimeout(endDescent, 3000);
+                return;
+            }
+
+            const p = descentPhases[currentPhase];
+            
+            // Update UI text
+            document.getElementById('phaseTitle').innerText = p.title;
+            document.getElementById('phaseDesc').innerText = p.desc;
+            
+            // Update Gauges
+            updateGauge('depth', p.depth, 5000, " km");
+            updateGauge('temp', p.temp + 145, 10145, "°C", p.temp);
+            updateGauge('press', Math.log10(p.press), 5, " atm", p.press);
+
+            // Visuals
+            document.getElementById('layerBg').style.background = p.bg;
+            const rocket = document.getElementById('rocketContainer');
+            if (p.shake) rocket.classList.add('shaking');
+            else rocket.classList.remove('shaking');
+            
+            document.getElementById('rocketGlow').style.display = p.glow ? 'block' : 'none';
+            
+            if (p.lightning) {
+                triggerLightning();
+            }
+
+            if (p.failing) {
+                setTimeout(() => {
+                    document.getElementById('rocketIcon').classList.add('crushing');
+                }, 2000);
+            }
+
+            speak(p.voice);
+
+            currentPhase++;
+            setTimeout(runPhase, 5000);
+        }
+
+        function updateGauge(id, val, max, unit, displayVal = val) {
+            const fill = document.getElementById(id + 'Bar');
+            const txt = document.getElementById(id + 'Val');
+            const percent = Math.min((val / max) * 100, 100);
+            fill.style.width = percent + '%';
+            txt.innerText = displayVal + unit;
+        }
+
+        function triggerLightning() {
+            const flash = document.getElementById('lightningFlash');
+            let count = 0;
+            const interval = setInterval(() => {
+                flash.style.opacity = flash.style.opacity === '1' ? '0' : '1';
+                count++;
+                if (count > 5) {
+                    clearInterval(interval);
+                    flash.style.opacity = '0';
+                }
+            }, 100);
+        }
+
+        function endDescent() {
+            document.getElementById('finalInfo').style.display = 'flex';
+            document.getElementById('fact3').style.display = 'block';
+            document.getElementById('next3').disabled = false;
+            
+            const msg = "Jupiter has no solid surface. No spacecraft can survive this descent.";
+            speak(msg);
+        }
+
+        function attemptLanding() {
+            // Replaced by startDescent
+            startDescent();
+        }
+
+        // Slide 4: Storm
+        function zoomStorm() {
+            const img = document.getElementById('stormImg');
+            img.style.transform = 'scale(3) translate(-20%, -20%)';
+            document.getElementById('fact4').style.display = 'block';
+            document.getElementById('next4').disabled = false;
+            const msg = "This storm is larger than Earth and has been active for over three hundred years.";
+            document.getElementById('narration4').innerHTML = '<span class="speaker-icon">🎤 AI Voice:</span> ' + msg;
+            speak(msg);
+        }
+
+        // Slide 5: Gravity
+        function calculateWeight() {
+            const weight = document.getElementById('earthWeight').value;
+            if (!weight) return;
+            
+            const jWeight = (weight * 2.5).toFixed(1);
+            document.getElementById('jupiterWeight').innerText = jWeight + ' kg';
+            document.getElementById('jupiterAvatar').style.transform = 'scale(1.5) translateY(10px)';
+            
+            document.getElementById('fact5').style.display = 'block';
+            document.getElementById('next5').disabled = false;
+            const msg = "You would feel much heavier because Jupiter has stronger gravity.";
+            document.getElementById('narration5').innerHTML = '<span class="speaker-icon">🎤 AI Voice:</span> ' + msg;
+            speak(msg);
+        }
+
+        // Slide 6: ADVANCED GALILEAN MOON EXPLORER
+        let currentMoonPart = 1;
+        const totalMoonParts = 5;
+        let moonsPlaced = 0;
+        
+        function changeGamePart(dir) {
+            const nextPart = currentMoonPart + dir;
+            if (nextPart < 1 || nextPart > totalMoonParts) return;
+            
+            document.getElementById('part' + currentMoonPart).classList.remove('active');
+            currentMoonPart = nextPart;
+            document.getElementById('part' + currentMoonPart).classList.add('active');
+            
+            const partTitles = [
+                "",
+                "PART 1: BUILD JUPITER'S MOON SYSTEM",
+                "PART 2: TIDAL HEATING SIMULATION",
+                "PART 3: EUROPA OCEAN DRILL MISSION",
+                "PART 4: GRAVITY JUMP TEST",
+                "PART 5: CRATER AGE ANALYSIS"
+            ];
+            
+            document.getElementById('partIndicator').innerText = partTitles[currentMoonPart];
+            document.getElementById('btnPrevPart').disabled = (currentMoonPart === 1);
+            document.getElementById('btnNextPart').disabled = true; // Re-enable only after task completion or if already done
+            
+            // Re-enable next button if already completed this part
+            if (currentMoonPart === 2) speak("Jupiter’s immense gravity stretches Io. This process is called tidal heating.");
+            if (currentMoonPart === 3) {
+                const intro = "Scientists are extremely interested in Europa because evidence suggests it may have a vast ocean of liquid water beneath its icy surface. Liquid water is one of the most important ingredients for life. If Europa has water, heat, and the right chemistry, it could potentially support simple life forms.";
+                speak(intro);
+                document.getElementById('drillStatusText').innerText = "Select a depth to begin the mission.";
+            }
+            if (currentMoonPart === 4) speak("Gravity depends on mass and size. Even though Ganymede is largest, its gravity is still much weaker than Earth’s.");
+            if (currentMoonPart === 5) speak("Callisto’s surface has remained mostly unchanged for billions of years.");
+            
+            // Allow skipping back to previous parts' next button
+            document.getElementById('btnNextPart').disabled = false;
+        }
+
+        // Part 1: Drag and Drop
+        document.querySelectorAll('.draggable-moon').forEach(moon => {
+            moon.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', moon.id);
+            });
+        });
+
+        document.querySelectorAll('.empty-orbit').forEach(orbit => {
+            orbit.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                orbit.classList.add('highlight');
+            });
+            
+            orbit.addEventListener('dragleave', () => {
+                orbit.classList.remove('highlight');
+            });
+            
+            orbit.addEventListener('drop', (e) => {
+                e.preventDefault();
+                orbit.classList.remove('highlight');
+                const moonId = e.dataTransfer.getData('text/plain');
+                const moonEl = document.getElementById(moonId);
+                
+                if (moonEl) {
+                    const moonPos = moonEl.dataset.moon;
+                    const targetOrbit = orbit.dataset.orbit;
+                    
+                    if (moonPos === targetOrbit) {
+                        orbit.appendChild(moonEl);
+                        moonEl.style.position = 'absolute';
+                        moonEl.style.top = '-30px';
+                        moonEl.style.left = '50%';
+                        moonEl.style.transform = 'translateX(-50%)';
+                        moonEl.setAttribute('draggable', 'false');
+                        orbit.classList.add('filled');
+                        
+                        // Add slow rotation
+                        const orbitNum = parseInt(targetOrbit);
+                        const durations = ["", "10s", "18s", "30s", "45s"];
+                        orbit.style.setProperty('--duration', durations[orbitNum]);
+                        orbit.classList.add('orbiting');
+                        
+                        moonsPlaced++;
+                        speak("Excellent. Strong gravity keeps these moons in stable orbits.");
+                        
+                        if (moonsPlaced === 4) {
+                            document.getElementById('btnNextPart').disabled = false;
+                            speak("All moons placed! You can now proceed to tidal heating.");
+                        }
+                    } else {
+                        speak("Remember, Io orbits closest to Jupiter, followed by Europa, Ganymede, and Callisto.");
+                    }
+                }
+            });
+        });
+
+        function resetMoonSystem() {
+            const sidebar = document.querySelector('.moons-sidebar');
+            const orbits = document.querySelectorAll('.empty-orbit');
+            moonsPlaced = 0;
+            
+            orbits.forEach(orbit => {
+                const moon = orbit.querySelector('.draggable-moon');
+                if (moon) {
+                    sidebar.appendChild(moon);
+                    moon.style.position = 'relative';
+                    moon.style.top = 'auto';
+                    moon.style.left = 'auto';
+                    moon.style.transform = 'none';
+                    moon.setAttribute('draggable', 'true');
+                }
+                orbit.classList.remove('filled', 'orbiting');
+            });
+            
+            document.getElementById('btnNextPart').disabled = true;
+            speak("Moon system reset. Place the moons in their correct orbital order.");
+        }
+
+        // Part 2: Tidal Heating
+        let lastTidalLevel = 0;
+        function updateTidalHeating(val) {
+            const io = document.getElementById('ioSphere');
+            const glow = document.getElementById('ioGlow');
+            const status = document.getElementById('heatingStatus');
+            
+            const stretch = 1 + (val / 500);
+            io.style.transform = `scaleX(${stretch}) scaleY(${1/stretch})`;
+            glow.style.opacity = val / 100;
+
+            let currentLevel = 0;
+            let msg = "";
+            if (val <= 25) {
+                currentLevel = 1;
+                msg = "When tidal forces are weak, Io experiences less internal heating. Volcanic activity decreases.";
+            } else if (val <= 50) {
+                currentLevel = 2;
+                msg = "As Jupiter’s gravity stretches Io more strongly, friction inside the moon increases. This produces heat beneath the surface.";
+            } else if (val <= 80) {
+                currentLevel = 3;
+                msg = "Strong tidal forces squeeze Io continuously. The intense internal heat melts rock into magma, powering massive volcanic eruptions.";
+            } else {
+                currentLevel = 4;
+                msg = "With extreme tidal stress, Io’s interior becomes highly unstable. Magma rises rapidly, creating powerful volcanic explosions.";
+            }
+
+            if (currentLevel !== lastTidalLevel) {
+                lastTidalLevel = currentLevel;
+                speak(msg);
+            }
+            
+            if (val > 80) {
+                document.getElementById('volcano1').style.opacity = '1';
+                document.getElementById('volcano2').style.opacity = '1';
+                status.innerText = "STATUS: ERUPTING";
+                status.style.color = "#ff4400";
+                document.getElementById('btnNextPart').disabled = false;
+            } else if (val > 40) {
+                status.innerText = "STATUS: HEATING";
+                status.style.color = "#fb8500";
+            } else {
+                status.innerText = "STATUS: STABLE";
+                status.style.color = "#ffb703";
+            }
+        }
+
+        // Part 3: Europa Drill
+        let lastDrillPhase = -1;
+        function updateDrill(val) {
+            const drill = document.getElementById('drillHead');
+            const ice = document.getElementById('iceLayerUI');
+            const depthVal = document.getElementById('drillDepthVal');
+            const statusText = document.getElementById('drillStatusText');
+            const ocean = document.getElementById('oceanReveal');
+            
+            const depthInKm = Math.round(val / 3.33);
+            drill.style.top = (val * 4) - 50 + 'px';
+            ice.style.height = (val * 4) + 'px';
+            depthVal.innerText = depthInKm;
+            
+            let phase = 0;
+            let msg = "";
+            let txt = "";
+
+            if (depthInKm <= 2) {
+                phase = 0;
+                txt = "DEPTH: 0–2 km (Surface Layer)\nVisual: Cracked ice surface, extreme cold.";
+                msg = "You are now drilling into Europa’s surface. The outer layer is solid water ice. The surface temperature is extremely cold, far below freezing. The cracks you see may be caused by tidal forces from Jupiter stretching the moon.";
+                ice.style.background = "rgba(0,0,0,0.1)";
+            } else if (depthInKm <= 10) {
+                phase = 1;
+                txt = "DEPTH: 2–10 km (Thick Ice Shell)\nVisual: Denser ice, pressure increasing.";
+                msg = "As we drill deeper, the ice becomes thicker and denser. Scientists estimate Europa’s ice shell could be several kilometers thick. This thick layer protects the ocean below from radiation.";
+                ice.style.background = "rgba(0,0,0,0.2)";
+            } else if (depthInKm <= 20) {
+                phase = 2;
+                txt = "DEPTH: 10–20 km (Warmer Ice Zone)\nVisual: Ice slightly glowing blue.";
+                msg = "The deeper we go, the warmer it becomes. Jupiter’s gravity stretches Europa slightly, creating internal heat. This process is called tidal heating. That heat may help keep the ocean below from freezing solid.";
+                ice.style.background = "rgba(0, 191, 255, 0.2)"; // Glowing blue
+            } else {
+                phase = 3;
+                txt = "DEPTH: 20–30 km (Ocean Reached)\nVisual: Drill breaks into liquid water.";
+                msg = "You have reached Europa’s subsurface ocean. Scientists believe this hidden ocean may contain more water than all of Earth’s oceans combined. This is why Europa is one of the most promising places to search for life beyond Earth.";
+                ice.style.background = "rgba(0, 100, 255, 0.4)";
+            }
+
+            if (phase !== lastDrillPhase) {
+                lastDrillPhase = phase;
+                statusText.innerText = txt;
+                speak(msg);
+            }
+
+            if (val > 90) {
+                ocean.style.display = 'flex';
+                document.getElementById('drillDecision').style.display = 'block';
+                document.getElementById('btnNextPart').disabled = false;
+            }
+        }
+        
+        function deploySubmarine() {
+            document.getElementById('subAnimation').style.display = 'block';
+            speak("We are deploying an autonomous submarine probe. Because sunlight cannot reach this ocean, any life here would rely on chemical energy, possibly from hydrothermal vents on the ocean floor.");
+            
+            setTimeout(() => {
+                const floorMsg = "If hydrothermal vents exist on Europa’s ocean floor, they could provide heat and nutrients. On Earth, similar vents support entire ecosystems without sunlight. Scientists want to know if similar life could exist here.";
+                speak(floorMsg);
+            }, 10000);
+        }
+
+        // Part 4: Gravity Jump
+        function jumpTest(moon, height) {
+            const astronaut = document.getElementById('jump-' + moon);
+            astronaut.style.bottom = height + 'px';
+            setTimeout(() => {
+                astronaut.style.bottom = '0';
+            }, 600);
+        }
+
+        // Part 5: Crater Analysis
+        function updateCraters(val) {
+            const overlay = document.getElementById('craterOverlay');
+            overlay.style.opacity = (100 - val) / 100;
+            
+            if (val < 20) {
+                document.getElementById('craterConclusion').style.display = 'block';
+                document.getElementById('fact6').style.display = 'block';
+                document.getElementById('next6').disabled = false;
+            }
+        }
+
+        // Slide 7: Ultra-Realistic Gravitational Shield Simulation
+        let simCanvas, ctx, graphCanvas, graphCtx;
+        let simRunning = false;
+        let asteroids = [];
+        let planets = {};
+        let jupiterMassMultiplier = 1.0;
+        let asteroidSpeed = 5.0;
+        let showGrid = false;
+        let stormMode = false;
+        let impactCount = 0;
+        let totalSimulations = 0;
+        let forceHistory = [];
+        let time = 0;
+
+        function initSimulation() {
+            simCanvas = document.getElementById('simCanvas');
+            graphCanvas = document.getElementById('telemetryGraph');
+            if (!simCanvas || !graphCanvas) return;
+            
+            ctx = simCanvas.getContext('2d');
+            graphCtx = graphCanvas.getContext('2d');
+            
+            const container = document.getElementById('simScreen');
+            simCanvas.width = container.clientWidth;
+            simCanvas.height = container.clientHeight;
+            
+            graphCanvas.width = graphCanvas.clientWidth;
+            graphCanvas.height = graphCanvas.clientHeight;
+
+            // Define Planets
+            const center = { x: simCanvas.width / 2, y: simCanvas.height / 2 }; // Sun position
+            planets = {
+                mercury: { name: 'Mercury', dist: 60, angle: 0, speed: 0.04, size: 3, color: '#A5A5A5' },
+                venus: { name: 'Venus', dist: 90, angle: 0, speed: 0.015, size: 5, color: '#E3BB76' },
+                earth: { name: 'Earth', dist: 130, angle: 0, speed: 0.01, size: 6, color: '#4dabf7' },
+                mars: { name: 'Mars', dist: 170, angle: 0, speed: 0.008, size: 4, color: '#E27B58' },
+                jupiter: { name: 'Jupiter', dist: 400, angle: 0, speed: 0.002, size: 25, color: '#fb8500', mass: 15000 }
+            };
+
+            if (!simRunning) {
+                simRunning = true;
+                requestAnimationFrame(simLoop);
+            }
+            
+            updateProbabilities();
+        }
+
+        function setJupiterMassScaled(val) {
+            jupiterMassMultiplier = val / 100;
+            const label = document.getElementById('massLabel');
+            if (val == 0) label.innerText = "OFF";
+            else if (val < 100) label.innerText = "REDUCED";
+            else if (val == 100) label.innerText = "NORMAL";
+            else label.innerText = "INCREASED";
+            
+            updateProbabilities();
+            if (val == 0) speak("Jupiter mass neutralized. Observe the straight-line trajectories toward the inner planets.");
+        }
+
+        function spawnAsteroid(isStorm = false) {
+            const asteroid = {
+                x: simCanvas.width,
+                y: simCanvas.height * 0.5 + (isStorm ? (Math.random() - 0.5) * 300 : (Math.random() - 0.5) * 50),
+                vx: -asteroidSpeed,
+                vy: (Math.random() - 0.5) * 1.5,
+                trail: [],
+                active: true,
+                captured: false,
+                orbitAngle: 0,
+                color: '#fff',
+                size: 2 + Math.random() * 2
+            };
+            asteroids.push(asteroid);
+            totalSimulations++;
+            
+            if (!isStorm) {
+                forceHistory = [];
+                speak("Asteroid detected entering the system from the outer belt.");
+            }
+        }
+
+        function toggleStorm() {
+            stormMode = !stormMode;
+            if (stormMode) {
+                speak("Statistical simulation active. Launching swarm to measure planetary protection effect.");
+                const storm = setInterval(() => {
+                    if (!stormMode) { clearInterval(storm); return; }
+                    spawnAsteroid(true);
+                    if (asteroids.length > 50) clearInterval(storm);
+                }, 200);
+            }
+        }
+
+        function simLoop() {
+            if (!simCanvas) return;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // Motion blur effect
+            ctx.fillRect(0, 0, simCanvas.width, simCanvas.height);
+            
+            time += 0.01;
+            const sunPos = { x: simCanvas.width / 2, y: simCanvas.height / 2 };
+            
+            if (showGrid) drawSpacetime(sunPos);
+            drawSun(sunPos);
+            
+            // Update & Draw Planets
+            Object.keys(planets).forEach(key => {
+                const p = planets[key];
+                p.angle += p.speed;
+                p.x = sunPos.x + Math.cos(p.angle) * p.dist;
+                p.y = sunPos.y + Math.sin(p.angle) * p.dist * 0.5; // Elliptical visual
+                
+                // Draw Orbit
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+                ctx.ellipse(sunPos.x, sunPos.y, p.dist, p.dist * 0.5, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Draw Planet
+                const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+                grad.addColorStop(0, p.color);
+                grad.addColorStop(1, '#000');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Update Label
+                const label = document.getElementById('label' + p.name);
+                if (label) {
+                    label.style.left = p.x + 'px';
+                    label.style.top = p.y + 'px';
+                }
+            });
+
+            // Physics Update for Asteroids
+            let primaryAsteroid = null;
+            asteroids.forEach((a, index) => {
+                if (!a.active) return;
+                primaryAsteroid = a;
+
+                const jup = planets.jupiter;
+                const dx = jup.x - a.x;
+                const dy = jup.y - a.y;
+                const distSq = dx * dx + dy * dy;
+                const dist = Math.sqrt(distSq);
+                
+                const mass = jup.mass * jupiterMassMultiplier;
+                
+                if (mass > 0 && dist > 10) {
+                    const force = mass / distSq;
+                    a.vx += (dx / dist) * force;
+                    a.vy += (dy / dist) * force;
+                    
+                    if (index === 0) forceHistory.push(force);
+                }
+
+                a.x += a.vx;
+                a.y += a.vy;
+                
+                a.trail.push({ x: a.x, y: a.y });
+                if (a.trail.length > 20) a.trail.shift();
+
+                // Render Trail
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                ctx.lineWidth = 1;
+                a.trail.forEach((t, i) => {
+                    if (i === 0) ctx.moveTo(t.x, t.y);
+                    else ctx.lineTo(t.x, t.y);
+                });
+                ctx.stroke();
+
+                // Render Asteroid
+                ctx.fillStyle = a.color;
+                ctx.beginPath();
+                ctx.arc(a.x, a.y, a.size / 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Collision Detection
+                if (dist < 20 && jupiterMassMultiplier > 0) {
+                    a.active = false;
+                    speak("Gravitational capture successful. Asteroid neutralized by Jupiter.");
+                }
+
+                // Earth Impact Detection
+                const edx = planets.earth.x - a.x;
+                const edy = planets.earth.y - a.y;
+                const eDist = Math.sqrt(edx * edx + edy * edy);
+                if (eDist < 10) {
+                    a.active = false;
+                    triggerImpact();
+                }
+
+                if (a.x < 0 || a.x > simCanvas.width + 100 || a.y < -100 || a.y > simCanvas.height + 100) {
+                    a.active = false;
+                }
+            });
+
+            updateNASAUI(primaryAsteroid);
+            if (currentSlide === 7) requestAnimationFrame(simLoop);
+        }
+
+        function drawSun(pos) {
+            const grad = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, 40);
+            grad.addColorStop(0, '#FFF');
+            grad.addColorStop(0.2, '#FFD700');
+            grad.addColorStop(1, 'transparent');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 40, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawSpacetime(sunPos) {
+            const spacing = 40;
+            ctx.strokeStyle = 'rgba(77, 171, 247, 0.15)';
+            ctx.lineWidth = 0.5;
+            const mass = planets.jupiter.mass * jupiterMassMultiplier;
+            
+            for (let x = 0; x < simCanvas.width; x += spacing) {
+                ctx.beginPath();
+                for (let y = 0; y < simCanvas.height; y += 10) {
+                    const p = warpPoint(x, y, planets.jupiter, mass);
+                    if (y === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+                }
+                ctx.stroke();
+            }
+            for (let y = 0; y < simCanvas.height; y += spacing) {
+                ctx.beginPath();
+                for (let x = 0; x < simCanvas.width; x += 10) {
+                    const p = warpPoint(x, y, planets.jupiter, mass);
+                    if (x === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+                }
+                ctx.stroke();
+            }
+        }
+
+        function warpPoint(x, y, obj, mass) {
+            const dx = x - obj.x;
+            const dy = y - obj.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 10) return { x, y };
+            const warp = (mass / 150) / (dist * 0.1 + 1);
+            return { x: x - (dx / dist) * warp, y: y - (dy / dist) * warp };
+        }
+
+        function updateNASAUI(a) {
+            if (a && a.active) {
+                const jup = planets.jupiter;
+                const dist = Math.sqrt(Math.pow(jup.x - a.x, 2) + Math.pow(jup.y - a.y, 2));
+                const vel = Math.sqrt(a.vx * a.vx + a.vy * a.vy) * 10;
+                const force = (jup.mass * jupiterMassMultiplier) / (dist * dist);
+
+                document.getElementById('telVel').innerText = vel.toFixed(2) + " km/s";
+                document.getElementById('telDist').innerText = (dist * 1.5).toFixed(1) + "M km";
+                document.getElementById('telForce').innerText = (force * 1000).toFixed(0);
+                
+                const angle = Math.abs(Math.atan2(a.vy, a.vx) * 180 / Math.PI);
+                document.getElementById('telAngle').innerText = angle.toFixed(1) + "°";
+                
+                document.getElementById('forceFill').style.width = Math.min(100, force * 500) + "%";
+                drawTelemetryGraph();
+            }
+        }
+
+        function drawTelemetryGraph() {
+            graphCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+            graphCtx.strokeStyle = '#4dabf7';
+            graphCtx.beginPath();
+            const step = graphCanvas.width / 50;
+            const history = forceHistory.slice(-50);
+            history.forEach((f, i) => {
+                const x = i * step;
+                const y = graphCanvas.height - (f * 100);
+                if (i === 0) graphCtx.moveTo(x, y); else graphCtx.lineTo(x, y);
+            });
+            graphCtx.stroke();
+        }
+
+        function updateProbabilities() {
+            const impact = jupiterMassMultiplier === 0 ? 85 : (jupiterMassMultiplier < 1 ? 45 : 12);
+            const capture = jupiterMassMultiplier * 60;
+            
+            document.getElementById('valImpact').innerText = impact + "%";
+            document.getElementById('barImpact').style.width = impact + "%";
+            document.getElementById('barImpact').className = "prob-fill-nasa " + (impact > 50 ? "high" : "");
+            
+            document.getElementById('valCapture').innerText = Math.min(100, Math.round(capture)) + "%";
+            document.getElementById('barCapture').style.width = Math.min(100, capture) + "%";
+            
+            if (jupiterMassMultiplier >= 1.0) document.getElementById('finishBtn').style.display = 'flex';
+        }
+
+        function triggerImpact() {
+            impactCount++;
+            const overlay = document.getElementById('impactCinematic');
+            overlay.style.display = 'flex';
+            speak("Atmospheric entry detected. Kinetic energy released. Jupiter's absence or reduced mass increases these events.");
+            setTimeout(() => overlay.style.display = 'none', 2000);
+        }
+
+        function showStatisticalShield() {
+            const panel = document.getElementById('statPanel');
+            panel.style.display = 'block';
+            speak("Data accumulated from orbital simulations confirms the shielding effect. Jupiter reduces inner system impacts by over sixty percent.");
+        }
+
+        function toggleGrid() {
+            showGrid = !showGrid;
+            document.getElementById('btnRelativity').classList.toggle('active', showGrid);
+            if (showGrid) speak("Massive objects curve spacetime. Objects follow the geometry of that curvature, which we observe as gravity.");
+        }
+
+        // Override navigation to init
+        const originalNextSlide = nextSlide;
+        nextSlide = function() {
+            originalNextSlide();
+            if (currentSlide === 7) setTimeout(initSimulation, 500);
+        };
+        const originalPrevSlide = prevSlide;
+        prevSlide = function() {
+            originalPrevSlide();
+            if (currentSlide === 7) setTimeout(initSimulation, 500);
+        };
+    </script>
+</body>
+</html>

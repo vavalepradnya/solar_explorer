@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission Venus - NASA Interactive Mission</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
+        .nasa-label { position: fixed; top: 10px; right: 10px; font-size: 10px; color: #64c8ff; border: 1px solid #64c8ff; padding: 2px 5px; opacity: 0.5; z-index: 1000; pointer-events: none; }
+        .mission-container { min-height: 100vh; position: relative; z-index: 2; padding-bottom: 50px; }
+        .slide-wrapper { display: none; padding: 40px 20px; max-width: 1200px; margin: 0 auto; min-height: 100vh; animation: slideIn 0.5s ease-in-out; }
+        .slide-wrapper.active { display: block; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .slide-header { text-align: center; margin-bottom: 30px; }
+        .slide-number { font-size: 14px; color: #64c8ff; font-weight: bold; margin-bottom: 10px; }
+        .slide-title { font-size: 36px; color: #ffffff; margin-bottom: 15px; background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .narration-box { background: rgba(100, 200, 255, 0.1); border-left: 4px solid #64c8ff; padding: 15px; margin-bottom: 25px; border-radius: 8px; font-size: 16px; transition: all 0.3s; }
+        .speaker-icon { color: #64c8ff; font-weight: bold; margin-right: 10px; }
+        .interactive-area { background: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 12px; border: 1px solid #444; margin-bottom: 25px; position: relative; overflow: hidden; }
+        .navigation { display: flex; justify-content: space-between; gap: 15px; margin-top: 30px; }
+        .btn-nav { flex: 1; padding: 12px; font-size: 14px; border: 2px solid; border-radius: 8px; cursor: pointer; transition: all 0.3s; font-weight: bold; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; }
+        .btn-prev { border-color: #64c8ff; color: #64c8ff; background: transparent; }
+        .btn-next { border-color: #ffd700; color: #ffd700; background: transparent; }
+        .btn-next:disabled { border-color: #555; color: #555; cursor: not-allowed; }
+        .btn-control { padding: 10px 20px; border: 1px solid #ffd700; background: rgba(255, 215, 0, 0.1); color: #ffd700; border-radius: 5px; cursor: pointer; margin: 5px; transition: all 0.2s; }
+        .btn-control:hover:not(:disabled) { background: rgba(255, 215, 0, 0.2); }
+        .btn-control.active { background: #ffd700; color: #000; }
+        .btn-control:disabled { border-color: #444; color: #444; cursor: not-allowed; }
+        
+        /* Planet Elements */
+        .planet-disk { width: 150px; height: 150px; border-radius: 50%; position: relative; overflow: hidden; margin: 0 auto; box-shadow: inset -15px -15px 40px rgba(0,0,0,0.8); }
+        .earth-realistic { background: radial-gradient(circle at 30% 30%, #4b9cd3, #1a4a6e); box-shadow: 0 0 20px rgba(100, 200, 255, 0.4), inset -15px -15px 40px rgba(0,0,0,0.8); }
+        .venus-realistic { background: radial-gradient(circle at 30% 30%, #f3e5ab, #d4af37); box-shadow: 0 0 20px rgba(255, 215, 0, 0.3), inset -15px -15px 40px rgba(0,0,0,0.8); }
+        .continents { position: absolute; width: 100%; height: 100%; opacity: 0.6; background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><path d="M50 80c10-20 30-10 40 5s20 30 10 40-30 10-40-10-20-15-10-35zM120 50c15-10 40 5 35 25s-20 30-40 20-10-35 5-45z" fill="%232d5a27"/></svg>'); }
+        .venus-fog { position: absolute; width: 100%; height: 100%; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), transparent); transition: opacity 0.5s; }
+
+        /* Slide 2 Specific (Atmospheric Construction) */
+        .atm-lab-container { display: grid; grid-template-columns: 250px 1fr; gap: 20px; height: 500px; position: relative; }
+        .hud-panel { background: rgba(0, 20, 40, 0.8); border: 1px solid #64c8ff; padding: 15px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; font-size: 13px; color: #64c8ff; }
+        .hud-value { color: #fff; font-weight: bold; }
+        .construction-zone { position: relative; background: radial-gradient(circle, #2a1a0a 0%, #000 100%); border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #444; }
+        
+        .venus-core-view { position: relative; width: 200px; height: 200px; border-radius: 50%; background: #5d3a1a; transition: all 1s; z-index: 5; }
+        .atm-layer { position: absolute; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; transition: all 1s; opacity: 0; }
+        .layer-troposphere { width: 220px; height: 220px; border: 10px solid rgba(255, 140, 0, 0.3); }
+        .layer-clouds { width: 260px; height: 260px; background: radial-gradient(circle, transparent 60%, rgba(255, 255, 100, 0.6) 100%); }
+        .layer-upper { width: 300px; height: 300px; border: 2px dashed rgba(255, 255, 255, 0.2); }
+        
+        .drag-panel { grid-column: span 2; display: flex; justify-content: center; gap: 10px; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; margin-top: 10px; }
+        .drag-card { background: rgba(0,0,0,0.7); border: 2px solid #ffd700; color: #ffd700; padding: 10px; border-radius: 8px; cursor: grab; font-size: 12px; width: 140px; text-align: center; transition: transform 0.2s; }
+        .drag-card:active { cursor: grabbing; transform: scale(0.95); }
+        .drag-card.placed { opacity: 0.3; cursor: default; border-color: #555; color: #555; }
+        
+        .heat-wave { position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 2px solid #ff4500; animation: heatPulse 2s infinite; opacity: 0; }
+        @keyframes heatPulse { 0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; } 100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; } }
+
+        .comparison-pop { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.95); border: 2px solid #64c8ff; padding: 20px; border-radius: 10px; z-index: 100; display: none; width: 400px; }
+
+        /* Facts Table */
+        .facts-table { width: 100%; border-collapse: collapse; margin-top: 20px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
+        .facts-table th, .facts-table td { padding: 12px; border: 1px solid rgba(255,255,255,0.1); text-align: left; }
+        .facts-table th { background: rgba(255,215,0,0.2); color: #ffd700; }
+
+        /* Simulations */
+        .split-screen { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .heat-arrows-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        .heat-arrow { position: absolute; color: #ff4500; font-size: 20px; font-weight: bold; }
+        .heat-particle { position: absolute; width: 6px; height: 6px; background: #ff4500; border-radius: 50%; box-shadow: 0 0 8px #f00; }
+        .gauge-bg { width: 100%; height: 10px; background: #222; border-radius: 5px; margin-top: 5px; position: relative; }
+        .gauge-fill { height: 100%; width: 0%; transition: width 0.3s, background 0.3s; border-radius: 5px; }
+        
+        .pressure-meter { width: 100%; height: 200px; background: #111; border: 2px solid #64c8ff; border-radius: 10px; position: relative; display: flex; align-items: flex-end; padding: 10px; }
+        .pressure-bar { width: 50px; background: linear-gradient(to top, #0f0, #ff0, #f00); transition: height 0.5s; margin-right: 20px; border-radius: 5px 5px 0 0; }
+        .structure-box { width: 100px; height: 100px; border: 4px solid #aaa; background: rgba(170,170,170,0.2); transition: transform 0.3s, border-radius 0.3s; }
+        
+        .acid-droplet { position: absolute; width: 3px; height: 10px; background: #adff2f; border-radius: 2px; opacity: 0.8; }
+        .heat-distortion { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(transparent, rgba(255,140,0,0.1)); pointer-events: none; animation: distort 1s infinite alternate; }
+        @keyframes distort { from { opacity: 0.2; } to { opacity: 0.5; } }
+        
+        /* Survival Mission */
+        .survival-simulation-container { position: relative; width: 100%; height: 500px; background: #2a1a0a; border-radius: 15px; overflow: hidden; border: 2px solid #ff8c00; }
+        .venus-sky { position: absolute; top: 0; width: 100%; height: 40%; background: linear-gradient(#4d2600, #b35900); }
+        .venus-surface-land { position: absolute; bottom: 0; width: 100%; height: 60%; background: #3d1f00; }
+        .mission-entity { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); font-size: 60px; transition: all 0.5s; z-index: 5; }
+        .suit-melt { animation: melt 3s forwards; }
+        @keyframes melt { 100% { transform: translateX(-50%) scale(1.5, 0.1); opacity: 0.5; } }
+        .suit-crush { animation: crush 2s forwards; }
+        @keyframes crush { 100% { transform: translateX(-50%) scale(0.1, 0.1); opacity: 0; } }
+        .shake { animation: shake 0.1s infinite; }
+        @keyframes shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -1px); } }
+
+        .choice-panel { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: center; gap: 10px; z-index: 10; }
+        .choice-btn { background: rgba(0,0,0,0.8); border: 2px solid #ff8c00; color: #fff; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+        .choice-btn:hover { background: #ff8c00; color: #000; }
+        
+        .lightning-flash { position: absolute; width: 100%; height: 100%; background: #fff; opacity: 0; z-index: 4; pointer-events: none; }
+        .stars-bg { position: absolute; width: 100%; height: 100%; background: radial-gradient(1px 1px at 20px 30px, #fff, transparent), radial-gradient(1px 1px at 40px 70px, #fff, transparent), radial-gradient(1px 1px at 50px 160px, #fff, transparent); background-size: 200px 200px; }
+
+        /* Slide 4 Retrograde Rotation Specific */
+        .s4-split-view { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; position: relative; min-height: 400px; align-items: center; justify-items: center; padding: 20px; }
+        .s4-planet-container { position: relative; text-align: center; width: 100%; transition: all 0.5s; cursor: pointer; padding: 20px; border-radius: 15px; }
+        .s4-planet-container:hover { background: rgba(255, 255, 255, 0.05); }
+        .s4-planet-label { font-weight: bold; margin-bottom: 15px; font-size: 20px; display: block; }
+        .rotation-arrow { position: absolute; top: 50%; left: 50%; width: 180px; height: 180px; transform: translate(-50%, -50%); pointer-events: none; border-radius: 50%; border: 4px solid transparent; opacity: 0; transition: opacity 0.5s; z-index: 5; }
+        .arrow-earth { border-top-color: #00ff00; border-right-color: #00ff00; box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); }
+        .arrow-venus { border-top-color: #ff8c00; border-left-color: #ff8c00; box-shadow: 0 0 15px rgba(255, 140, 0, 0.5); }
+        .rotation-arrow::after { content: '➤'; position: absolute; font-size: 20px; }
+        .arrow-earth::after { top: 10px; right: 20px; color: #00ff00; transform: rotate(45deg); }
+        .arrow-venus::after { top: 10px; left: 20px; color: #ff8c00; transform: rotate(-135deg); }
+        
+        .s4-hud-panel { background: rgba(0, 20, 40, 0.8); border: 1px solid #64c8ff; padding: 12px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 10; width: 320px; text-align: left; font-size: 12px; }
+        .s4-console { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+        .s4-axis-line { position: absolute; top: 50%; left: 50%; width: 2px; height: 220px; background: rgba(255, 255, 255, 0.5); transform: translate(-50%, -50%); pointer-events: none; display: none; z-index: 4; }
+        .s4-axis-line::before, .s4-axis-line::after { content: ''; position: absolute; left: -4px; width: 10px; height: 2px; background: #fff; }
+        .s4-axis-line::before { top: 0; } .s4-axis-line::after { bottom: 0; }
+
+        .s4-sun-glow { position: absolute; top: 50%; left: 50%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255, 215, 0, 0.2) 0%, transparent 70%); transform: translate(-50%, -50%); pointer-events: none; z-index: 1; }
+        
+        .s4-popup { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 2px solid #ffd700; padding: 25px; border-radius: 12px; z-index: 100; display: none; text-align: center; width: 350px; box-shadow: 0 0 30px rgba(255, 215, 0, 0.3); }
+        
+        .s4-surface-view { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 20; border-radius: 12px; overflow: hidden; }
+        .s4-sky-sim { height: 100%; position: relative; display: flex; }
+        .sky-half { flex: 1; position: relative; overflow: hidden; border: 1px solid #333; }
+        .sky-label { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); padding: 5px 10px; border-radius: 4px; font-size: 12px; z-index: 5; }
+        .sim-sun { position: absolute; width: 40px; height: 40px; background: #fff700; border-radius: 50%; box-shadow: 0 0 20px #ff8c00; }
+        
+        .badge-icon { font-size: 48px; margin-bottom: 10px; display: block; }
+        .vector-line { position: absolute; top: 50%; left: 50%; height: 2px; background: #fff; transform-origin: left center; pointer-events: none; display: none; z-index: 6; }
+    </style>
+</head>
+<body>
+    <div class="nasa-label">NASA-Style UI v2.0</div>
+    <div class="mission-container">
+        <!-- Progress Bar -->
+        <div style="position: fixed; top: 0; width: 100%; height: 6px; background: #222; z-index: 100;">
+            <div id="progressFill" style="width: 14%; height: 100%; background: #ffd700; transition: width 0.5s;"></div>
+        </div>
+
+        <!-- SLIDE 1: Orbit -->
+        <div class="slide-wrapper active" id="slide1">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 1 – Orbit Position Challenge</div>
+                <h1 class="slide-title">🎯 “Place Venus in the Correct Orbit”</h1>
+            </div>
+            <div class="narration-box">
+                <span class="speaker-icon">🎤 AI Voice:</span> <span id="s1Narration">Venus is the second planet from the Sun. It is closer than Earth and much hotter. Its thick clouds trap heat, making it the hottest planet.</span>
+                <button class="btn-control" style="margin-top: 10px; padding: 5px 15px; font-size: 14px;" onclick="speakFirstNarration()">🔊 Play Narration</button>
+            </div>
+            <div class="interactive-area" style="background: radial-gradient(circle, #1a1a1a 0%, #000 100%); height: 500px; display: flex; justify-content: center; align-items: center; border: 2px solid #333;">
+                <div class="stars-bg" style="pointer-events: none;"></div>
+                <div style="position: absolute; top: 10px; left: 10px; color: #64c8ff; font-weight: bold; background: rgba(0,0,0,0.6); padding: 5px; border-radius: 4px; pointer-events: none; z-index: 10;">HUD: “Planet Position: Awaiting Confirmation”</div>
+                <canvas id="orbitCanvas" width="800" height="500" style="cursor: move; position: relative; z-index: 5; max-width: 100%; height: auto;"></canvas>
+                <div id="orbitFeedback" style="position: absolute; bottom: 80px; width: 100%; text-align: center; font-weight: bold; font-size: 24px;"></div>
+                <div style="position: absolute; bottom: 20px; width: 100%; text-align: center;">
+                    <button class="btn-control" onclick="resetOrbit()">🔄 Reset Venus</button>
+                </div>
+            </div>
+            
+            <!-- Scientific Facts Section -->
+            <div class="interactive-area" style="background: rgba(255, 215, 0, 0.05); border: 1px dashed #ffd700;">
+                <h3 style="color: #ffd700; margin-bottom: 15px;">📚 Short Scientific Facts (Student Friendly)</h3>
+                <ul style="list-style-type: none; padding-left: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <li><strong>Distance from Sun:</strong> 108 million km</li>
+                    <li><strong>Moons:</strong> None</li>
+                    <li><strong>Atmosphere:</strong> Very thick carbon dioxide</li>
+                    <li><strong>Surface Temp:</strong> ~470°C</li>
+                    <li style="grid-column: span 2;"><strong>Did you know?</strong> One day on Venus is longer than one year!</li>
+                </ul>
+            </div>
+
+            <div class="navigation">
+                <button class="btn-nav btn-prev" disabled>← Previous</button>
+                <button class="btn-nav btn-next" id="nextBtn1" onclick="nextSlide()" style="border-color: #ffd700; box-shadow: 0 0 15px #ffd700;">Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 2: Atmospheric Layer Construction Lab -->
+        <div class="slide-wrapper" id="slide2">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 2 – Atmospheric Layer Construction Lab</div>
+                <h1 class="slide-title">🎯 “Atmospheric Construction Sequence”</h1>
+            </div>
+            <div class="narration-box">
+                <span class="speaker-icon">🎤 AI Voice:</span> <span id="s2Narration">Explore the structure of Venus through an interactive drag-and-drop atmospheric simulation. Build the atmosphere layer-by-layer to understand why Venus is so hot.</span>
+                <button class="btn-control" style="margin-top: 10px; padding: 5px 15px; font-size: 14px;" onclick="speakS2Narration()">🔊 Play Narration</button>
+            </div>
+            
+            <div class="interactive-area" style="background: #000; border: 1px solid #333;">
+                <div class="atm-lab-container">
+                    <!-- HUD Panel -->
+                    <div class="hud-panel">
+                        <div style="border-bottom: 1px solid #64c8ff; margin-bottom: 10px; padding-bottom: 5px; font-weight: bold;">🛰 ATMOSPHERIC DATA</div>
+                        <div style="margin-bottom: 8px;">Surface Temp: <span id="s2HUDTemp" class="hud-value">~15°C</span></div>
+                        <div style="margin-bottom: 8px;">Surface Pressure: <span id="s2HUDPressure" class="hud-value">1× Earth</span></div>
+                        <div style="margin-bottom: 8px;">Main Gas: <span id="s2HUDGas" class="hud-value">Nitrogen/Oxygen</span></div>
+                        <div style="margin-bottom: 8px;">CO₂ Level: <span id="s2HUDCO2" class="hud-value">0.04%</span></div>
+                        <div style="margin-bottom: 8px;">Clouds: <span id="s2HUDClouds" class="hud-value">Water Vapor</span></div>
+                        <div style="margin-bottom: 8px;">Wind Speed: <span id="s2HUDWind" class="hud-value">Normal</span></div>
+                        <div style="margin-top: 15px; border-top: 1px solid #64c8ff; padding-top: 5px;">
+                            STATUS: <span id="s2HUDStatus" style="color: #ffd700;">AWAITING CONSTRUCTION</span>
+                        </div>
+                    </div>
+
+                    <!-- Construction Zone -->
+                    <div class="construction-zone" id="s2DropZone" ondragover="event.preventDefault()" ondrop="handleS2Drop(event)">
+                        <div class="stars-bg" style="opacity: 0.3;"></div>
+                        
+                        <div id="s2VenusCore" class="venus-core-view">
+                            <div id="s2HeatWaves" class="heat-wave"></div>
+                        </div>
+
+                        <!-- Atmospheric Layers -->
+                        <div id="layer1" class="atm-layer layer-troposphere"></div>
+                        <div id="layer2" class="atm-layer layer-clouds"></div>
+                        <div id="layer3" class="atm-layer layer-upper"></div>
+                        
+                        <!-- Comparison Pop-up -->
+                        <div id="s2Comparison" class="comparison-pop">
+                            <h3 style="color: #64c8ff; margin-bottom: 10px;">🌍 Earth vs Venus 🪐</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
+                                <div style="color: #aaa;">Property</div><div style="color: #aaa;">Value</div>
+                                <div>Earth CO₂</div><div>0.04%</div>
+                                <div>Venus CO₂</div><div style="color: #ff4500;">96%</div>
+                                <div>Earth Temp</div><div>15°C</div>
+                                <div>Venus Temp</div><div style="color: #ff4500;">465°C</div>
+                            </div>
+                            <button class="btn-control" style="width: 100%; margin-top: 15px;" onclick="toggleS2Comparison()">Close</button>
+                        </div>
+                    </div>
+
+                    <!-- Draggable Cards -->
+                    <div class="drag-panel">
+                        <div class="drag-card" draggable="true" ondragstart="handleS2Drag(event, 'troposphere')" id="card-troposphere">1️⃣ Troposphere</div>
+                        <div class="drag-card" draggable="true" ondragstart="handleS2Drag(event, 'clouds')" id="card-clouds">2️⃣ Cloud Layer</div>
+                        <div class="drag-card" draggable="true" ondragstart="handleS2Drag(event, 'co2')" id="card-co2">3️⃣ Carbon Dioxide</div>
+                        <div class="drag-card" draggable="true" ondragstart="handleS2Drag(event, 'nitrogen')" id="card-nitrogen">4️⃣ Nitrogen Gas</div>
+                        <div class="drag-card" draggable="true" ondragstart="handleS2Drag(event, 'upper')" id="card-upper">5️⃣ Upper Atmosphere</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="s2FinalChallenge" class="interactive-area" style="display: none; background: rgba(255, 215, 0, 0.1); border: 1px solid #ffd700;">
+                <h3 style="color: #ffd700; margin-bottom: 10px;">🔬 Mini Challenge: What gas causes the extreme greenhouse effect?</h3>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-control" onclick="checkS2Challenge('oxygen')">Oxygen</button>
+                    <button class="btn-control" onclick="checkS2Challenge('co2')">Carbon Dioxide</button>
+                    <button class="btn-control" onclick="checkS2Challenge('nitrogen')">Nitrogen</button>
+                </div>
+                <div id="s2ChallengeFeedback" style="margin-top: 10px; font-weight: bold;"></div>
+                <button class="btn-control" style="margin-top: 10px;" onclick="toggleS2Comparison()">🌍 Show Comparison with Earth</button>
+            </div>
+
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="previousSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="nextBtn2" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 3: Greenhouse Experiment -->
+        <div class="slide-wrapper" id="slide3">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 3 – Runaway Greenhouse Experiment Lab</div>
+                <h1 class="slide-title">🎯 Understand Why Venus Is So Hot</h1>
+            </div>
+            <div class="narration-box">
+                <span class="speaker-icon">🎤 AI Voice:</span> Venus’s atmosphere is mostly carbon dioxide. This traps heat and prevents cooling.
+            </div>
+            <div class="interactive-area split-screen" style="height: 400px;">
+                <div style="text-align: center; border-right: 1px solid #444;">
+                    <h3 style="color: #64c8ff; margin-bottom: 10px;">Earth Atmosphere</h3>
+                    <div class="planet-disk earth-realistic"><div class="continents"></div></div>
+                    <div style="margin-top: 20px; text-align: left; padding: 0 20px;">
+                        <div>CO₂ Level: 0.04%</div>
+                        <div class="gauge-bg"><div style="width: 5%; background: #64c8ff;" class="gauge-fill"></div></div>
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <h3 style="color: #ffd700; margin-bottom: 10px;">Venus Atmosphere</h3>
+                    <div style="position: relative;">
+                        <div class="planet-disk venus-realistic"><div id="s3VenusFog" class="venus-fog"></div></div>
+                        <div id="s3HeatContainer" class="heat-arrows-container"></div>
+                    </div>
+                    <div style="margin-top: 20px; text-align: left; padding: 0 20px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>CO₂ Level: <span id="s3Co2Val">0%</span></span>
+                            <span>Temp: <span id="s3TempVal">50°C</span></span>
+                        </div>
+                        <input type="range" id="s3Co2Slider" min="0" max="100" value="0" style="width: 100%;" oninput="updateS3Experiment(this.value)">
+                    </div>
+                </div>
+            </div>
+            <div id="s3Quiz" class="interactive-area" style="display: none;">
+                <h3 style="color: #ffd700; margin-bottom: 10px;">Mini Question: What causes Venus’s extreme heat?</h3>
+                <button class="btn-control" onclick="checkS3Quiz(false)">Distance to Sun</button>
+                <button class="btn-control" onclick="checkS3Quiz(true)">Greenhouse Effect</button>
+                <button class="btn-control" onclick="checkS3Quiz(false)">Volcanoes</button>
+                <div id="s3QuizFeedback" style="margin-top: 10px; font-weight: bold;"></div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="previousSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="nextBtn3" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 4: Retrograde Rotation Challenge -->
+        <div class="slide-wrapper" id="slide4">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 4 – Retrograde Rotation Challenge</div>
+                <h1 class="slide-title">🎯 Discover the Backward Spin</h1>
+            </div>
+            
+            <div class="narration-box">
+                <span class="speaker-icon">🎤 AI Voice:</span> <span id="s4Narration">Initiating rotational direction analysis. Venus rotates in the opposite direction compared to most planets. This backward spin is called retrograde rotation.</span>
+                <button class="btn-control" style="margin-top: 10px; padding: 5px 15px; font-size: 14px;" onclick="speakS4Narration()">🔊 Play Narration</button>
+            </div>
+
+            <div class="interactive-area" style="min-height: 550px;">
+                <!-- NASA HUD -->
+                <div class="s4-hud-panel">
+                    <div style="border-bottom: 1px solid #64c8ff; margin-bottom: 8px; padding-bottom: 4px; font-weight: bold; color: #64c8ff;">🛰 MISSION CONTROL: ROTATION ANALYSIS</div>
+                    <div>Rotation Mode: <span id="s4HUDMode" style="color: #ffd700;">ACTIVE</span></div>
+                    <div>Earth Speed: <span style="color: #0f0;">1,670 km/h</span></div>
+                    <div>Venus Speed: <span style="color: #ff8c00;">6.5 km/h (Slooooow)</span></div>
+                    <div>Direction: <span id="s4HUDDir" style="color: #fff;">Awaiting Scan...</span></div>
+                </div>
+
+                <div class="s4-sun-glow"></div>
+
+                <div class="s4-split-view">
+                    <!-- Earth View -->
+                    <div class="s4-planet-container" id="s4EarthContainer" onclick="checkS4Retrograde('earth')">
+                        <span class="s4-planet-label">EARTH</span>
+                        <div class="planet-disk earth-realistic" id="s4EarthDisk">
+                            <div class="continents" id="s4EarthContinents"></div>
+                        </div>
+                        <div class="rotation-arrow arrow-earth" id="s4EarthArrow"></div>
+                        <div class="s4-axis-line" id="s4EarthAxis"></div>
+                    </div>
+
+                    <!-- Venus View -->
+                    <div class="s4-planet-container" id="s4VenusContainer" onclick="checkS4Retrograde('venus')">
+                        <span class="s4-planet-label">VENUS</span>
+                        <div class="planet-disk venus-realistic" id="s4VenusDisk">
+                            <div class="venus-fog"></div>
+                        </div>
+                        <div class="rotation-arrow arrow-venus" id="s4VenusArrow"></div>
+                        <div class="s4-axis-line" id="s4VenusAxis"></div>
+                    </div>
+                </div>
+
+                <!-- Surface View Overlay (Mini Experiment) -->
+                <div class="s4-surface-view" id="s4SurfaceView">
+                    <div class="s4-sky-sim">
+                        <div class="sky-half" id="skyEarth">
+                            <div class="sky-label">EARTH SURFACE VIEW</div>
+                            <div class="sim-sun" id="sunEarth"></div>
+                            <div style="position: absolute; bottom: 0; width: 100%; height: 30%; background: #2d5a27;"></div>
+                        </div>
+                        <div class="sky-half" id="skyVenus">
+                            <div class="sky-label">VENUS SURFACE VIEW</div>
+                            <div class="sim-sun" id="sunVenus"></div>
+                            <div style="position: absolute; bottom: 0; width: 100%; height: 30%; background: #5d3a1a;"></div>
+                        </div>
+                    </div>
+                    <button class="btn-control" style="position: absolute; top: 10px; right: 10px; z-index: 30;" onclick="toggleS4Surface(false)">Exit Surface View</button>
+                </div>
+
+                <!-- Control Console -->
+                <div class="s4-console">
+                    <button class="btn-control" id="s4ScanBtn" onclick="startS4Scan()">▶ Start Rotation Scan</button>
+                    <button class="btn-control" onclick="toggleS4Axis()">🔄 Toggle Axis Tilt</button>
+                    <button class="btn-control" onclick="toggleS4Surface(true)">🧪 Switch to Surface View</button>
+                    <button class="btn-control" onclick="showS4Why()">🧠 Why Is This Happening?</button>
+                </div>
+
+                <!-- Feedback Popup -->
+                <div class="s4-popup" id="s4Popup">
+                    <div id="s4PopupContent"></div>
+                    <button class="btn-control" style="margin-top: 15px; width: 100%;" onclick="closeS4Popup()">Close</button>
+                </div>
+            </div>
+
+            <!-- Comparison Panel -->
+            <div class="interactive-area" style="background: rgba(255, 255, 255, 0.05);">
+                <h3 style="color: #ffd700; margin-bottom: 15px; text-align: center;">📊 SIDE-BY-SIDE COMPARISON PANEL</h3>
+                <table class="facts-table">
+                    <tr><th>Feature</th><th>Earth</th><th>Venus</th><th>Why It Matters</th></tr>
+                    <tr><td>Rotation Direction</td><td>Counterclockwise</td><td>Clockwise</td><td>Venus spins backward</td></tr>
+                    <tr><td>Rotation Speed</td><td>24 hours</td><td>243 Earth days</td><td>Venus spins extremely slowly</td></tr>
+                    <tr><td>Sunrise Direction</td><td>East</td><td>West</td><td>Result of retrograde spin</td></tr>
+                </table>
+            </div>
+
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="previousSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="nextBtn4" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 5: Day vs Year Time Simulation -->
+        <div class="slide-wrapper" id="slide5">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 5 – Day vs Year Time Simulation</div>
+                <h1 class="slide-title">🎯 Compare Rotation and Revolution</h1>
+            </div>
+            <div class="narration-box">
+                <span class="speaker-icon">🎤 AI Voice:</span> <span id="s5Narration">Venus rotates so slowly that one day is longer than its year. This slow rotation is part of its extreme uniqueness in our solar system.</span>
+                <button class="btn-control" style="margin-top: 10px; padding: 5px 15px; font-size: 14px;" onclick="speakS5Narration()">🔊 Play Narration</button>
+            </div>
+            <div class="interactive-area" style="height: 400px; position: relative;">
+                <div style="display: flex; justify-content: space-around; align-items: center; height: 100%;">
+                    <div style="text-align: center; width: 400px; height: 350px; position: relative;" id="s5SimulationContainer">
+                        <!-- Orbit Canvas for Slide 5 -->
+                        <canvas id="s5Canvas" width="400" height="350"></canvas>
+                        <div style="position: absolute; top: 10px; left: 10px; text-align: left; font-family: monospace; font-size: 14px;">
+                            <div style="color: #ffd700;">Venus Year: <span id="s5YearVal">0</span>%</div>
+                            <div style="color: #ff8c00;">Venus Day: <span id="s5DayVal">0</span>%</div>
+                        </div>
+                    </div>
+                    <div style="width: 300px;">
+                        <table class="facts-table" style="margin-bottom: 20px;">
+                            <tr><td colspan="2" style="text-align: center; color: #ffd700;">VENUS STATS</td></tr>
+                            <tr><td>1 Venus Day</td><td>243 Earth Days</td></tr>
+                            <tr><td>1 Venus Year</td><td>225 Earth Days</td></tr>
+                        </table>
+                        <button class="btn-control" id="startS5Btn" onclick="startS5Simulation()" style="width: 100%; padding: 20px; font-size: 18px;">Press “Start Time Simulation”</button>
+                    </div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="previousSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="nextBtn5" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 6: Crushing Pressure -->
+        <div class="slide-wrapper" id="slide6">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 6 – Crushing Pressure Simulation</div>
+                <h1 class="slide-title">🎯 Feel the Atmospheric Pressure</h1>
+            </div>
+            <div class="narration-box">
+                <span class="speaker-icon">🎤 AI Voice:</span> Standing on Venus would feel like being deep under Earth’s ocean.
+            </div>
+            <div class="interactive-area" style="height: 350px;">
+                <div style="display: flex; justify-content: space-around; align-items: center; height: 100%;">
+                    <div style="text-align: center; width: 300px;">
+                        <div class="pressure-meter">
+                            <div id="s6PressureBar" class="pressure-bar" style="height: 10%;"></div>
+                            <div id="s6Structure" class="structure-box"></div>
+                        </div>
+                        <div style="margin-top: 10px; font-weight: bold;">Pressure: <span id="s6PressureVal">1</span> atm</div>
+                    </div>
+                    <div style="width: 300px;">
+                        <p style="margin-bottom: 15px; color: #64c8ff;">Move the slider to Venus's level (90x Earth pressure) and watch the structure.</p>
+                        <input type="range" id="s6PressureSlider" min="1" max="100" value="1" style="width: 100%;" oninput="updateS6Pressure(this.value)">
+                        <table class="facts-table" style="margin-top: 20px;">
+                            <tr><td>Earth Surface</td><td>1 atm</td></tr>
+                            <tr><td>Deep Ocean</td><td>~90 atm</td></tr>
+                            <tr><td>Venus Surface</td><td>90 atm</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="previousSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="nextBtn6" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 7: Habitability Comparison -->
+        <div class="slide-wrapper" id="slide7">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 7 – Earth vs Venus Habitability Comparison Lab</div>
+                <h1 class="slide-title">🎯 Why Is One Habitable and the Other Not?</h1>
+            </div>
+            <div class="narration-box">
+                <span class="speaker-icon">🎤 AI Voice:</span> Small differences in atmosphere create massive climate changes. Venus teaches us how greenhouse gases affect planetary temperature.
+            </div>
+            <div class="interactive-area">
+                <table class="facts-table">
+                    <tr><th>Feature</th><th>Earth</th><th>Venus</th></tr>
+                    <tr><td>Distance from Sun</td><td>Moderate</td><td>Closer</td></tr>
+                    <tr><td>Surface Temp</td><td><span id="s7EarthTemp">15°C</span></td><td><span id="s7VenusTemp">465°C</span></td></tr>
+                    <tr><td>Atmosphere</td><td>Nitrogen & Oxygen</td><td>Carbon Dioxide</td></tr>
+                    <tr><td>Water</td><td>Liquid Oceans</td><td>No liquid water</td></tr>
+                    <tr><td>Rotation</td><td>Normal</td><td>Retrograde</td></tr>
+                </table>
+            </div>
+            <div class="interactive-area" style="text-align: center;">
+                <h3 style="color: #ffd700; margin-bottom: 15px;">Experiment with Atmosphere</h3>
+                <div style="display: flex; justify-content: center; gap: 20px;">
+                    <button id="s7EarthCo2Btn" class="btn-control" onclick="toggleS7Atm('earth')">Add CO₂ to Earth</button>
+                    <button id="s7VenusNoCo2Btn" class="btn-control" onclick="toggleS7Atm('venus')">Remove CO₂ from Venus</button>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="previousSlide()">← Previous</button>
+                <a href="{{ url_for('venus_game') }}" class="btn-nav btn-next" id="finishBtn" style="display: none;">Finish Mission →</a>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px; color: #aaa;"><span id="slideNum">1</span> / 7</div>
+    </div>
+
+    <script>
+        // Debugging
+        window.onerror = function(msg, url, line) {
+            const fb = document.getElementById('orbitFeedback');
+            if (fb) fb.innerHTML = `<span style="color:red;font-size:12px;">JS Error: ${msg} at line ${line}</span>`;
+            return false;
+        };
+
+        let currentSlide = 1;
+        const totalSlides = 7;
+        let completions = { 1: true, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false };
+
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(text);
+            u.rate = 1.0; window.speechSynthesis.speak(u);
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides) {
+                document.getElementById('slide' + currentSlide).classList.remove('active');
+                currentSlide++;
+                document.getElementById('slide' + currentSlide).classList.add('active');
+                updateUI();
+                
+                const narration = document.querySelector('#slide' + currentSlide + ' .narration-box');
+                if (narration) {
+                    speak(narration.innerText.replace('🎤 AI Voice:', '').trim());
+                }
+            }
+        }
+
+        function previousSlide() {
+            if (currentSlide > 1) {
+                document.getElementById('slide' + currentSlide).classList.remove('active');
+                currentSlide--;
+                document.getElementById('slide' + currentSlide).classList.add('active');
+                updateUI();
+
+                const narration = document.querySelector('#slide' + currentSlide + ' .narration-box');
+                if (narration) {
+                    speak(narration.innerText.replace('🎤 AI Voice:', '').trim());
+                }
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('slideNum').textContent = currentSlide;
+            document.getElementById('progressFill').style.width = (currentSlide / totalSlides * 100) + '%';
+            window.scrollTo(0, 0);
+            if (currentSlide === 1) initS1();
+            if (currentSlide === 4) initS4();
+            if (currentSlide === 5) initS5Canvas();
+            checkCompletion();
+        }
+
+        function checkCompletion() {
+            console.log("Checking completion for slide:", currentSlide, "Status:", completions[currentSlide]);
+            const btn = document.getElementById('nextBtn' + currentSlide);
+            if (btn && completions[currentSlide]) {
+                console.log("Enabling next button for slide:", currentSlide);
+                btn.disabled = false;
+                btn.style.borderColor = '#ffd700';
+                btn.style.boxShadow = '0 0 15px #ffd700';
+            }
+            if (currentSlide === 7 && completions[7]) document.getElementById('finishBtn').style.display = 'flex';
+        }
+
+        function speakFirstNarration() {
+            const text = document.getElementById('s1Narration').innerText;
+            speak(text);
+        }
+
+        window.onload = () => { 
+            updateUI(); 
+            initS1();
+            checkCompletion(); // Ensure initial slide button state
+        };
+
+        // SLIDE 1: Orbit
+        let s1Venus = { x: 400, y: 450, radius: 18 }, s1Dragging = false, s1Confirmed = false, s1Angle = 0;
+        const s1Radii = [80, 140, 200, 260];
+        let s1Req;
+        function initS1() {
+            const c = document.getElementById('orbitCanvas');
+            if (!c) return;
+            const ctx = c.getContext('2d');
+            if (!ctx) return;
+            
+            if (s1Req) cancelAnimationFrame(s1Req);
+
+            function drawSun(x, y) {
+                // Outer Glow (Corona)
+                const corona = ctx.createRadialGradient(x, y, 20, x, y, 50);
+                corona.addColorStop(0, 'rgba(255, 140, 0, 0.8)');
+                corona.addColorStop(1, 'rgba(255, 69, 0, 0)');
+                ctx.fillStyle = corona;
+                ctx.beginPath(); ctx.arc(x, y, 50, 0, Math.PI*2); ctx.fill();
+
+                // Solar Flares
+                ctx.strokeStyle = 'rgba(255, 165, 0, 0.6)';
+                ctx.lineWidth = 2;
+                for(let i=0; i<8; i++) {
+                    const angle = (Date.now() / 1000) + (i * Math.PI / 4);
+                    ctx.beginPath();
+                    ctx.arc(x + Math.cos(angle)*28, y + Math.sin(angle)*28, 10, angle - 0.5, angle + 0.5);
+                    ctx.stroke();
+                }
+
+                // Sun Surface
+                const g = ctx.createRadialGradient(x-5, y-5, 5, x, y, 30); 
+                g.addColorStop(0, '#fff700'); 
+                g.addColorStop(0.5, '#ff8c00');
+                g.addColorStop(1, '#ff4500');
+                ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 30, 0, Math.PI*2); ctx.fill();
+                
+                // Plasma texture
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                for(let i=0; i<15; i++) {
+                    const r = Math.random()*25;
+                    const a = Math.random()*Math.PI*2;
+                    ctx.beginPath(); ctx.arc(x + Math.cos(a)*r, y + Math.sin(a)*r, 1, 0, Math.PI*2); ctx.fill();
+                }
+            }
+
+            function draw() {
+                if (currentSlide !== 1) return;
+                ctx.clearRect(0, 0, 800, 500);
+                
+                let closestOrbit = -1;
+                const distToCenter = Math.sqrt((s1Venus.x - 400)**2 + (s1Venus.y - 250)**2);
+                
+                if (s1Dragging) {
+                    let minDiff = Infinity;
+                    s1Radii.forEach((r, i) => {
+                        const diff = Math.abs(distToCenter - r);
+                        if (diff < minDiff) { minDiff = diff; closestOrbit = i; }
+                    });
+                }
+
+                // Orbit Rings
+                s1Radii.forEach((r, i) => {
+                    ctx.beginPath(); ctx.arc(400, 250, r, 0, Math.PI*2);
+                    
+                    if (s1Confirmed && i === 1) {
+                        ctx.strokeStyle = '#0f0'; ctx.lineWidth = 4;
+                        ctx.shadowBlur = 15; ctx.shadowColor = '#0f0';
+                    } else if (s1Dragging && i === closestOrbit) {
+                        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+                        ctx.shadowBlur = 10; ctx.shadowColor = '#fff';
+                    } else {
+                        ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1;
+                        ctx.shadowBlur = 0;
+                    }
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+
+                    // Labels
+                    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                    ctx.font = "10px Arial";
+                    const labels = ["1st Orbit", "2nd Orbit", "3rd Orbit", "4th Orbit"];
+                    ctx.fillText(labels[i], 400 + r + 5, 250);
+                });
+
+                drawSun(400, 250);
+
+                // Venus
+                let vx = s1Venus.x, vy = s1Venus.y;
+                if (s1Confirmed) { 
+                    s1Angle += 0.008; 
+                    vx = 400 + Math.cos(s1Angle) * s1Radii[1]; 
+                    vy = 250 + Math.sin(s1Angle) * s1Radii[1]; 
+                }
+                
+                const vg = ctx.createRadialGradient(vx-5, vy-5, 2, vx, vy, 18);
+                vg.addColorStop(0, '#fffbe6');
+                vg.addColorStop(0.6, '#f3e5ab');
+                vg.addColorStop(1, '#d4af37');
+                
+                ctx.fillStyle = vg; 
+                ctx.shadowBlur = s1Confirmed ? 20 : 10; 
+                ctx.shadowColor = s1Confirmed ? '#0f0' : '#f3e5ab';
+                ctx.beginPath(); ctx.arc(vx, vy, 18, 0, Math.PI*2); ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                ctx.fillStyle = '#fff'; ctx.font = "bold 14px Arial"; 
+                ctx.textAlign = "center";
+                ctx.fillText("Venus", vx, vy + 35);
+                ctx.textAlign = "start";
+                
+                s1Req = requestAnimationFrame(draw);
+            }
+
+            const getPos = (e) => {
+                const r = c.getBoundingClientRect();
+                const sx = c.width / r.width;
+                const sy = c.height / r.height;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return { x: (clientX - r.left) * sx, y: (clientY - r.top) * sy };
+            };
+
+            let s1Guided = false;
+            const onStart = (e) => {
+                if (s1Confirmed) return;
+                const pos = getPos(e);
+                if (Math.sqrt((pos.x - s1Venus.x) ** 2 + (pos.y - s1Venus.y) ** 2) < 40) {
+                    s1Dragging = true;
+                    if (!s1Guided) {
+                        speak("Drag Venus to the correct orbit ring.");
+                        s1Guided = true;
+                    }
+                    if (e.cancelable) e.preventDefault();
+                }
+            };
+
+            const onMove = (e) => {
+                if (s1Dragging) {
+                    const pos = getPos(e);
+                    s1Venus.x = pos.x;
+                    s1Venus.y = pos.y;
+                    if (e.cancelable) e.preventDefault();
+                }
+            };
+
+            const onEnd = () => {
+                if (s1Dragging) {
+                    s1Dragging = false;
+                    confirmOrbit();
+                }
+            };
+
+            c.onmousedown = onStart;
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onEnd);
+
+            c.ontouchstart = onStart;
+            window.addEventListener('touchmove', onMove, { passive: false });
+            window.addEventListener('touchend', onEnd);
+            
+            draw();
+        }
+        function confirmOrbit() {
+            const d = Math.sqrt((s1Venus.x-400)**2+(s1Venus.y-250)**2);
+            if (Math.abs(d-s1Radii[1]) < 30) {
+                s1Confirmed = true; completions[1] = true; checkCompletion();
+                document.getElementById('orbitFeedback').style.color = '#0f0'; 
+                document.getElementById('orbitFeedback').textContent = "✔ Correct! Venus is in the 2nd orbit.";
+                speak("Correct! Venus is the second planet from the Sun. It is closer than Earth and much hotter. Its thick clouds trap heat, making it the hottest planet.");
+            } else {
+                document.getElementById('orbitFeedback').style.color = '#f00'; 
+                document.getElementById('orbitFeedback').textContent = "❌ Try again. Venus is not in this orbit.";
+                speak("Try again. Venus is not in this orbit. Count from the Sun.");
+            }
+        }
+        function resetOrbit() { s1Venus = { x: 400, y: 450, radius: 18 }; s1Confirmed = false; s1Angle = 0; document.getElementById('orbitFeedback').textContent = ""; }
+
+        // SLIDE 2: Atmospheric Layer Construction Lab
+        let s2PlacedLayers = new Set();
+        function speakS2Narration() {
+            const text = document.getElementById('s2Narration').innerText;
+            speak(text);
+        }
+
+        function handleS2Drag(e, type) {
+            e.dataTransfer.setData("text", type);
+        }
+
+        function handleS2Drop(e) {
+            e.preventDefault();
+            const type = e.dataTransfer.getData("text");
+            if (s2PlacedLayers.has(type)) return;
+
+            const card = document.getElementById('card-' + type);
+            const status = document.getElementById('s2HUDStatus');
+            
+            if (type === 'troposphere') {
+                document.getElementById('layer1').style.opacity = '1';
+                document.getElementById('s2HUDTemp').textContent = "465°C";
+                document.getElementById('s2HUDPressure').textContent = "90× Earth";
+                speak("The troposphere is the lowest layer. This is where extreme heat and pressure exist.");
+            } else if (type === 'clouds') {
+                document.getElementById('layer2').style.opacity = '1';
+                document.getElementById('s2HUDClouds').textContent = "Sulfuric Acid";
+                document.getElementById('s2VenusCore').style.background = "#f3e5ab";
+                speak("Venus has thick clouds made of sulfuric acid. These clouds reflect sunlight and trap heat below.");
+            } else if (type === 'co2') {
+                document.getElementById('s2HUDCO2').textContent = "96.5%";
+                document.getElementById('s2HUDGas').textContent = "Carbon Dioxide";
+                document.getElementById('s2HeatWaves').style.opacity = "1";
+                speak("Carbon dioxide makes up most of Venus’s atmosphere. It traps heat and causes a runaway greenhouse effect.");
+            } else if (type === 'nitrogen') {
+                document.getElementById('s2HUDCO2').textContent = "96.5% (CO2) / 3.5% (N2)";
+                speak("Nitrogen is present in smaller amounts, but carbon dioxide dominates the atmosphere.");
+            } else if (type === 'upper') {
+                document.getElementById('layer3').style.opacity = '1';
+                document.getElementById('s2HUDWind').textContent = "Super-rotation (360 km/h)";
+                speak("In the upper atmosphere, winds move faster than the planet rotates.");
+            }
+
+            s2PlacedLayers.add(type);
+            card.classList.add('placed');
+            card.draggable = false;
+
+            if (s2PlacedLayers.size === 5) {
+                status.textContent = "CONSTRUCTION COMPLETE";
+                status.style.color = "#0f0";
+                document.getElementById('s2FinalChallenge').style.display = 'block';
+                speak("Atmospheric model stabilized. Atmospheric construction sequence complete.");
+            }
+        }
+
+        function checkS2Challenge(ans) {
+            const f = document.getElementById('s2ChallengeFeedback');
+            if (ans === 'co2') {
+                f.textContent = "Correct! Carbon dioxide traps infrared heat, creating the hottest surface in the solar system.";
+                f.style.color = "#0f0";
+                completions[2] = true;
+                checkCompletion();
+                speak("Correct. Carbon dioxide traps infrared heat.");
+            } else {
+                f.textContent = "Incorrect. Try again!";
+                f.style.color = "#f00";
+            }
+        }
+
+        function toggleS2Comparison() {
+            const pop = document.getElementById('s2Comparison');
+            pop.style.display = pop.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // SLIDE 3: Greenhouse Experiment
+        let s3Particles = [];
+        function updateS3Experiment(val) {
+            document.getElementById('s3Co2Val').textContent = val + '%';
+            const temp = 50 + (val * 4.15);
+            document.getElementById('s3TempVal').textContent = Math.round(temp) + '°C';
+            document.getElementById('s3VenusFog').style.opacity = (val / 100);
+            
+            const container = document.getElementById('s3HeatContainer');
+            if (val > 10 && s3Particles.length === 0) {
+                for (let i = 0; i < 20; i++) {
+                    const p = document.createElement('div'); p.className = 'heat-particle';
+                    container.appendChild(p);
+                    s3Particles.push({ el: p, x: 75, y: 75, vx: (Math.random()-0.5)*4, vy: (Math.random()-0.5)*4 });
+                }
+                animateS3();
+            }
+            if (val >= 90) document.getElementById('s3Quiz').style.display = 'block';
+        }
+        function animateS3() {
+            if (currentSlide !== 3) return;
+            s3Particles.forEach(p => {
+                p.x += p.vx; p.y += p.vy;
+                const d = Math.sqrt((p.x-75)**2+(p.y-75)**2);
+                if (d > 70) { const nx = (p.x-75)/d, ny = (p.y-75)/d, dot = p.vx*nx+p.vy*ny; p.vx -= 2*dot*nx; p.vy -= 2*dot*ny; }
+                p.el.style.left = p.x + 'px'; p.el.style.top = p.y + 'px';
+            });
+            requestAnimationFrame(animateS3);
+        }
+        function checkS3Quiz(correct) {
+            const f = document.getElementById('s3QuizFeedback');
+            if (correct) {
+                f.textContent = "Correct! The greenhouse effect traps heat."; f.style.color = '#0f0';
+                completions[3] = true; checkCompletion();
+                speak("Correct! Venus's atmosphere is mostly carbon dioxide, which traps heat and prevents cooling through the greenhouse effect.");
+            } else {
+                f.textContent = "Try again!"; f.style.color = '#f00';
+            }
+        }
+
+        // SLIDE 4: Retrograde Rotation Challenge
+        let s4Scanning = false, s4ScanComplete = false, s4RotationAngle = 0;
+        let s4AnimationReq;
+
+        function speakS4Narration() {
+            speak(document.getElementById('s4Narration').innerText);
+        }
+
+        function initS4() {
+            if (s4AnimationReq) cancelAnimationFrame(s4AnimationReq);
+            s4RotationAngle = 0;
+            s4Scanning = false;
+            s4ScanComplete = false;
+            document.getElementById('s4HUDDir').textContent = "Awaiting Scan...";
+            document.getElementById('s4HUDDir').style.color = "#fff";
+            document.getElementById('s4EarthArrow').style.opacity = '0';
+            document.getElementById('s4VenusArrow').style.opacity = '0';
+            document.getElementById('s4ScanBtn').textContent = "▶ Start Rotation Scan";
+            document.getElementById('s4ScanBtn').disabled = false;
+            animateS4();
+        }
+
+        function animateS4() {
+            if (currentSlide !== 4) return;
+            
+            // Continuous rotation for visualization
+            s4RotationAngle += 0.5;
+            
+            // Earth continents rotation (Counter-clockwise)
+            const earthCont = document.getElementById('s4EarthContinents');
+            if (earthCont) {
+                const posX = (s4RotationAngle * 2) % 200;
+                earthCont.style.backgroundPosition = posX + 'px 0';
+            }
+            
+            // Venus fog/texture rotation (Clockwise - Retrograde)
+            const venusFog = document.querySelector('#s4VenusDisk .venus-fog');
+            if (venusFog) {
+                const posX = (-s4RotationAngle * 0.2) % 200;
+                venusFog.style.backgroundPosition = posX + 'px 0';
+            }
+
+            // Surface View Sun movements
+            if (document.getElementById('s4SurfaceView').style.display === 'block') {
+                const earthSun = document.getElementById('sunEarth');
+                const venusSun = document.getElementById('sunVenus');
+                
+                // Earth: Sun rises in East (left for sim), sets in West (right)
+                const earthX = 50 + Math.sin(s4RotationAngle * 0.02) * 45;
+                const earthY = 70 - Math.cos(s4RotationAngle * 0.02) * 50;
+                earthSun.style.left = earthX + '%';
+                earthSun.style.top = earthY + '%';
+                
+                // Venus: Sun rises in West (right for sim), sets in East (left)
+                const venusX = 50 - Math.sin(s4RotationAngle * 0.01) * 45;
+                const venusY = 70 - Math.cos(s4RotationAngle * 0.01) * 50;
+                venusSun.style.left = venusX + '%';
+                venusSun.style.top = venusY + '%';
+            }
+
+            s4AnimationReq = requestAnimationFrame(animateS4);
+        }
+
+        function startS4Scan() {
+            if (s4Scanning) return;
+            s4Scanning = true;
+            document.getElementById('s4HUDDir').textContent = "SCANNING...";
+            document.getElementById('s4HUDDir').style.color = "#ffd700";
+            document.getElementById('s4ScanBtn').disabled = true;
+            speak("Scanning planetary rotation vectors. Observe the direction arrows.");
+            
+            setTimeout(() => {
+                document.getElementById('s4EarthArrow').style.opacity = '1';
+                document.getElementById('s4VenusArrow').style.opacity = '1';
+                document.getElementById('s4HUDDir').textContent = "SCAN COMPLETE. IDENTIFY RETROGRADE PLANET.";
+                s4ScanComplete = true;
+                speak("Identify the planet with retrograde rotation. Look for the backward spin.");
+            }, 3000);
+        }
+
+        function checkS4Retrograde(planet) {
+            if (!s4ScanComplete) {
+                speak("Please start the rotation scan first.");
+                return;
+            }
+            
+            if (planet === 'venus') {
+                showS4Popup(`<span class="badge-icon">🏆</span> <strong>Retrograde Rotation Detected!</strong><br><br>Correct. Venus rotates in the opposite direction compared to most planets. Scientists believe it may have been caused by a massive collision early in its history.<br><br><span style="color:#ffd700;">✔ "Spin Detective" badge earned!</span>`);
+                completions[4] = true;
+                checkCompletion();
+                speak("Correct. Venus rotates in the opposite direction compared to most planets. This is called retrograde rotation. Scientists believe it may have been caused by a massive collision early in its history.");
+            } else {
+                showS4Popup(`❌ <strong>Incorrect Selection</strong><br><br>Earth rotates counter-clockwise, which is the "normal" direction for most planets in our solar system. Try clicking on the other planet!`);
+                speak("Incorrect. Earth rotates counter-clockwise. Try again.");
+            }
+        }
+
+        function toggleS4Axis() {
+            const eAxis = document.getElementById('s4EarthAxis');
+            const vAxis = document.getElementById('s4VenusAxis');
+            const display = eAxis.style.display === 'block' ? 'none' : 'block';
+            eAxis.style.display = display;
+            vAxis.style.display = display;
+            
+            if (display === 'block') {
+                eAxis.style.transform = 'translate(-50%, -50%) rotate(23.5deg)';
+                vAxis.style.transform = 'translate(-50%, -50%) rotate(177.3deg)';
+                speak("Visualizing axial tilt. Earth is tilted at 23.5 degrees. Venus is tilted at 177 degrees, meaning it is essentially upside down!");
+            }
+        }
+
+        function toggleS4Surface(show) {
+            const view = document.getElementById('s4SurfaceView');
+            view.style.display = show ? 'block' : 'none';
+            if (show) {
+                speak("Switching to surface view simulation. Compare the sky movement on both planets.");
+                setTimeout(() => {
+                    speak("On Earth, the Sun rises in the East. But because of its reverse rotation, the Sun would rise in the West on Venus.");
+                }, 3000);
+            }
+        }
+
+        function showS4Why() {
+            showS4Popup(`🧠 <strong>The Mystery of the Backward Spin</strong><br><br>Most planets spin counter-clockwise. Venus spins clockwise (retrograde).<br><br>Scientists have two main theories:<br>1. A <strong>massive collision</strong> with a large object flipped the planet upside down.<br>2. <strong>Atmospheric tides</strong> from its thick atmosphere and solar gravity slowed it down and reversed its spin over billions of years.`);
+            speak("Scientists believe this backward spin may have been caused by a massive collision or atmospheric tides over billions of years.");
+        }
+
+        function showS4Popup(html) {
+            const popup = document.getElementById('s4Popup');
+            document.getElementById('s4PopupContent').innerHTML = html;
+            popup.style.display = 'block';
+        }
+
+        function closeS4Popup() {
+            document.getElementById('s4Popup').style.display = 'none';
+        }
+
+        // SLIDE 5: Day vs Year
+        let s5Running = false, s5Year = 0, s5Day = 0;
+        function speakS5Narration() {
+            speak(document.getElementById('s5Narration').innerText);
+        }
+        function initS5Canvas() {
+            const c = document.getElementById('s5Canvas');
+            if (!c) return;
+            const ctx = c.getContext('2d');
+            s5Running = false; s5Year = 0; s5Day = 0;
+            
+            function draw() {
+                if (currentSlide !== 5) return;
+                ctx.clearRect(0, 0, 400, 350);
+                // Sun
+                ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.arc(200, 175, 20, 0, Math.PI*2); ctx.fill();
+                // Orbit
+                ctx.beginPath(); ctx.arc(200, 175, 100, 0, Math.PI*2); ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.stroke();
+                // Venus
+                const vx = 200 + Math.cos(s5Year * Math.PI / 50) * 100;
+                const vy = 175 + Math.sin(s5Year * Math.PI / 50) * 100;
+                ctx.save(); ctx.translate(vx, vy); ctx.rotate(-s5Day * Math.PI / 50); // Retrograde rotation
+                ctx.fillStyle = '#f3e5ab'; ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#000'; ctx.fillRect(0, -2, 10, 4); // Rotation marker
+                ctx.restore();
+                if (s5Running) {
+                    s5Year += 1; s5Day += 0.92; // 225/243 ratio approx
+                    document.getElementById('s5YearVal').textContent = Math.min(100, Math.round(s5Year));
+                    document.getElementById('s5DayVal').textContent = Math.min(100, Math.round(s5Day));
+                    if (s5Year >= 100) { 
+                        s5Running = false; 
+                        completions[5] = true; 
+                        checkCompletion(); 
+                        speak("One year completed, but the day is still not over! This confirms that a day on Venus is longer than its year."); 
+                    }
+                }
+                requestAnimationFrame(draw);
+            }
+            draw();
+        }
+        function startS5Simulation() { s5Running = true; s5Year = 0; s5Day = 0; speak("Initiating time simulation. Watch how the year completes before the day cycle finishes."); }
+
+        // SLIDE 6: Pressure
+        function updateS6Pressure(val) {
+            document.getElementById('s6PressureVal').textContent = val;
+            document.getElementById('s6PressureBar').style.height = val + '%';
+            const scale = 1 - (val / 200);
+            document.getElementById('s6Structure').style.transform = `scale(${scale}, ${scale})`;
+            if (val >= 90) {
+                document.getElementById('s6Structure').style.borderRadius = '50%';
+                completions[6] = true; checkCompletion();
+                speak("At 90 times Earth's pressure, even strong metal structures would bend and crush.");
+            }
+        }
+
+        // SLIDE 7: Habitability
+        function toggleS7Atm(type) {
+            if (type === 'earth') {
+                document.getElementById('s7EarthTemp').textContent = "400°C";
+                document.getElementById('s7EarthTemp').style.color = '#f00';
+                speak("Adding CO2 to Earth causes extreme warming, similar to Venus.");
+            } else {
+                document.getElementById('s7VenusTemp').textContent = "20°C";
+                document.getElementById('s7VenusTemp').style.color = '#0f0';
+                speak("Removing CO2 from Venus would theoretically allow it to cool down.");
+            }
+            completions[7] = true; checkCompletion();
+        }
+
+        // Removed redundant window.onload as it is defined above
+    </script>
+</body>
+</html>

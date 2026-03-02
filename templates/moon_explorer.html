@@ -1,0 +1,3186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moon Explorer - Earth's Companion</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
+        
+        .stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+        .star { position: absolute; background: white; border-radius: 50%; animation: twinkle 3s infinite; }
+        @keyframes twinkle { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+        .mission-container { position: relative; z-index: 2; height: 100vh; display: flex; flex-direction: column; }
+        
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background: rgba(0, 0, 0, 0.7); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .navbar-brand { font-size: 24px; font-weight: bold; color: #fff; }
+        .btn-logout { color: #fff; text-decoration: none; padding: 8px 20px; border: 1px solid #fff; border-radius: 20px; transition: all 0.3s; }
+        .btn-logout:hover { background: #fff; color: #000; }
+
+        .slide-container { flex: 1; position: relative; overflow: hidden; }
+        .slide { position: absolute; inset: 0; display: none; padding: 40px; flex-direction: column; align-items: center; justify-content: flex-start; animation: fadeIn 0.8s ease-out; }
+        .slide.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .slide-header { text-align: center; margin-bottom: 30px; width: 100%; }
+        .slide-title { font-size: 42px; margin-bottom: 10px; background: linear-gradient(135deg, #fff 0%, #a0a0b0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .slide-subtitle { color: #ffb703; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
+
+        .content-layout { display: flex; gap: 40px; width: 100%; max-width: 1200px; height: 100%; }
+        .visual-area { flex: 1.5; background: rgba(255, 255, 255, 0.05); border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .info-area { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+
+        .facts-box { background: rgba(0, 0, 0, 0.6); border: 1px solid #444; border-radius: 12px; padding: 20px; }
+        .facts-title { color: #ffb703; margin-bottom: 15px; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+        .fact-item { margin-bottom: 10px; font-size: 16px; color: #ccc; display: flex; align-items: flex-start; gap: 10px; }
+        .fact-item::before { content: "•"; color: #ffb703; font-weight: bold; }
+
+        .narration-box { background: rgba(0, 150, 255, 0.1); border-left: 4px solid #0096ff; padding: 20px; border-radius: 8px; font-style: italic; position: relative; }
+        .narration-label { position: absolute; top: -10px; left: 10px; background: #0096ff; color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 4px; font-style: normal; }
+        .btn-voice { margin-top: 10px; background: none; border: 1px solid #0096ff; color: #0096ff; padding: 5px 15px; border-radius: 15px; cursor: pointer; transition: 0.3s; font-size: 12px; }
+        .btn-voice:hover { background: #0096ff; color: #fff; }
+
+        .controls { 
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 40px; 
+            background: rgba(0, 0, 0, 0.9); 
+            display: flex; 
+            justify-content: center; 
+            gap: 30px; 
+            align-items: center; 
+            z-index: 1000;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .btn-nav { padding: 12px 30px; border-radius: 30px; border: none; font-weight: bold; cursor: pointer; transition: all 0.3s; min-width: 150px; }
+        .btn-nav:hover { transform: translateY(-5px) scale(1.05); }
+        .btn-prev { background: #003366; color: #fff; box-shadow: 0 4px 15px rgba(0, 51, 102, 0.3); }
+        .btn-next { background: #ffb703; color: #000; box-shadow: 0 4px 15px rgba(255, 183, 3, 0.3); }
+        .btn-reset { background: rgba(255, 183, 3, 0.1); border: 2px solid #ffb703; color: #ffb703; }
+        .btn-nav:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Slide 1 Visuals */
+        .earth-moon-system { position: relative; width: 400px; height: 400px; }
+        .earth-large { width: 120px; height: 120px; border-radius: 50%; background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/1200px-The_Earth_seen_from_Apollo_17.jpg'); background-size: cover; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 50px rgba(0, 150, 255, 0.3); animation: rotateEarth 20s linear infinite; }
+        .moon-orbit-line { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; height: 300px; border: 1px dashed rgba(255, 255, 255, 0.2); border-radius: 50%; }
+        .moon-small { width: 40px; height: 40px; border-radius: 50%; background: url('https://upload.wikimedia.org/wikipedia/commons/e/e1/FullMoon2010.jpg'); background-size: cover; position: absolute; top: 50%; left: 50%; margin-top: -20px; margin-left: 130px; transform-origin: -130px 20px; animation: orbitMoon 10s linear infinite; }
+        .distance-label { position: absolute; top: 65%; left: 50%; transform: translateX(-50%); font-family: monospace; color: #0096ff; font-size: 12px; }
+
+        @keyframes rotateEarth { from { background-position: 0 0; } to { background-position: 240px 0; } }
+        @keyframes orbitMoon { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* Slide 2 Visuals - Tides */
+        .tide-sim { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .earth-tide { width: 150px; height: 150px; background: #2471a3; border-radius: 50%; position: relative; z-index: 5; transition: transform 0.1s; }
+        .ocean-bulge { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 220px; height: 160px; background: rgba(0, 150, 255, 0.3); border-radius: 50%; z-index: 4; transition: transform 0.5s ease; }
+        .moon-tide { width: 40px; height: 40px; background: #888; border-radius: 50%; position: absolute; left: 80%; cursor: move; z-index: 10; }
+        .tide-label { position: absolute; color: #fff; font-size: 10px; font-weight: bold; pointer-events: none; }
+
+        /* Slide 3 Visuals - Axis */
+        .axis-sim { display: flex; gap: 40px; }
+        .earth-axis-box { text-align: center; }
+        .earth-sphere { width: 120px; height: 120px; border-radius: 50%; background: #2471a3; position: relative; margin-bottom: 20px; }
+        .axis-line { position: absolute; top: -20px; left: 50%; width: 2px; height: 160px; background: #ffb703; transform: translateX(-50%) rotate(23.5deg); transition: transform 0.5s; }
+        .earth-sphere::before { content: ""; position: absolute; inset: 0; background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/1200px-The_Earth_seen_from_Apollo_17.jpg'); background-size: cover; border-radius: 50%; transform: rotate(23.5deg); transition: transform 0.5s; }
+        .wobble { animation: wobbleEarth 2s infinite alternate ease-in-out; }
+        @keyframes wobbleEarth { from { transform: translateX(-50%) rotate(-45deg); } to { transform: translateX(-50%) rotate(45deg); } }
+
+        /* Slide 4 Visuals - Length of Day */
+        .day-length-sim { text-align: center; }
+        .speed-meter { width: 300px; height: 20px; background: #333; border-radius: 10px; position: relative; margin: 20px 0; overflow: hidden; }
+        .speed-fill { height: 100%; width: 60%; background: linear-gradient(to right, #4CAF50, #f44336); transition: width 0.5s; }
+        .time-label { font-size: 48px; font-family: monospace; margin: 20px 0; }
+
+        /* Slide 5 Visuals - Eclipses */
+        .eclipse-sim { position: relative; width: 100%; height: 300px; border: 1px solid #333; border-radius: 15px; margin-bottom: 20px; }
+        .sun-eclipse { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); width: 80px; height: 80px; background: radial-gradient(circle, #fff700, #ff8c00); border-radius: 50%; box-shadow: 0 0 50px #ff8c00; }
+        .earth-eclipse { position: absolute; right: 50px; top: 50%; transform: translateY(-50%); width: 60px; height: 60px; background: #2471a3; border-radius: 50%; }
+        .moon-eclipse { position: absolute; width: 20px; height: 20px; background: #888; border-radius: 50%; cursor: move; z-index: 20; }
+        .shadow-cone { position: absolute; height: 60px; background: rgba(0,0,0,0.6); pointer-events: none; transform-origin: left center; z-index: 15; display: none; }
+
+
+        /* Interactive Elements */
+        .btn-action { background: #ffb703; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .btn-action:hover { background: #fb8500; }
+
+        /* Tidal Command Center Styles */
+        .command-center {
+            display: grid;
+            grid-template-columns: 320px 1fr 320px;
+            grid-template-rows: 1fr 180px;
+            gap: 15px;
+            width: 100%;
+            height: calc(100vh - 180px); /* Adjust based on navbar/header */
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .panel {
+            background: rgba(10, 15, 25, 0.9);
+            border: 1px solid rgba(0, 150, 255, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: inset 0 0 20px rgba(0, 150, 255, 0.1);
+        }
+
+        .panel-header {
+            font-size: 14px;
+            font-weight: bold;
+            color: #0096ff;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(0, 150, 255, 0.2);
+            padding-bottom: 8px;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .center-display {
+            grid-column: 2;
+            grid-row: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #0a1128 0%, #000 100%);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bottom-panel {
+            grid-column: 1 / span 3;
+            grid-row: 2;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr) 2fr;
+            gap: 10px;
+        }
+
+        .telemetry-item {
+            background: rgba(0, 20, 40, 0.6);
+            border: 1px solid rgba(0, 150, 255, 0.2);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .telemetry-label { font-size: 10px; color: #0096ff; text-transform: uppercase; margin-bottom: 5px; font-weight: bold; }
+        .telemetry-value { font-size: 20px; font-family: 'Courier New', Courier, monospace; color: #00ff00; text-shadow: 0 0 10px rgba(0, 255, 0, 0.5); }
+
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        .control-label { font-size: 12px; color: #ccc; display: flex; justify-content: space-between; }
+        input[type=range] { width: 100%; accent-color: #0096ff; cursor: pointer; }
+
+        .coastal-view {
+            height: 180px;
+            background: linear-gradient(#1a2a6c, #b21f1f, #fdbb2d); /* Sunset/NASA vibe */
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+
+        .tide-water {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: linear-gradient(rgba(0, 150, 255, 0.4), rgba(0, 80, 180, 0.8));
+            transition: height 0.5s ease-in-out;
+            z-index: 2;
+        }
+
+        .shoreline {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 40px;
+            background: #c2b280;
+            z-index: 1;
+        }
+
+        .harbor-assets {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            height: 100px;
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        .building { width: 30px; background: #333; border: 1px solid #555; }
+        .house { width: 20px; height: 20px; background: #555; }
+        .flood-warning {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            display: none;
+            animation: blink 1s infinite;
+            z-index: 10;
+        }
+
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        .live-graph-container {
+            height: 100%;
+            background: rgba(0, 10, 20, 0.8);
+            border: 1px solid rgba(0, 255, 0, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+            position: relative;
+        }
+
+        .force-arrow {
+            position: absolute;
+            height: 2px;
+            background: #ffb703;
+            transform-origin: left center;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        .force-arrow::after {
+            content: "";
+            width: 0; height: 0;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-left: 8px solid #ffb703;
+            margin-right: -4px;
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .toggle-btn {
+            width: 40px;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            position: relative;
+            transition: 0.3s;
+        }
+        .toggle-btn::after {
+            content: "";
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: 0.3s;
+        }
+        .toggle-active .toggle-btn { background: #0096ff; }
+        .toggle-active .toggle-btn::after { left: 22px; }
+
+        @keyframes wave {
+            0%, 100% { d: path('M 0,80 Q 25,70 50,80 T 100,80 T 150,80 T 200,80 T 250,80 T 300,80 T 350,80 L 350,180 L 0,180 Z'); }
+            50% { d: path('M 0,60 Q 25,50 50,60 T 100,60 T 150,60 T 200,60 T 250,60 T 300,60 T 350,60 L 350,180 L 0,180 Z'); }
+        }
+
+        .score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-family: 'Courier New', Courier, monospace;
+            z-index: 5;
+        }
+
+        .stability-ring {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 4px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .stability-value { font-size: 24px; color: #00ff00; }
+
+        /* Smart Orbit Lab Styles */
+        .orbit-lab-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .earth-fixed {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Earth_Western_Hemisphere_transparent_background.png/1200px-Earth_Western_Hemisphere_transparent_background.png');
+            background-size: cover;
+            position: relative;
+            z-index: 10;
+            box-shadow: 0 0 40px rgba(0, 150, 255, 0.4), inset -10px -10px 20px rgba(0,0,0,0.5);
+        }
+
+        .earth-glow {
+            position: absolute;
+            inset: -20px;
+            background: radial-gradient(circle, rgba(0, 150, 255, 0.2) 0%, transparent 70%);
+            border-radius: 50%;
+            z-index: 9;
+        }
+
+        .cloud-layer {
+            position: absolute;
+            inset: 0;
+            background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/Clouds_from_space.png/1200px-Clouds_from_space.png');
+            background-size: cover;
+            border-radius: 50%;
+            opacity: 0.4;
+            animation: rotateClouds 60s linear infinite;
+            z-index: 11;
+            pointer-events: none;
+        }
+
+        @keyframes rotateClouds { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .moon-draggable {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: url('https://upload.wikimedia.org/wikipedia/commons/e/e1/FullMoon2010.jpg');
+            background-size: cover;
+            position: absolute;
+            cursor: grab;
+            z-index: 20;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+            transition: transform 0.1s;
+        }
+        .moon-draggable:active { cursor: grabbing; }
+
+        .orbit-guide-ring {
+            position: absolute;
+            width: 615px;
+            height: 615px;
+            border: 1px dashed rgba(0, 150, 255, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+            transition: all 0.5s ease;
+            display: block;
+        }
+        .orbit-guide-ring.active {
+            border: 2px dashed #00f2fe;
+            box-shadow: 0 0 30px #00f2fe;
+            animation: snapPulse 0.5s ease-out;
+        }
+        .orbit-guide-ring.locked {
+            border: 2px solid #00f2fe;
+            box-shadow: 0 0 40px rgba(0, 242, 254, 0.4);
+            border-style: solid;
+        }
+        @keyframes snapPulse {
+            0% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.02); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+        .orbit-guide-ring.error { border-color: rgba(244, 67, 54, 0.5); }
+
+        .distance-arrow-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(to right, transparent, #ffb703);
+            transform-origin: left center;
+            z-index: 15;
+            pointer-events: none;
+            display: none;
+        }
+
+        .distance-arrow-head {
+            position: absolute;
+            right: 0;
+            top: -4px;
+            width: 0; height: 0;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-left: 10px solid #ffb703;
+        }
+
+        .distance-tag {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #ffb703;
+            color: #ffb703;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            white-space: nowrap;
+            z-index: 30;
+            pointer-events: none;
+            transform: translate(-50%, -120%);
+        }
+
+        .learning-popup {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 20, 40, 0.9);
+            border: 1px solid #0096ff;
+            padding: 15px 25px;
+            border-radius: 10px;
+            display: none;
+            z-index: 100;
+            animation: slideUp 0.5s ease-out;
+            max-width: 400px;
+            text-align: center;
+        }
+        @keyframes slideUp { from { bottom: -100px; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+
+        .telemetry-v2 {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 250px;
+            background: rgba(10, 15, 25, 0.8);
+            border: 1px solid rgba(0, 150, 255, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+
+
+        /* Eclipse Mission Styles */
+        .shadow-cone-container {
+            z-index: 1;
+        }
+        .active-mission {
+            background: rgba(0, 150, 255, 0.3) !important;
+            border-color: #0096ff !important;
+            box-shadow: 0 0 15px rgba(0, 150, 255, 0.4);
+        }
+        #eclipseSimArea {
+            user-select: none;
+        }
+        .eclipse-body {
+            transition: transform 0.1s ease-out;
+        }
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 20px #ffb703; }
+            50% { box-shadow: 0 0 40px #ffb703; }
+            100% { box-shadow: 0 0 20px #ffb703; }
+        }
+        .alignment-success {
+            animation: pulseGlow 1s infinite;
+        }
+        
+        #previewSky.totality {
+            background: #050505 !important;
+        }
+        #previewSky.partial {
+            background: #2a3a5a !important;
+        }
+        #moonPreview.blood-moon {
+            background: #8b0000 !important;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.9), 0 0 20px #8b0000 !important;
+        }
+        /* Moon Builder Styles */
+        .bank-item:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 10px rgba(0, 255, 150, 0.4);
+        }
+        .layer-filled {
+            border-style: solid !important;
+            box-shadow: inset 0 0 30px rgba(0, 255, 150, 0.2);
+        }
+        #layerCore.layer-filled { background: radial-gradient(circle, #ff4b2b, #8b0000); border-color: #ff4b2b; }
+        #layerMantle.layer-filled { background: radial-gradient(circle, #888, #444); border-color: #888; }
+        #layerCrust.layer-filled { background: radial-gradient(circle, #aaa, #666); border-color: #aaa; }
+        
+        @keyframes rotateBuilderMoon {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .rotating-moon {
+            animation: rotateBuilderMoon 20s linear infinite;
+        }
+        .error-shake {
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translate(-50%, -50%); }
+            25% { transform: translate(-52%, -50%); }
+            75% { transform: translate(-48%, -50%); }
+        }
+        /* Circular Progress Bar */
+        .progress-ring {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+        }
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+            stroke: #00ff96;
+        }
+        .progress-ring__background {
+            stroke: rgba(255, 255, 255, 0.1);
+        }
+        .progress-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        /* Layer Highlighting */
+        .layer-highlight {
+            border-color: #ffed4e !important;
+            box-shadow: 0 0 30px rgba(255, 237, 78, 0.6) !important;
+            border-width: 4px !important;
+        }
+        .layer-error-blink {
+            animation: errorBlink 0.5s infinite;
+        }
+        @keyframes errorBlink {
+            0%, 100% { border-color: #ff4b2b; box-shadow: 0 0 10px #ff4b2b; }
+            50% { border-color: transparent; box-shadow: none; }
+        }
+
+
+        /* Slide 6: Earth Without Moon Simulator Styles */
+        .stability-simulator {
+            display: grid;
+            grid-template-columns: 320px 1fr 320px;
+            width: 100%;
+            height: calc(100vh - 160px);
+            gap: 15px;
+            padding: 15px;
+            background: #000;
+        }
+
+        .simulator-panel {
+            background: rgba(10, 15, 25, 0.95);
+            border: 1px solid rgba(0, 150, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .simulator-display {
+            background: radial-gradient(circle at center, #0a1128 0%, #000 100%);
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .earth-3d-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            perspective: 1000px;
+        }
+
+        .earth-3d {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/1200px-The_Earth_seen_from_Apollo_17.jpg');
+            background-size: 200% 100%;
+            box-shadow: inset -20px -20px 50px rgba(0,0,0,0.8), 0 0 50px rgba(0, 150, 255, 0.3);
+            animation: earthRotate 20s linear infinite;
+            transition: transform 2s ease-in-out;
+        }
+
+        @keyframes earthRotate {
+            from { background-position: 0 0; }
+            to { background-position: 200% 0; }
+        }
+
+        .moon-orbit-sim {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 500px;
+            height: 500px;
+            border: 1px dashed rgba(255,255,255,0.1);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            transition: opacity 2s;
+        }
+
+        .moon-sim-object {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 40px;
+            height: 40px;
+            background: #888;
+            background: radial-gradient(circle at 30% 30%, #eee, #444);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px rgba(255,255,255,0.2);
+            animation: moonOrbitSim 15s linear infinite;
+            transition: opacity 2s;
+        }
+
+        @keyframes moonOrbitSim {
+            from { transform: translate(-50%, -50%) rotate(0deg) translateX(250px); }
+            to { transform: translate(-50%, -50%) rotate(360deg) translateX(250px); }
+        }
+
+        .axis-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 2px;
+            height: 400px;
+            background: #ffb703;
+            transform: translate(-50%, -50%) rotate(23.5deg);
+            z-index: 5;
+            transition: transform 2s ease-in-out;
+        }
+
+        .axis-label-sim {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ffb703;
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .meter-card {
+            background: rgba(0, 20, 40, 0.6);
+            border: 1px solid rgba(0, 150, 255, 0.2);
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .meter-label {
+            font-size: 10px;
+            color: #0096ff;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .meter-value {
+            font-size: 18px;
+            font-family: monospace;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .meter-bar {
+            height: 4px;
+            background: #222;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .meter-fill {
+            height: 100%;
+            width: 100%;
+            background: #00ff00;
+            transition: width 2s, background 2s;
+        }
+
+        .decision-btn {
+            background: rgba(255, 183, 3, 0.1);
+            border: 1px solid #ffb703;
+            color: #ffb703;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            font-size: 13px;
+            transition: 0.3s;
+        }
+
+        .decision-btn:hover {
+            background: rgba(255, 183, 3, 0.2);
+        }
+
+        .decision-btn.correct {
+            background: rgba(0, 255, 0, 0.2);
+            border-color: #00ff00;
+            color: #00ff00;
+        }
+
+        .wobble-earth {
+            animation: earthWobble 5s infinite alternate ease-in-out;
+        }
+
+        @keyframes earthWobble {
+            0% { transform: rotate(10deg); }
+            100% { transform: rotate(45deg); }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+
+    <div class="mission-container">
+        <nav class="navbar">
+            <div class="navbar-brand">🌕 Moon Explorer</div>
+            <div class="navbar-right">
+                <a href="{{ url_for('dashboard') }}" class="btn-logout" style="margin-right: 10px;">Dashboard</a>
+                <a href="{{ url_for('game_zone') }}" class="btn-logout">Exit</a>
+            </div>
+        </nav>
+
+        <div class="slide-container">
+            <!-- SLIDE 1: SMART EARTH–MOON ORBIT LAB -->
+            <div class="slide active" id="slide1" style="padding: 0;">
+                <div class="orbit-lab-container" id="orbitLab">
+                    <!-- Telemetry Panel -->
+                    <div class="telemetry-v2">
+                        <div class="panel-header" style="font-size: 12px; margin-bottom: 10px;">
+                            <span>Orbital Telemetry</span>
+                            <span style="color: #00ff00;">● LIVE</span>
+                        </div>
+                        <div class="telemetry-item" style="padding: 8px;">
+                            <div class="telemetry-label">Current Distance</div>
+                            <div class="telemetry-value" id="liveDist" style="font-size: 18px;">--- km</div>
+                        </div>
+                        <div class="telemetry-item" style="padding: 8px;">
+                            <div class="telemetry-label">Orbital Velocity</div>
+                            <div class="telemetry-value" id="liveVel" style="font-size: 18px;">0.000 km/s</div>
+                        </div>
+                        <div class="telemetry-item" style="padding: 8px;">
+                            <div class="telemetry-label">Gravity Strength</div>
+                            <div id="gravityMeter" style="height: 4px; background: #333; width: 100%; margin-top: 5px; border-radius: 2px;">
+                                <div id="gravityFill" style="height: 100%; width: 0%; background: #0096ff; transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                        <div class="telemetry-item" style="padding: 8px;">
+                            <div class="telemetry-label">Tidal Force Index</div>
+                            <div class="telemetry-value" id="tideIndex" style="font-size: 18px;">0.0</div>
+                        </div>
+                    </div>
+
+                    <!-- Center System -->
+                    <div class="orbit-guide-ring" id="orbitGuide"></div>
+                    <div class="earth-fixed" id="earthMain">
+                        <div class="earth-glow"></div>
+                        <div class="cloud-layer"></div>
+                    </div>
+                    <div class="moon-draggable" id="moonDrag"></div>
+                    
+                    <!-- Distance Visuals -->
+                    <div class="distance-arrow-line" id="distLine">
+                        <div class="distance-arrow-head"></div>
+                    </div>
+                    <div class="distance-tag" id="distTag">0 km</div>
+
+                    <!-- Learning Popup -->
+                    <div class="learning-popup" id="learningPopup">
+                        <div style="color: #ffb703; font-weight: bold; margin-bottom: 5px;">💡 DID YOU KNOW?</div>
+                        <div id="popupText">Even though the Moon appears close in the sky, nearly thirty Earths could fit between Earth and the Moon.</div>
+                    </div>
+
+                    <div style="position: absolute; bottom: 20px; left: 20px; font-family: monospace; font-size: 12px; color: rgba(255,255,255,0.4);">
+                        MISSION: DRAG MOON INTO STABLE ORBIT (384,400 KM)
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 2: MOON DISTANCE & TIDAL FORCE LAB -->
+            <div class="slide" id="slide2" style="padding: 0;">
+                <div class="command-center">
+                    <!-- LEFT PANEL: DISTANCE SLIDER -->
+                    <div class="panel" style="grid-column: 1; grid-row: 1;">
+                        <div class="panel-header">Distance Control</div>
+                        <div class="control-group">
+                            <div class="control-label">
+                                <span>Moon Distance</span>
+                                <span style="color: #ffb703;" id="sliderValue">384,400 km</span>
+                            </div>
+                            <input type="range" id="distanceSlider" min="300000" max="450000" value="384400" 
+                                   style="width: 100%;" oninput="updateMoonDistance(this.value)">
+                        </div>
+                        <div style="margin-top: 20px; font-size: 12px; line-height: 1.6; color: #ccc;">
+                            <strong style="color: #0096ff;">📊 Key Range:</strong>
+                            <div style="margin-top: 8px;">
+                                <div>🔴 Too Close: &lt;320k km</div>
+                                <div>🟢 Optimal: 360-400k km</div>
+                                <div>🔵 Too Far: &gt;430k km</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CENTER DISPLAY: MAIN SIMULATION -->
+                    <div class="center-display" style="position: relative; overflow: visible;">
+                        <div style="position: absolute; top: 20px; left: 20px; font-size: 12px; color: #0096ff; font-weight: bold;">
+                            🌍 EARTH – 🌙 MOON ORBIT SYSTEM
+                        </div>
+                        
+                        <!-- Orbit Container -->
+                        <div style="position: relative; width: 500px; height: 500px; display: flex; align-items: center; justify-content: center;">
+                            <!-- Orbital Path (Dashed Circle) -->
+                            <div id="orbitPath" style="position: absolute; width: 400px; height: 400px; border-radius: 50%; 
+                                     border: 2px dashed rgba(0, 150, 255, 0.3); z-index: 1; transition: all 0.5s ease;">
+                            </div>
+
+                            <!-- Earth at Center -->
+                            <div style="position: absolute; z-index: 10;">
+                                <div id="earthDisplay" style="width: 100px; height: 100px; border-radius: 50%; background: #2471a3; position: relative; 
+                                       box-shadow: 0 0 40px rgba(36, 113, 163, 0.8);">
+                                    <div style="position: absolute; inset: 0; background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/1200px-The_Earth_seen_from_Apollo_17.jpg'); 
+                                         background-size: cover; border-radius: 50%; opacity: 0.85;"></div>
+                                </div>
+
+                                <!-- Ocean Tidal Bulges (Dynamic Size) -->
+                                <div style="position: absolute; width: 140px; height: 100px; background: rgba(0, 150, 255, 0.6); border-radius: 50%; 
+                                           left: -70px; top: 50%; transform: translateY(-50%); z-index: 3; transition: all 0.4s;"
+                                     id="bulgeLeft"></div>
+                                <div style="position: absolute; width: 140px; height: 100px; background: rgba(0, 150, 255, 0.6); border-radius: 50%; 
+                                           right: -70px; top: 50%; transform: translateY(-50%); z-index: 3; transition: all 0.4s;"
+                                     id="bulgeRight"></div>
+                            </div>
+
+                            <!-- Moon in Orbit -->
+                            <div id="moonDisplay" style="position: absolute; width: 28px; height: 28px; border-radius: 50%; background: #999; 
+                                     right: 50px; top: 50%; transform: translateY(-50%); z-index: 8; transition: all 0.3s ease;
+                                     box-shadow: 0 0 20px rgba(153, 153, 153, 0.6); cursor: default;">
+                                <div style="position: absolute; inset: 0; background: radial-gradient(circle at 30% 30%, #eee, #666); border-radius: 50%; opacity: 0.9;"></div>
+                            </div>
+
+                            <!-- Distance Arrow from Earth Center to Moon -->
+                            <svg id="distanceArrowSVG" style="position: absolute; width: 100%; height: 100%; z-index: 2; pointer-events: none;">
+                                <!-- Distance Line -->
+                                <line id="distanceLine" x1="250" y1="250" x2="450" y2="250" stroke="#ffb703" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+                                <defs>
+                                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                                        <polygon points="0 0, 10 3, 0 6" fill="#ffb703" />
+                                    </marker>
+                                </defs>
+                            </svg>
+
+                            <!-- Distance Label -->
+                            <div id="distanceLabel" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -25px); 
+                                     background: rgba(0, 0, 0, 0.8); color: #ffb703; padding: 5px 12px; border-radius: 4px; 
+                                     font-family: monospace; font-size: 12px; font-weight: bold; white-space: nowrap; 
+                                     z-index: 10; border: 1px solid #ffb703;">
+                                0 km
+                            </div>
+
+                            <!-- Orbit Radius Label -->
+                            <div id="orbitRadiusLabel" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); 
+                                     color: rgba(0, 150, 255, 0.6); font-size: 10px; font-weight: bold; white-space: nowrap; z-index: 5;">
+                                Distance
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT PANEL: COASTAL TIDE VIEW -->
+                    <div class="panel" style="grid-column: 3; grid-row: 1; padding: 0; display: flex; flex-direction: column; gap: 0;">
+                        <div class="panel-header" style="padding: 15px;">🌊 Coastal Tide Monitor</div>
+                        <div class="coastal-view" style="flex: 1; margin: 0; border-radius: 0; position: relative; overflow: hidden;">
+                            <!-- Sky Gradient -->
+                            <div style="position: absolute; inset: 0; background: linear-gradient(180deg, #0f1f4f 0%, #1a3a7a 30%, #2a5aaa 60%); z-index: 1;"></div>
+
+                            <!-- Sun/Moon Reflection -->
+                            <div style="position: absolute; top: 15px; right: 20px; width: 35px; height: 35px; border-radius: 50%; 
+                                       background: radial-gradient(circle at 30% 30%, #ffeb99, #ffa500); z-index: 2; opacity: 0.7; box-shadow: 0 0 25px rgba(255, 165, 0, 0.3);"></div>
+
+                            <!-- Water Waves (Animated) -->
+                            <svg style="position: absolute; bottom: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none;">
+                                <defs>
+                                    <linearGradient id="waterGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#0096ff;stop-opacity:0.6" />
+                                        <stop offset="100%" style="stop-color:#003366;stop-opacity:0.8" />
+                                    </linearGradient>
+                                </defs>
+                                <!-- Wave patterns -->
+                                <path id="wave1" d="" fill="url(#waterGrad)" style="animation: wave 8s ease-in-out infinite;"></path>
+                                <path id="wave2" d="" fill="rgba(0, 150, 255, 0.3)" style="animation: wave 6s ease-in-out infinite 1s;"></path>
+                            </svg>
+
+                            <!-- Animated Water Level -->
+                            <div class="tide-water" id="tideWater" style="position: absolute; bottom: 0; width: 100%; height: 40%; 
+                                     background: linear-gradient(180deg, rgba(0, 150, 255, 0.4) 0%, rgba(0, 100, 200, 0.7) 100%); 
+                                     transition: height 0.4s ease; z-index: 4;"></div>
+
+                            <!-- Sandy Shoreline -->
+                            <div class="shoreline" style="position: absolute; bottom: 0; width: 100%; height: 30px; 
+                                     background: linear-gradient(180deg, #d4a574 0%, #b8956a 100%); z-index: 5;"></div>
+
+                            <!-- Harbor Buildings -->
+                            <div class="harbor-assets" style="position: absolute; bottom: 30px; width: 100%; height: 100px; 
+                                     display: flex; justify-content: space-around; align-items: flex-end; z-index: 6; pointer-events: none;">
+                                <!-- Building 1 - Brown -->
+                                <div style="width: 28px; height: 50px; background: linear-gradient(90deg, #6b4423 0%, #8b5a3c 100%); 
+                                           border: 2px solid #3d2817; box-shadow: inset 0 0 5px rgba(0,0,0,0.5); position: relative;">
+                                    <div style="position: absolute; width: 8px; height: 8px; background: #ffeb99; top: 8px; left: 4px; margin: 4px;"></div>
+                                    <div style="position: absolute; width: 8px; height: 8px; background: #ffeb99; top: 8px; right: 4px; margin: 4px;"></div>
+                                    <div style="position: absolute; width: 8px; height: 8px; background: #ffeb99; bottom: 8px; left: 4px; margin: 4px;"></div>
+                                    <div style="position: absolute; width: 8px; height: 8px; background: #ffeb99; bottom: 8px; right: 4px; margin: 4px;"></div>
+                                </div>
+
+                                <!-- Building 2 - Gray -->
+                                <div style="width: 26px; height: 42px; background: linear-gradient(90deg, #555 0%, #777 100%); 
+                                           border: 2px solid #333; box-shadow: inset 0 0 5px rgba(0,0,0,0.5);">
+                                    <div style="position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 16px; height: 12px; 
+                                               background: #ffeb99; margin-bottom: 3px;"></div>
+                                </div>
+
+                                <!-- Building 3 - Red -->
+                                <div style="width: 32px; height: 62px; background: linear-gradient(90deg, #8b2e2e 0%, #c44444 100%); 
+                                           border: 2px solid #5a1a1a; box-shadow: inset 0 0 5px rgba(0,0,0,0.5); position: relative;">
+                                    <div style="position: absolute; top: 10px; right: 6px; width: 6px; height: 8px; background: #ffeb99; margin: 3px;"></div>
+                                    <div style="position: absolute; top: 10px; left: 6px; width: 6px; height: 8px; background: #ffeb99; margin: 3px;"></div>
+                                </div>
+
+                                <!-- Building 4 - Blue -->
+                                <div style="width: 28px; height: 48px; background: linear-gradient(90deg, #2a5aa8 0%, #3a7acc 100%); 
+                                           border: 2px solid #1a3a68; box-shadow: inset 0 0 5px rgba(0,0,0,0.5);">
+                                    <div style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 18px; height: 6px; 
+                                               background: #ffeb99;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Wooden Pier -->
+                            <div style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); 
+                                       width: 50px; height: 90px; z-index: 7;">
+                                <!-- Pilings -->
+                                <div style="position: absolute; left: 10px; bottom: 0; width: 8px; height: 100%; background: #8b6f47; border: 1px solid #5a4a2a;"></div>
+                                <div style="position: absolute; right: 10px; bottom: 0; width: 8px; height: 100%; background: #8b6f47; border: 1px solid #5a4a2a;"></div>
+                                <!-- Deck -->
+                                <div style="position: absolute; top: 0; width: 100%; height: 12px; background: linear-gradient(180deg, #d2a679 0%, #b8956a 100%); 
+                                           border: 1px solid #8b7355; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>
+                                <!-- Railings -->
+                                <div style="position: absolute; top: 12px; left: 0; right: 0; height: 25px; 
+                                           border-left: 2px solid #8b6f47; border-right: 2px solid #8b6f47; border-top: 2px solid #8b6f47;"></div>
+                            </div>
+
+                            <!-- Water Level Indicator Gauge -->
+                            <div style="position: absolute; right: 12px; top: 20px; z-index: 8;">
+                                <div style="width: 70px; height: 140px; border: 3px solid #ffb703; border-radius: 8px; position: relative; 
+                                           background: rgba(0, 0, 0, 0.4); box-shadow: inset 0 0 10px rgba(0,0,0,0.3);">
+                                    <!-- Water fill inside gauge -->
+                                    <div id="waterLevelFill" style="position: absolute; bottom: 0; width: 100%; background: linear-gradient(180deg, rgba(0, 200, 255, 0.8), rgba(0, 100, 200, 0.9)); 
+                                             height: 40%; transition: height 0.4s ease; border-radius: 5px;"></div>
+                                    <!-- Gauge label -->
+                                    <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #ffb703; 
+                                               font-weight: bold; white-space: nowrap; text-shadow: 0 0 3px rgba(0,0,0,0.8);">TIDE</div>
+                                    <!-- Tick marks -->
+                                    <div style="position: absolute; left: -8px; top: 0; width: 8px; height: 2px; background: #ffb703;"></div>
+                                    <div style="position: absolute; left: -8px; top: 50%; width: 8px; height: 2px; background: #ffb703;"></div>
+                                    <div style="position: absolute; left: -8px; bottom: 0; width: 8px; height: 2px; background: #ffb703;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Tide Status Indicator -->
+                            <div id="tideStatus" style="position: absolute; bottom: 50px; left: 12px; z-index: 8; 
+                                     background: rgba(0, 0, 0, 0.6); padding: 8px 12px; border-radius: 6px; 
+                                     border-left: 3px solid #00ff00; font-size: 11px; color: #fff; font-weight: bold;">
+                                <div id="tideStatusText" style="color: #00ff00;">STABLE ✓</div>
+                            </div>
+                        </div>
+
+                        <!-- Flood Risk Indicator -->
+                        <div id="floodRisk" style="padding: 12px; background: rgba(0, 20, 40, 0.8); border-top: 2px solid rgba(0, 150, 255, 0.3); 
+                                  font-size: 11px; text-align: center; color: #fff; font-weight: bold;">
+                            <span style="color: #00ff00;">✓ Safe Water Level</span>
+                        </div>
+                    </div>
+
+                    <!-- BOTTOM DASHBOARD: TELEMETRY & GRAPH -->
+                    <div class="bottom-panel">
+                        <!-- Telemetry Items -->
+                        <div class="telemetry-item">
+                            <div class="telemetry-label">Distance</div>
+                            <div class="telemetry-value" id="dashDistance">384,400</div>
+                            <div style="font-size: 8px; color: #0096ff;">km</div>
+                        </div>
+
+                        <div class="telemetry-item">
+                            <div class="telemetry-label">Gravity Strength</div>
+                            <div style="height: 8px; background: #333; margin-top: 4px; border-radius: 2px; overflow: hidden;">
+                                <div id="gravityBar" style="height: 100%; width: 60%; background: #00ff00; transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+
+                        <div class="telemetry-item">
+                            <div class="telemetry-label">High Tide</div>
+                            <div class="telemetry-value" id="highTideValue">1.8</div>
+                            <div style="font-size: 8px; color: #0096ff;">meters</div>
+                        </div>
+
+                        <div class="telemetry-item">
+                            <div class="telemetry-label">Low Tide</div>
+                            <div class="telemetry-value" id="lowTideValue">-1.8</div>
+                            <div style="font-size: 8px; color: #0096ff;">meters</div>
+                        </div>
+
+                        <div class="telemetry-item">
+                            <div class="telemetry-label">Stability</div>
+                            <div class="stability-ring" id="stabilityRing">
+                                <div class="stability-value" id="stabilityValue">✓</div>
+                            </div>
+                        </div>
+
+                        <div class="telemetry-item">
+                            <div class="telemetry-label">Status</div>
+                            <div style="font-size: 12px; color: #00ff00; margin-top: 8px; font-weight: bold;">BALANCED</div>
+                        </div>
+
+                        <!-- Graph -->
+                        <div class="live-graph-container">
+                            <div style="position: absolute; top: 5px; left: 8px; font-size: 10px; color: #0096ff; font-weight: bold;">Tide Height vs Time</div>
+                            <svg id="tideGraph" width="100%" height="100%" style="position: absolute; inset: 0;">
+                                <defs>
+                                    <linearGradient id="tideGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#00ff00;stop-opacity:0.3" />
+                                        <stop offset="100%" style="stop-color:#0096ff;stop-opacity:0" />
+                                    </linearGradient>
+                                </defs>
+                                <!-- Grid lines -->
+                                <line x1="10" y1="50%" x2="100%" y2="50%" stroke="#333" stroke-width="1" stroke-dasharray="5,5"/>
+                                <!-- Sine wave -->
+                                <polyline id="tideCurve" points="" fill="url(#tideGradient)" stroke="#00ff00" stroke-width="2" vector-effect="non-scaling-stroke"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 3: ECLIPSE FORMATION MISSION LAB -->
+            <div class="slide" id="slide3" style="padding: 0;">
+                <div style="display: grid; grid-template-columns: 280px 1fr; gap: 0; width: 100%; height: calc(100vh - 160px); background: #000; overflow: hidden;">
+                    <!-- LEFT PANEL: MISSION MODE -->
+                    <div style="background: rgba(10, 15, 25, 0.95); border-right: 1px solid rgba(0, 150, 255, 0.2); padding: 25px; display: flex; flex-direction: column; gap: 20px; z-index: 10;">
+                        <div style="font-size: 14px; font-weight: bold; color: #0096ff; text-transform: uppercase; border-bottom: 1px solid rgba(0, 150, 255, 0.2); padding-bottom: 10px; margin-bottom: 5px;">🚀 MISSION LAB</div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <button onclick="setEclipseMission('solar')" id="btnSolarMission" style="padding: 15px; background: rgba(0, 150, 255, 0.1); border: 1px solid rgba(0, 150, 255, 0.3); color: #fff; border-radius: 8px; cursor: pointer; text-align: left; transition: 0.3s; display: flex; align-items: center; gap: 12px;">
+                                <span style="font-size: 20px;">🌑</span>
+                                <div>
+                                    <div style="font-weight: bold; font-size: 13px;">Solar Eclipse</div>
+                                    <div style="font-size: 10px; color: #0096ff;">Moon blocks the Sun</div>
+                                </div>
+                            </button>
+                            
+                            <button onclick="setEclipseMission('lunar')" id="btnLunarMission" style="padding: 15px; background: rgba(0, 150, 255, 0.1); border: 1px solid rgba(0, 150, 255, 0.3); color: #fff; border-radius: 8px; cursor: pointer; text-align: left; transition: 0.3s; display: flex; align-items: center; gap: 12px;">
+                                <span style="font-size: 20px;">🌕</span>
+                                <div>
+                                    <div style="font-weight: bold; font-size: 13px;">Lunar Eclipse</div>
+                                    <div style="font-size: 10px; color: #0096ff;">Earth blocks the Sun</div>
+                                </div>
+                            </button>
+                            
+                            <button onclick="setEclipseMission('free')" id="btnFreeMission" style="padding: 15px; background: rgba(0, 150, 255, 0.1); border: 1px solid rgba(0, 150, 255, 0.3); color: #fff; border-radius: 8px; cursor: pointer; text-align: left; transition: 0.3s; display: flex; align-items: center; gap: 12px;" class="active-mission">
+                                <span style="font-size: 20px;">🌍</span>
+                                <div>
+                                    <div style="font-weight: bold; font-size: 13px;">Free Exploration</div>
+                                    <div style="font-size: 10px; color: #0096ff;">Arrange bodies freely</div>
+                                </div>
+                            </button>
+                        </div>
+
+                        <div id="missionInstructionBox" style="background: rgba(0, 150, 255, 0.05); border: 1px dashed rgba(0, 150, 255, 0.3); padding: 15px; border-radius: 8px; margin-top: 10px;">
+                            <div style="font-size: 11px; color: #ffb703; font-weight: bold; margin-bottom: 8px;">CURRENT OBJECTIVE:</div>
+                            <div id="missionText" style="font-size: 12px; color: #ccc; line-height: 1.5;">Select a mission to begin your training. Drag Earth and Moon to align them.</div>
+                        </div>
+
+                        <div style="margin-top: auto;">
+                            <div style="font-size: 11px; color: #0096ff; font-weight: bold; margin-bottom: 10px;">VISUALIZATION TOOLS</div>
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 12px; color: #ccc; margin-bottom: 8px;">
+                                <input type="checkbox" id="showShadowCones" checked onchange="toggleShadowCones()"> Show Shadow Cones
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 12px; color: #ccc;">
+                                <input type="checkbox" id="showLightRays" checked onchange="toggleLightRays()"> Show Light Rays
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- CENTER: 3D SPACE SIMULATION -->
+                    <div id="eclipseSimArea" style="position: relative; overflow: hidden; background: radial-gradient(circle at 10% 50%, #1a1a2e 0%, #000 100%);">
+                        <!-- Sun (Fixed) -->
+                        <div id="eclipseSun" style="position: absolute; left: -100px; top: 50%; transform: translateY(-50%); width: 250px; height: 250px; background: radial-gradient(circle, #fff 0%, #fff700 30%, #ff8c00 60%, transparent 80%); border-radius: 50%; box-shadow: 0 0 100px #ff8c00; z-index: 5;"></div>
+                        
+                        <!-- Light Rays -->
+                        <div id="lightRaysContainer" style="position: absolute; inset: 0; pointer-events: none; opacity: 0.3;"></div>
+
+                        <!-- Earth (Draggable) -->
+                        <div id="eclipseEarth" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 100px; height: 100px; cursor: move; z-index: 10;">
+                            <div style="width: 100%; height: 100%; border-radius: 50%; background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/1200px-The_Earth_seen_from_Apollo_17.jpg'); background-size: cover; box-shadow: inset 20px 0 30px rgba(0,0,0,0.8);"></div>
+                            <!-- Shadow Cone (Cast by Earth) -->
+                            <div id="earthShadow" class="shadow-cone-container" style="position: absolute; left: 50%; top: 50%; transform-origin: left center; pointer-events: none; display: none;">
+                                <div class="umbra" style="position: absolute; width: 600px; height: 100px; background: linear-gradient(to right, rgba(0,0,0,0.8) 0%, transparent 100%); clip-path: polygon(0 20%, 100% 45%, 100% 55%, 0 80%);"></div>
+                                <div class="penumbra" style="position: absolute; width: 600px; height: 100px; background: linear-gradient(to right, rgba(0,0,0,0.4) 0%, transparent 100%); clip-path: polygon(0 0%, 100% 40%, 100% 60%, 0 100%); opacity: 0.5;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Moon (Draggable) -->
+                        <div id="eclipseMoon" style="position: absolute; left: 70%; top: 50%; transform: translate(-50%, -50%); width: 30px; height: 30px; cursor: move; z-index: 15;">
+                            <div style="width: 100%; height: 100%; border-radius: 50%; background: #888; background: radial-gradient(circle at 30% 30%, #eee, #444); box-shadow: inset 5px 0 10px rgba(0,0,0,0.8);"></div>
+                            <!-- Shadow Cone (Cast by Moon) -->
+                            <div id="moonShadow" class="shadow-cone-container" style="position: absolute; left: 50%; top: 50%; transform-origin: left center; pointer-events: none; display: none;">
+                                <div class="umbra" style="position: absolute; width: 400px; height: 30px; background: linear-gradient(to right, rgba(0,0,0,0.9) 0%, transparent 100%); clip-path: polygon(0 30%, 100% 48%, 100% 52%, 0 70%);"></div>
+                                <div class="penumbra" style="position: absolute; width: 400px; height: 30px; background: linear-gradient(to right, rgba(0,0,0,0.4) 0%, transparent 100%); clip-path: polygon(0 0%, 100% 40%, 100% 60%, 0 100%); opacity: 0.5;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Earth Surface Preview -->
+                        <div style="position: absolute; bottom: 20px; right: 20px; width: 220px; height: 150px; background: rgba(0,0,0,0.8); border: 2px solid #0096ff; border-radius: 12px; overflow: hidden; z-index: 20;">
+                            <div style="background: rgba(0,150,255,0.2); font-size: 10px; padding: 5px 10px; color: #fff; font-weight: bold; border-bottom: 1px solid #0096ff;">VIEW FROM EARTH</div>
+                            <div id="earthViewWindow" style="width: 100%; height: 100%; position: relative; display: flex; align-items: center; justify-content: center; background: #000;">
+                                <!-- Sky inside preview -->
+                                <div id="previewSky" style="position: absolute; inset: 0; background: #87CEEB; transition: background 0.5s;"></div>
+                                <div id="previewSun" style="width: 60px; height: 60px; background: #fff700; border-radius: 50%; box-shadow: 0 0 20px #fff700;"></div>
+                                <div id="previewMoon" style="position: absolute; width: 62px; height: 62px; background: #000; border-radius: 50%; left: 150%; transition: left 0.1s;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Moon View Preview -->
+                        <div style="position: absolute; top: 20px; right: 20px; width: 180px; height: 120px; background: rgba(0,0,0,0.8); border: 2px solid #0096ff; border-radius: 12px; overflow: hidden; z-index: 20;">
+                            <div style="background: rgba(0,150,255,0.2); font-size: 10px; padding: 5px 10px; color: #fff; font-weight: bold; border-bottom: 1px solid #0096ff;">LUNAR VIEW</div>
+                            <div id="moonViewWindow" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #000;">
+                                <div id="moonPreview" style="width: 70px; height: 70px; background: #888; border-radius: 50%; transition: background 0.5s, box-shadow 0.5s;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 4: MOON PHASE MISSION CONTROL -->
+            <div class="slide" id="slide4" style="padding: 0;">
+                <div style="display: grid; grid-template-columns: 320px 1fr 320px; grid-template-rows: 1fr auto; gap: 15px; width: 100%; height: calc(100vh - 180px); max-width: 1600px; margin: 0 auto; padding: 20px;">
+                    
+                    <!-- LEFT PANEL: ORBIT CONTROL -->
+                    <div style="background: rgba(10, 15, 25, 0.9); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+                        <div style="font-size: 14px; font-weight: bold; color: #ffd700; text-transform: uppercase; border-bottom: 1px solid rgba(255, 215, 0, 0.2); padding-bottom: 8px;">🎛 Orbit Control</div>
+                        
+                        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 12px; color: #ccc; margin-bottom: 10px; font-weight: bold;">DRAG MOON AROUND EARTH</div>
+                                <canvas id="phaseOrbitCanvas" width="280" height="280" style="border: 1px solid rgba(255, 215, 0, 0.2); border-radius: 8px; background: radial-gradient(circle at center, #0a0f1a 0%, #000 100%);"></canvas>
+                            </div>
+                        </div>
+
+                        <div style="background: rgba(0, 0, 0, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(255, 215, 0, 0.2); text-align: center;">
+                            <div style="font-size: 11px; color: #ffd700; font-weight: bold; margin-bottom: 8px;">PHASE CHECKPOINTS</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 10px;">
+                                <div style="padding: 4px; background: rgba(255, 215, 0, 0.1); border-radius: 4px; color: #ccc;">🌑 New</div>
+                                <div style="padding: 4px; background: rgba(255, 215, 0, 0.1); border-radius: 4px; color: #ccc;">🌒 W.Cres</div>
+                                <div style="padding: 4px; background: rgba(255, 215, 0, 0.1); border-radius: 4px; color: #ccc;">🌓 Q1</div>
+                                <div style="padding: 4px; background: rgba(255, 215, 0, 0.1); border-radius: 4px; color: #ccc;">🌔 W.Gib</div>
+                                <div style="padding: 4px; background: rgba(255, 215, 0, 0.1); border-radius: 4px; color: #ccc;">🌕 Full</div>
+                                <div style="padding: 4px; background: rgba(255, 215, 0, 0.1); border-radius: 4px; color: #ccc;">🌖 Ng.Gib</div>
+                                <div style="padding: 4px; background: rgba(255, 215, 0, 0.1); border-radius: 4px; color: #ccc;">🌗 Q3</div>
+                                <div style="padding: 4px; background: rgba(255, 215, 0, 0.1); border-radius: 4px; color: #ccc;">🌘 N.Cres</div>
+                            </div>
+                        </div>
+
+                        <button class="btn-action" style="background: #ffd700; color: #000; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px;" onclick="resetPhaseSlide()">🔄 Reset</button>
+                    </div>
+
+                    <!-- CENTER: 3D ORBIT VISUALIZATION -->
+                    <div style="background: rgba(10, 15, 25, 0.9); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px; grid-column: 2; grid-row: 1;">
+                        <div style="font-size: 14px; font-weight: bold; color: #ffd700; text-transform: uppercase; border-bottom: 1px solid rgba(255, 215, 0, 0.2); padding-bottom: 8px;">🌌 3D Orbit Simulation</div>
+                        
+                        <canvas id="phase3DCanvas" width="800" height="400" style="border: 1px solid rgba(255, 215, 0, 0.2); border-radius: 8px; background: radial-gradient(ellipse at center, #0a0f1a 0%, #000 100%); flex: 1;"></canvas>
+
+                        <div style="background: rgba(0, 0, 0, 0.6); padding: 12px; border-radius: 8px; border-left: 3px solid #ffd700;">
+                            <div id="phase3DNarration" style="font-size: 13px; color: #fff; line-height: 1.5;">
+                                <span style="color: #ffd700; font-weight: bold;">💡 Info: </span>
+                                <span id="phaseNarrationText">Drag the Moon around Earth. Observe how its illuminated portion changes as it orbits.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT PANEL: PHASE INFORMATION -->
+                    <div style="background: rgba(10, 15, 25, 0.9); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+                        <div style="font-size: 14px; font-weight: bold; color: #ffd700; text-transform: uppercase; border-bottom: 1px solid rgba(255, 215, 0, 0.2); padding-bottom: 8px;">📊 Phase Data</div>
+                        
+                        <div style="background: rgba(0, 0, 0, 0.6); padding: 12px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 11px; color: #ccc; margin-bottom: 8px;">CURRENT PHASE</div>
+                            <div id="currentPhaseName" style="font-size: 24px; color: #ffd700; font-weight: bold; margin-bottom: 8px;">New Moon</div>
+                            <div id="currentPhaseEmoji" style="font-size: 48px; margin-bottom: 8px;">🌑</div>
+                        </div>
+
+                        <div style="background: rgba(0, 0, 0, 0.6); padding: 12px; border-radius: 8px;">
+                            <div style="font-size: 11px; color: #ffd700; font-weight: bold; margin-bottom: 8px;">ILLUMINATION %</div>
+                            <div style="height: 8px; background: #333; border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
+                                <div id="illuminationBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #ffd700, #ffed4e); transition: width 0.3s;"></div>
+                            </div>
+                            <div id="illuminationPercent" style="font-size: 20px; color: #fff; text-align: center; font-weight: bold;">0%</div>
+                        </div>
+
+                        <div style="background: rgba(0, 0, 0, 0.6); padding: 12px; border-radius: 8px; font-size: 11px; line-height: 1.6; color: #ccc;">
+                            <div style="color: #ffd700; font-weight: bold; margin-bottom: 6px;">📍 Position</div>
+                            <div id="phasePosition">Between Sun and Earth</div>
+                        </div>
+
+                        <div style="background: rgba(0, 0, 0, 0.6); padding: 12px; border-radius: 8px; font-size: 11px; line-height: 1.6; color: #ccc;">
+                            <div style="color: #ffd700; font-weight: bold; margin-bottom: 6px;">⏰ Cycle Progress</div>
+                            <div id="cycleDays">Day 0 of 29.5</div>
+                        </div>
+
+                        <div style="background: rgba(0, 0, 0, 0.6); padding: 12px; border-radius: 8px; font-size: 11px; line-height: 1.6; color: #ccc;">
+                            <div style="color: #ffd700; font-weight: bold; margin-bottom: 6px;">🌙 Visibility</div>
+                            <div id="phaseVisibility">Not visible in night sky</div>
+                        </div>
+                    </div>
+
+                    <!-- GAME MODES / BOTTOM SECTION -->
+                    <div style="grid-column: 1 / -1; background: rgba(10, 15, 25, 0.9); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 12px; padding: 15px;">
+                        <div style="font-size: 14px; font-weight: bold; color: #ffd700; text-transform: uppercase; margin-bottom: 12px; border-bottom: 1px solid rgba(255, 215, 0, 0.2); padding-bottom: 8px;">🎮 Phase Challenge Mode</div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px;">
+                            <button onclick="startPhaseChallenge(1)" style="padding: 12px; background: rgba(255, 215, 0, 0.1); border: 1px solid #ffd700; color: #ffd700; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s;" class="challenge-btn">🔬 Round 1: Find the Phase</button>
+                            <button onclick="startPhaseChallenge(2)" style="padding: 12px; background: rgba(255, 215, 0, 0.1); border: 1px solid #ffd700; color: #ffd700; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s;" class="challenge-btn">🔬 Round 2: Match Illumination</button>
+                            <button onclick="startPhaseChallenge(3)" style="padding: 12px; background: rgba(255, 215, 0, 0.1); border: 1px solid #ffd700; color: #ffd700; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s;" class="challenge-btn">🔬 Round 3: Full Cycle</button>
+                        </div>
+
+                        <div id="challengeArea" style="display: none; background: rgba(0, 0, 0, 0.6); padding: 12px; border-radius: 8px; border-left: 3px solid #ff6b2b;">
+                            <div id="challengeText" style="color: #fff; margin-bottom: 10px; font-size: 14px;"></div>
+                            <div id="challengeStatus" style="color: #ffd700; font-weight: bold; font-size: 12px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 5: MOON BUILDER: LUNAR SCIENCE MISSION -->
+            <div class="slide" id="slide5" style="padding: 0;">
+                <div style="display: grid; grid-template-columns: 300px 1fr 300px; gap: 15px; width: 100%; height: calc(100vh - 160px); max-width: 1600px; margin: 0 auto; padding: 20px;">
+                    <!-- LEFT PANEL: MATERIAL BANK -->
+                    <div style="background: rgba(10, 15, 25, 0.9); border: 1px solid rgba(0, 255, 150, 0.3); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+                        <div style="font-size: 14px; font-weight: bold; color: #00ff96; text-transform: uppercase; border-bottom: 1px solid rgba(0, 255, 150, 0.2); padding-bottom: 8px;">🧪 MATERIAL BANK</div>
+                        
+                        <div id="elementProgressContainer" style="display: none; text-align: center; margin-bottom: 10px;">
+                            <div class="progress-ring">
+                                <svg width="120" height="120">
+                                    <circle class="progress-ring__background" stroke-width="8" fill="transparent" r="52" cx="60" cy="60"/>
+                                    <circle id="elementProgressCircle" class="progress-ring__circle" stroke-width="8" stroke-dasharray="326.72" stroke-dashoffset="326.72" fill="transparent" r="52" cx="60" cy="60"/>
+                                </svg>
+                                <div id="elementPercentText" class="progress-value">0%</div>
+                            </div>
+                            <div id="currentElementName" style="font-weight: bold; color: #00ff96; margin-top: 10px; font-size: 18px;">---</div>
+                        </div>
+
+                        <div id="materialList" style="display: flex; flex-direction: column; gap: 10px;">
+                            <!-- Phase 1 Content -->
+                            <div id="phase1Materials">
+                                <div style="font-size: 11px; color: #777; margin-bottom: 8px;">STRUCTURAL LAYERS</div>
+                                <div style="display: flex; flex-direction: column; gap: 8px;">
+                                    <div id="bankCore" class="draggable-material" onmousedown="onManualDragStart(event, 'core')" style="padding: 12px; background: rgba(255, 215, 0, 0.2); border: 1px solid #ffd700; border-radius: 6px; cursor: grab; text-align: center; font-weight: bold; color: #ffd700;">CORE (15%)</div>
+                                    <div id="bankMantle" class="draggable-material" onmousedown="onManualDragStart(event, 'mantle')" style="padding: 12px; background: rgba(255, 69, 0, 0.2); border: 1px solid #ff4500; border-radius: 6px; cursor: grab; text-align: center; font-weight: bold; color: #ff4500;">MANTLE (80%)</div>
+                                    <div id="bankCrust" class="draggable-material" onmousedown="onManualDragStart(event, 'crust')" style="padding: 12px; background: rgba(0, 150, 255, 0.2); border: 1px solid #0096ff; border-radius: 6px; cursor: grab; text-align: center; font-weight: bold; color: #0096ff;">CRUST (5%)</div>
+                                </div>
+                            </div>
+
+                            <!-- Phase 2 Content (Dynamic) -->
+                            <div id="currentElementBox" style="display: none;">
+                                <div id="activeElementCard" class="draggable-material" onmousedown="onManualDragStart(event, 'element')" style="background: rgba(0, 255, 150, 0.15); padding: 20px; border-radius: 10px; border: 2px solid #00ff96; cursor: grab; text-align: center; box-shadow: 0 0 15px rgba(0, 255, 150, 0.2);">
+                                    <div style="font-size: 10px; color: #00ff96; margin-bottom: 5px; text-transform: uppercase;">Drag this Element</div>
+                                    <div id="activeElementName" style="font-size: 24px; font-weight: bold; color: #fff; margin-bottom: 5px;">Oxygen</div>
+                                    <div id="activeElementPercent" style="font-size: 14px; color: #00ff96; font-weight: bold;">43%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="builderInstruction" style="margin-top: auto; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border-left: 3px solid #00ff96; font-size: 12px; color: #ccc; min-height: 80px;">
+                            MISSION: Build the Moon layers. Start with the Core.
+                        </div>
+                    </div>
+
+                    <!-- CENTER: 3D HOLOGRAPHIC MOON -->
+                    <div style="background: rgba(10, 15, 25, 0.9); border: 1px solid rgba(0, 255, 150, 0.3); border-radius: 12px; position: relative; display: flex; flex-direction: column; overflow: hidden;">
+                        <div style="padding: 15px; font-size: 14px; font-weight: bold; color: #00ff96; text-transform: uppercase; display: flex; justify-content: space-between;">
+                            <span>🌑 HOLOGRAPHIC MISSION LAB</span>
+                            <span id="gamePhaseIndicator">PHASE 1: LAYERS</span>
+                        </div>
+                        
+                        <div id="moonBuilderCanvas" style="flex: 1; position: relative; display: flex; align-items: center; justify-content: center;">
+                            <!-- Interior View Layered circles -->
+                            <div id="interiorView" style="position: relative; width: 400px; height: 400px; display: flex; align-items: center; justify-content: center;">
+                                <div id="layerCrust" style="position: absolute; width: 400px; height: 400px; border-radius: 50%; border: 2px dashed #00ff96; display: flex; align-items: center; justify-content: center; transition: 0.5s;">
+                                    <div id="layerMantle" style="position: absolute; width: 340px; height: 340px; border-radius: 50%; border: 2px dashed rgba(0, 255, 150, 0.5); display: flex; align-items: center; justify-content: center; transition: 0.5s;">
+                                        <div id="layerCore" style="position: absolute; width: 60px; height: 60px; border-radius: 50%; border: 2px dashed rgba(0, 255, 150, 0.5); transition: 0.5s;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Surface View (Phase 3) -->
+                            <div id="surfaceView" style="display: none; width: 450px; height: 450px; background: url('https://upload.wikimedia.org/wikipedia/commons/e/e1/FullMoon2010.jpg'); background-size: cover; border-radius: 50%; position: relative; box-shadow: inset -40px 0 60px rgba(0,0,0,0.8);">
+                                <div id="spotMaria" onclick="checkSurface('maria')" style="position: absolute; top: 30%; left: 40%; width: 60px; height: 40px; border: 2px solid transparent; border-radius: 50%; cursor: pointer;">
+                                    <div id="mariaMicro" class="micro-texture" style="top: -130px; left: -30px; background-image: url('https://upload.wikimedia.org/wikipedia/commons/e/e4/Moon_maria_basalt.jpg');"></div>
+                                </div>
+                                <div id="spotHighlands" onclick="checkSurface('highlands')" style="position: absolute; top: 60%; left: 60%; width: 60px; height: 60px; border: 2px solid transparent; border-radius: 50%; cursor: pointer;">
+                                    <div id="highlandsMicro" class="micro-texture" style="top: -130px; left: -30px; background-image: url('https://upload.wikimedia.org/wikipedia/commons/4/4c/Anorthosite_from_the_Moon.jpg');"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Simulation Overlay (Phase 4) -->
+                            <div id="simOverlay" class="simulation-overlay">
+                                <div style="font-size: 24px; color: #00ff96; font-weight: bold; margin-bottom: 10px;">VALIDATING PHYSICS...</div>
+                                <div id="simStatus" style="font-size: 14px; color: #fff;">Calculating Structural Integrity</div>
+                                <div class="sim-bar-container"><div id="simBar" class="sim-bar-fill"></div></div>
+                            </div>
+                        </div>
+
+                        <div style="background: rgba(0, 20, 40, 0.8); padding: 15px; border-top: 1px solid rgba(0, 255, 150, 0.2); display: flex; justify-content: space-around;">
+                            <div style="text-align: center;"><div style="font-size: 10px; color: #00ff96;">STABILITY</div><div id="meterStability" style="font-size: 18px; font-family: monospace;">---</div></div>
+                            <div style="text-align: center;"><div style="font-size: 10px; color: #00ff96;">DENSITY</div><div id="meterDensity" style="font-size: 18px; font-family: monospace;">---</div></div>
+                            <div style="text-align: center;"><div style="font-size: 10px; color: #00ff96;">MASS</div><div id="meterMass" style="font-size: 18px; font-family: monospace;">---</div></div>
+                            <div style="text-align: center;"><div style="font-size: 10px; color: #00ff96;">PRESSURE</div><div id="meterPressure" style="font-size: 18px; font-family: monospace;">---</div></div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT PANEL: TELEMETRY -->
+                    <div style="background: rgba(10, 15, 25, 0.9); border: 1px solid rgba(0, 255, 150, 0.3); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+                        <div style="font-size: 14px; font-weight: bold; color: #00ff96; text-transform: uppercase; border-bottom: 1px solid rgba(0, 255, 150, 0.2); padding-bottom: 8px;">📊 MISSION DATA</div>
+                        
+                        <div id="elementChecklist" style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="font-size: 11px; color: #777;">CHEMICAL DISTRIBUTION</div>
+                            <div id="check-core" style="font-size: 12px; color: #555;">[ ] Core Elements</div>
+                            <div id="check-mantle" style="font-size: 12px; color: #555;">[ ] Mantle Elements</div>
+                            <div id="check-crust" style="font-size: 12px; color: #555;">[ ] Crust Elements</div>
+                        </div>
+
+                        <div id="surfaceChecklist" style="display: none; flex-direction: column; gap: 8px;">
+                            <div style="font-size: 11px; color: #777;">SURFACE SAMPLES</div>
+                            <div id="check-maria" style="font-size: 12px; color: #555;">[ ] Basalt (Maria)</div>
+                            <div id="check-highlands" style="font-size: 12px; color: #555;">[ ] Anorthosite (Highlands)</div>
+                        </div>
+
+                        <div id="simulationResult" style="margin-top: auto; text-align: center; display: none;">
+                            <div id="badgeStatus" style="font-size: 40px; margin-bottom: 10px;">🏆</div>
+                            <div style="font-weight: bold; color: #00ff96; margin-bottom: 5px;">MISSION SUCCESS!</div>
+                            <div style="font-size: 11px; color: #ccc;">Lunar Structure Validated</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 6: EARTH WITHOUT THE MOON – PLANET STABILITY SIMULATOR -->
+            <div class="slide" id="slide6" style="padding: 0;">
+                <div class="stability-simulator">
+                    <!-- LEFT PANEL: CONTROLS & CHALLENGES -->
+                    <div class="simulator-panel">
+                        <div class="panel-header">🎛 CONTROL CENTER</div>
+                        <button class="btn-control" id="toggleMoonBtn" onclick="toggleMoon()">🔘 Remove Moon</button>
+                        
+                        <div id="simChallenge1" style="display: none; margin-top: 10px;">
+                            <div class="meter-label" style="color: #ffb703;">❓ WHAT HAPPENS TO MARINE LIFE?</div>
+                            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                                <button class="decision-btn" onclick="checkSimAnswer(this, true)">🔘 Marine life decreases</button>
+                                <button class="decision-btn" onclick="checkSimAnswer(this, false)">🔘 No effect</button>
+                            </div>
+                        </div>
+
+                        <div id="simChallenge2" style="display: none; margin-top: 10px;">
+                            <div class="meter-label" style="color: #ffb703;">❓ AXIAL INSTABILITY DETECTED</div>
+                            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                                <button class="decision-btn" onclick="stabilizeEarth(true)">🔘 Stabilize Earth artificially</button>
+                                <button class="decision-btn" onclick="stabilizeEarth(false)">🔘 Leave natural</button>
+                            </div>
+                        </div>
+
+                        <div id="simFinalChallenge" style="display: none; margin-top: 10px;">
+                            <div class="meter-label" style="color: #ffb703;">🎯 FINAL CHALLENGE: CAN LIFE REMAIN STABLE?</div>
+                            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                                <button class="decision-btn" onclick="checkFinalSim(this, 'no')">🔘 Yes</button>
+                                <button class="decision-btn" onclick="checkFinalSim(this, 'no')">🔘 No</button>
+                                <button class="decision-btn" onclick="checkFinalSim(this, 'microbial')">🔘 Only microbial life</button>
+                            </div>
+                        </div>
+
+                        <div id="simMessage" style="margin-top: auto; font-size: 12px; color: #ccc; font-style: italic; line-height: 1.4; background: rgba(0, 150, 255, 0.1); padding: 10px; border-radius: 6px;">
+                            "Earth's Moon plays a critical role in stabilizing our planet. Let us explore what happens if it disappears."
+                        </div>
+                    </div>
+
+                    <!-- CENTER: 3D SIMULATION -->
+                    <div class="simulator-display">
+                        <div class="earth-3d-container" id="earthSimContainer">
+                            <div class="earth-3d" id="earth3d"></div>
+                            <div class="axis-indicator" id="axisIndicator">
+                                <div class="axis-label-sim" id="axisLabel">23.5°</div>
+                            </div>
+                        </div>
+                        <div class="moon-orbit-sim" id="moonOrbitSim">
+                            <div class="moon-sim-object" id="moonSimObject"></div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT PANEL: PLANET DATA MONITOR -->
+                    <div class="simulator-panel">
+                        <div class="panel-header">📊 PLANET DATA MONITOR</div>
+                        
+                        <div class="meter-card">
+                            <div class="meter-label">Tide Strength</div>
+                            <div class="meter-value" id="simTideValue">100%</div>
+                            <div class="meter-bar"><div class="meter-fill" id="simTideFill" style="width: 100%;"></div></div>
+                        </div>
+
+                        <div class="meter-card">
+                            <div class="meter-label">Axial Tilt Stability</div>
+                            <div class="meter-value" id="simTiltValue">STABLE</div>
+                            <div class="meter-bar"><div class="meter-fill" id="simTiltFill" style="width: 100%;"></div></div>
+                        </div>
+
+                        <div class="meter-card">
+                            <div class="meter-label">Day Length</div>
+                            <div class="meter-value" id="simDayValue">24 Hours</div>
+                            <div class="meter-bar"><div class="meter-fill" id="simDayFill" style="width: 100%;"></div></div>
+                        </div>
+
+                        <div class="meter-card">
+                            <div class="meter-label">Climate Stability</div>
+                            <div class="meter-value" id="simClimateValue">100%</div>
+                            <div class="meter-bar"><div class="meter-fill" id="simClimateFill" style="width: 100%;"></div></div>
+                        </div>
+
+                        <div class="meter-card">
+                            <div class="meter-label">Life Sustainability</div>
+                            <div class="meter-value" id="simLifeValue">OPTIMAL</div>
+                            <div class="meter-bar"><div class="meter-fill" id="simLifeFill" style="width: 100%; background: #00ff00;"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        <div class="controls">
+            <button class="btn-nav btn-reset" onclick="resetExplorer()">Reset</button>
+            <button class="btn-nav btn-prev" id="prevBtn" onclick="changeSlide(-1)" disabled>Previous</button>
+            <button class="btn-nav btn-next" id="nextBtn" onclick="changeSlide(1)">NEXT</button>
+        </div>
+        <div id="dragProxy" style="position: fixed; pointer-events: none; z-index: 1000; display: none; padding: 10px 20px; background: rgba(0, 255, 150, 0.3); border: 2px solid #00ff96; border-radius: 8px; color: #fff; font-weight: bold; transform: translate(-50%, -50%); backdrop-filter: blur(5px); transition: none;"></div>
+    </div>
+
+    <script>
+        // Simulation State
+        let moonLocked = false;
+        let isDragging = false;
+        let currentDistKm = 0;
+        
+        // Physics Constants
+        const G = 6.67430e-11;
+        const M_earth = 5.972e24;
+        const M_moon = 7.342e22;
+        const SCALE_KM_TO_PX = 0.0008; // Visual scaling
+
+        // DOM Elements
+        const moonDrag = document.getElementById('moonDrag');
+        const orbitLab = document.getElementById('orbitLab');
+        const orbitGuide = document.getElementById('orbitGuide');
+        const distLine = document.getElementById('distLine');
+        const distTag = document.getElementById('distTag');
+        const liveDist = document.getElementById('liveDist');
+        const liveVel = document.getElementById('liveVel');
+        const gravityFill = document.getElementById('gravityFill');
+        const tideIndex = document.getElementById('tideIndex');
+        const popup = document.getElementById('learningPopup');
+
+        const synth = window.speechSynthesis;
+        const spokenMessages = new Set();
+
+        function speakOnce(text, id) {
+            if (spokenMessages.has(id)) return;
+            if (synth.speaking) synth.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.95;
+            utterance.pitch = 0.9;
+            synth.speak(utterance);
+            spokenMessages.add(id);
+        }
+
+        // Dragging Logic
+        moonDrag.onmousedown = (e) => {
+            if (moonLocked) return;
+            isDragging = true;
+            distLine.style.display = 'block';
+            distTag.style.display = 'block';
+            document.body.style.cursor = 'grabbing';
+            moonDrag.style.transition = "none";
+        };
+
+        window.onmouseup = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            document.body.style.cursor = 'default';
+            
+            // Check for snap
+            if (currentDistKm >= 370000 && currentDistKm <= 400000) {
+                lockMoon();
+            }
+        };
+
+        window.onmousemove = (e) => {
+            if (!isDragging || moonLocked) return;
+
+            const rect = orbitLab.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const dx = mouseX - centerX;
+            const dy = mouseY - centerY;
+            const distPx = Math.sqrt(dx*dx + dy*dy);
+            
+            // Limit distance visually
+            if (distPx < 80 || distPx > 500) return;
+
+            currentDistKm = Math.round(distPx / SCALE_KM_TO_PX);
+            
+            // Update Position
+            moonDrag.style.left = (mouseX - 22) + 'px';
+            moonDrag.style.top = (mouseY - 22) + 'px';
+
+            // Update Line and Arrow
+            const angle = Math.atan2(dy, dx);
+            distLine.style.display = 'block';
+            distLine.style.left = centerX + 'px';
+            distLine.style.top = centerY + 'px';
+            distLine.style.width = distPx + 'px';
+            distLine.style.transform = `rotate(${angle}rad)`;
+
+            // Update Tag
+            distTag.style.left = mouseX + 'px';
+            distTag.style.top = (mouseY - 40) + 'px';
+            
+            // Auto-correct display text in snap range
+            if (currentDistKm >= 370000 && currentDistKm <= 400000) {
+                distTag.innerHTML = "384,400 km";
+                updateTelemetry(384400);
+            } else {
+                distTag.innerHTML = currentDistKm.toLocaleString() + " km";
+                updateTelemetry(currentDistKm);
+            }
+
+            checkDistanceStatus(currentDistKm);
+        };
+
+        function updateTelemetry(distKm) {
+            liveDist.innerText = distKm.toLocaleString() + " km";
+            
+            // Velocity calculation (v = sqrt(GM/r))
+            const r = distKm * 1000;
+            const vel = Math.sqrt((G * M_earth) / r) / 1000;
+            liveVel.innerText = vel.toFixed(3) + " km/s";
+
+            // Gravity fill
+            const gravPercent = Math.min(100, (1 / (distKm * distKm)) * 2e11);
+            gravityFill.style.width = gravPercent + "%";
+
+            // Tide index
+            const tide = (1 / Math.pow(distKm, 3)) * 5e16;
+            tideIndex.innerText = tide.toFixed(1);
+        }
+
+        function checkDistanceStatus(dist) {
+            if (dist < 250000) {
+                orbitGuide.className = 'orbit-guide-ring error';
+                distTag.style.color = '#ff4b2b';
+                speakOnce("Distance too short. Gravitational force would cause extreme tidal effects.", "too_close");
+            } else if (dist > 450000) {
+                orbitGuide.className = 'orbit-guide-ring';
+                distTag.style.color = '#fff';
+                speakOnce("Distance too great. The Moon's gravitational influence decreases.", "too_far");
+            } else if (dist >= 370000 && dist <= 400000) {
+                orbitGuide.className = 'orbit-guide-ring active';
+                distTag.style.color = '#00f2fe';
+                speakOnce("Optimal orbital range detected. Calibrating to exact average distance.", "optimal");
+            } else {
+                orbitGuide.className = 'orbit-guide-ring';
+                distTag.style.color = '#fff';
+            }
+        }
+
+        function lockMoon() {
+            moonLocked = true;
+            isDragging = false;
+            
+            const targetDistPx = 384400 * SCALE_KM_TO_PX;
+            const rect = orbitLab.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+
+            // Snap to right side for start
+            const targetX = centerX + targetDistPx;
+            const targetY = centerY;
+
+            // Animation
+            moonDrag.style.transition = "all 1s ease-out";
+            moonDrag.style.left = (targetX - 22) + 'px';
+            moonDrag.style.top = (targetY - 22) + 'px';
+
+            distLine.style.transition = "all 1s ease-out";
+            distLine.style.width = targetDistPx + 'px';
+            distLine.style.transform = `rotate(0rad)`;
+            distLine.style.left = centerX + 'px';
+            distLine.style.top = centerY + 'px';
+
+            distTag.style.transition = "all 1s ease-out";
+            distTag.style.left = targetX + 'px';
+            distTag.style.top = (targetY - 40) + 'px';
+            distTag.innerHTML = "384,400 km – Average Earth–Moon Distance";
+            distTag.style.color = '#00f2fe';
+
+            orbitGuide.style.width = (targetDistPx * 2) + 'px';
+            orbitGuide.style.height = (targetDistPx * 2) + 'px';
+            orbitGuide.className = 'orbit-guide-ring active';
+            orbitGuide.style.left = (centerX - targetDistPx) + 'px';
+            orbitGuide.style.top = (centerY - targetDistPx) + 'px';
+            orbitGuide.classList.add('locked');
+
+            setTimeout(() => {
+                moonDrag.style.transition = "none";
+                
+                // Start Revolution
+                moonDrag.style.transformOrigin = `-${targetDistPx}px 22.5px`;
+                moonDrag.style.marginLeft = targetDistPx + "px";
+                moonDrag.style.left = "50%";
+                moonDrag.style.top = "50%";
+                moonDrag.style.marginTop = "-22.5px";
+                moonDrag.style.animation = "orbitMoon 27.3s linear infinite";
+
+                // Revolve Arrow and Tag with Moon
+                distLine.style.transition = "none";
+                distLine.style.transformOrigin = "0 50%";
+                distLine.style.animation = "orbitMoon 27.3s linear infinite";
+
+                distTag.style.transition = "none";
+                distTag.style.transformOrigin = `-${targetDistPx}px 40px`;
+                distTag.style.animation = "orbitMoon 27.3s linear infinite";
+                
+                speakOnce("Excellent. The Moon is now positioned at its correct average distance from Earth and will orbit once every twenty-seven days.", "locked_voice");
+                popup.style.display = 'block';
+                updateTelemetry(384400);
+            }, 1000);
+        }
+
+        window.onload = () => {
+            speakOnce("Welcome to the Earth–Moon Orbit Calibration Lab. Drag the Moon into its correct orbital position around Earth.", "intro");
+            createStars();
+            
+            // Initial moon position
+            moonDrag.style.left = "80%";
+            moonDrag.style.top = "20%";
+        };
+
+        function createStars() {
+            const container = document.getElementById('stars');
+            for (let i = 0; i < 200; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.width = star.style.height = Math.random() * 2 + 'px';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                container.appendChild(star);
+            }
+        }
+
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes orbitMoon {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+            @keyframes rotateEarth {
+                from { background-position: 0 0; }
+                to { background-position: 240px 0; }
+            }
+            .micro-texture {
+                position: absolute;
+                width: 120px;
+                height: 120px;
+                background-size: cover;
+                border: 2px solid #00ff96;
+                border-radius: 8px;
+                display: none;
+                z-index: 100;
+                box-shadow: 0 0 15px rgba(0,255,150,0.5);
+                pointer-events: none;
+            }
+            .simulation-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.8);
+                display: none;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                z-index: 200;
+            }
+            .sim-bar-container {
+                width: 300px;
+                height: 20px;
+                background: #222;
+                border: 1px solid #00ff96;
+                border-radius: 10px;
+                overflow: hidden;
+                margin-top: 20px;
+            }
+            .sim-bar-fill {
+                width: 0%;
+                height: 100%;
+                background: #00ff96;
+                transition: width 0.1s;
+            }
+            .draggable-material:hover {
+                background: rgba(0, 255, 150, 0.1) !important;
+                border-color: #00ff96 !important;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 10px rgba(0, 255, 150, 0.2);
+            }
+            .draggable-material {
+                transition: all 0.2s ease;
+                user-select: none;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // ===== SLIDE NAVIGATION =====
+        let currentSlide = 1;
+        const totalSlides = 6;
+
+        function changeSlide(direction) {
+            const newSlide = currentSlide + direction;
+            if (newSlide < 1 || newSlide > totalSlides) return;
+
+            document.getElementById(`slide${currentSlide}`).classList.remove('active');
+            currentSlide = newSlide;
+            document.getElementById(`slide${currentSlide}`).classList.add('active');
+
+            document.getElementById('prevBtn').disabled = currentSlide === 1;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides;
+
+            if (currentSlide === 2) {
+                initSlide2();
+            } else if (currentSlide === 3) {
+                initSlide3();
+            } else if (currentSlide === 4) {
+                initSlide4();
+            } else if (currentSlide === 5) {
+                initSlide5();
+            } else if (currentSlide === 6) {
+                initSlide6();
+            }
+        }
+
+        function resetExplorer() {
+            currentSlide = 1;
+            document.getElementById('slide2').classList.remove('active');
+            document.getElementById('slide3').classList.remove('active');
+            document.getElementById('slide4').classList.remove('active');
+            document.getElementById('slide5').classList.remove('active');
+            document.getElementById('slide6').classList.remove('active');
+            document.getElementById('slide1').classList.add('active');
+            document.getElementById('prevBtn').disabled = true;
+            document.getElementById('nextBtn').disabled = false;
+        }
+
+        // ===== SLIDE 2: TIDAL FORCE LAB =====
+        let tideHistory = [];
+        const synth2 = window.speechSynthesis;
+        const spokenSlide2 = new Set();
+
+        function speakOnceSlide2(text, id) {
+            if (spokenSlide2.has(id)) return;
+            if (synth2.speaking) synth2.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.95;
+            utterance.pitch = 0.9;
+            synth2.speak(utterance);
+            spokenSlide2.add(id);
+        }
+
+        function initSlide2() {
+            speakOnceSlide2("Welcome to the Moon Distance and Tidal Force Lab. Adjust the Moon's distance and observe how Earth's tides respond.", "slide2_intro");
+            updateMoonDistance(384400);
+            generateTideGraph();
+            generateWavePaths();
+        }
+
+        function generateWavePaths() {
+            const svg = document.querySelector('svg');
+            if (!svg) return;
+
+            const width = svg.getAttribute('width');
+            const height = svg.getAttribute('height');
+
+            function generatePath(amplitude, phase) {
+                let pathStr = `M 0,${100 - amplitude}`;
+                for (let i = 0; i < 350; i += 50) {
+                    pathStr += ` Q ${i + 25},${100 - amplitude - 20} ${i + 50},${100 - amplitude}`;
+                }
+                pathStr += ` L 350,180 L 0,180 Z`;
+                return pathStr;
+            }
+
+            const wave1 = document.getElementById('wave1');
+            const wave2 = document.getElementById('wave2');
+
+            if (wave1) wave1.setAttribute('d', generatePath(15, 0));
+            if (wave2) wave2.setAttribute('d', generatePath(10, 1));
+        }
+
+        function updateMoonDistance(distKm) {
+            distKm = parseInt(distKm);
+            const slider = document.getElementById('distanceSlider');
+            slider.value = distKm;
+            document.getElementById('sliderValue').textContent = distKm.toLocaleString() + ' km';
+            document.getElementById('dashDistance').textContent = distKm.toLocaleString();
+
+            // Orbital parameters
+            const minDist = 300000;
+            const maxDist = 450000;
+            const minOrbitRadius = 50; // pixels from Earth center
+            const maxOrbitRadius = 200; // pixels from Earth center
+            const containerSize = 500; // 500px container
+
+            // Calculate orbital radius in pixels based on distance
+            const orbitRadiusPx = minOrbitRadius + ((distKm - minDist) / (maxDist - minDist)) * (maxOrbitRadius - minOrbitRadius);
+
+            // Position moon on right side of orbit (horizontal position)
+            const centerX = containerSize / 2; // 250
+            const centerY = containerSize / 2; // 250
+            const moonX = centerX + orbitRadiusPx;
+            const moonY = centerY;
+
+            // Update moon position
+            document.getElementById('moonDisplay').style.left = (moonX - 14) + 'px'; // -14 to center the 28px moon
+            document.getElementById('moonDisplay').style.top = (moonY - 14) + 'px';
+            document.getElementById('moonDisplay').style.right = 'auto';
+
+            // Update orbit circle size
+            const orbitDiameter = orbitRadiusPx * 2;
+            document.getElementById('orbitPath').style.width = orbitDiameter + 'px';
+            document.getElementById('orbitPath').style.height = orbitDiameter + 'px';
+            document.getElementById('orbitPath').style.left = (centerX - orbitRadiusPx) + 'px';
+            document.getElementById('orbitPath').style.top = (centerY - orbitRadiusPx) + 'px';
+
+            // Update distance arrow line (from Earth center to Moon)
+            const distanceLine = document.getElementById('distanceLine');
+            distanceLine.setAttribute('x2', moonX);
+            distanceLine.setAttribute('y2', moonY);
+
+            // Update distance label
+            document.getElementById('distanceLabel').textContent = distKm.toLocaleString() + ' km';
+
+            // Calculate tidal height based on distance (inverse cube law)
+            const normalDist = 384400;
+            const tideStrength = Math.pow(normalDist / distKm, 3);
+            const maxTideHeight = 2.4;
+            const highTide = maxTideHeight * tideStrength;
+            const lowTide = -highTide;
+
+            document.getElementById('highTideValue').textContent = highTide.toFixed(2);
+            document.getElementById('lowTideValue').textContent = lowTide.toFixed(2);
+
+            // Update water level in coastal view with dramatic changes
+            const baseWaterLevel = 30;
+            const waterAmplitude = 25;
+            const waterPercent = baseWaterLevel + ((highTide / maxTideHeight) * waterAmplitude);
+            document.getElementById('tideWater').style.height = waterPercent + '%';
+            document.getElementById('waterLevelFill').style.height = (waterPercent / 2.0) + '%';
+
+            // Update tidal bulges - more pronounced with distance
+            const bulgeWidthScale = 1.0 + (tideStrength - 1) * 0.4;
+            const bulgeHeightScale = 0.8 + (tideStrength - 1) * 0.6;
+            const bulgeOpacity = 0.4 + (tideStrength - 1) * 0.4;
+
+            document.getElementById('bulgeLeft').style.width = (140 * bulgeWidthScale) + 'px';
+            document.getElementById('bulgeLeft').style.height = (100 * bulgeHeightScale) + 'px';
+            document.getElementById('bulgeLeft').style.opacity = bulgeOpacity;
+            document.getElementById('bulgeLeft').style.left = (-70 * bulgeWidthScale) + 'px';
+
+            document.getElementById('bulgeRight').style.width = (140 * bulgeWidthScale) + 'px';
+            document.getElementById('bulgeRight').style.height = (100 * bulgeHeightScale) + 'px';
+            document.getElementById('bulgeRight').style.opacity = bulgeOpacity;
+            document.getElementById('bulgeRight').style.right = (-70 * bulgeWidthScale) + 'px';
+
+            // Update gravity bar - inverse square law
+            const gravityPercent = Math.min(100, Math.pow(normalDist / distKm, 2) * 100);
+            document.getElementById('gravityBar').style.width = gravityPercent + '%';
+
+            // Update stability and flood risk
+            updateStability(highTide, distKm);
+
+            // Record tidal data
+            tideHistory.push(highTide);
+            if (tideHistory.length > 50) tideHistory.shift();
+            updateTideGraph();
+
+            // Update tide status display
+            updateTideStatus(highTide, distKm);
+
+            // Dynamic voice feedback for current distance
+            provideTideVoiceFeedback(distKm, highTide);
+
+            // Update wave visualization
+            updateWaveAmplitude(tideStrength);
+        }
+
+        function updateWaveAmplitude(tideStrength) {
+            const wave1 = document.getElementById('wave1');
+            const wave2 = document.getElementById('wave2');
+
+            if (!wave1 || !wave2) return;
+
+            const amplitude1 = 15 + (tideStrength - 1) * 10;
+            const amplitude2 = 10 + (tideStrength - 1) * 8;
+
+            function generatePath(amplitude) {
+                let pathStr = `M 0,${100 - amplitude}`;
+                for (let i = 0; i < 350; i += 50) {
+                    pathStr += ` Q ${i + 25},${100 - amplitude - 15} ${i + 50},${100 - amplitude}`;
+                }
+                pathStr += ` L 350,180 L 0,180 Z`;
+                return pathStr;
+            }
+
+            wave1.setAttribute('d', generatePath(amplitude1));
+            wave2.setAttribute('d', generatePath(amplitude2));
+        }
+
+        let lastVoiceDistance = null;
+
+        function updateTideStatus(highTide, distKm) {
+            const statusEl = document.getElementById('tideStatusText');
+            const statusContainer = document.getElementById('tideStatus');
+
+            let status = '';
+            let color = '';
+
+            if (distKm < 300000) {
+                status = '🌊 EXTREME SURGE';
+                color = '#ff1744';
+                statusContainer.style.borderColor = '#ff1744';
+            } else if (distKm < 320000) {
+                status = '⚠ DANGEROUS TIDE';
+                color = '#ff6b2b';
+                statusContainer.style.borderColor = '#ff6b2b';
+            } else if (distKm < 350000) {
+                status = '📈 RISING TIDE';
+                color = '#ffaa00';
+                statusContainer.style.borderColor = '#ffaa00';
+            } else if (distKm >= 360000 && distKm <= 400000) {
+                status = '✓ OPTIMAL RANGE';
+                color = '#00ff00';
+                statusContainer.style.borderColor = '#00ff00';
+            } else if (distKm < 430000) {
+                status = '📉 FALLING TIDE';
+                color = '#4169e1';
+                statusContainer.style.borderColor = '#4169e1';
+            } else if (distKm < 445000) {
+                status = 'ℹ MINIMAL TIDE';
+                color = '#4169e1';
+                statusContainer.style.borderColor = '#4169e1';
+            } else {
+                status = '❌ TIDAL FLAT';
+                color = '#666';
+                statusContainer.style.borderColor = '#666';
+            }
+
+            statusEl.textContent = status;
+            statusEl.style.color = color;
+        }
+
+        let lastTideVoiceDistance = 0;
+
+        function provideTideVoiceFeedback(distKm, highTide) {
+            const tolerance = 5000;
+
+            if (Math.abs(distKm - lastTideVoiceDistance) < tolerance) {
+                return;
+            }
+            lastTideVoiceDistance = distKm;
+
+            let voiceMessage = '';
+
+            if (distKm < 300000) {
+                voiceMessage = `Critical distance. The Moon is only ${distKm.toLocaleString()} kilometers away. Ocean tides are reaching ${highTide.toFixed(1)} meters. This creates extreme tidal surges and flooding.`;
+                document.getElementById('floodRisk').innerHTML = '<span style="color: #ff1744;">🚨 CATASTROPHIC SURGE</span>';
+                document.getElementById('floodRisk').style.background = 'rgba(255, 23, 68, 0.3)';
+            } else if (distKm < 320000) {
+                voiceMessage = `Moon distance is ${distKm.toLocaleString()} kilometers. Tides are rising to ${highTide.toFixed(1)} meters. This is dangerous territory with high flood risk. Coastal cities would be at severe risk.`;
+                document.getElementById('floodRisk').innerHTML = '<span style="color: #ff4b2b;">⚠ HIGH FLOOD RISK</span>';
+                document.getElementById('floodRisk').style.background = 'rgba(255, 75, 43, 0.25)';
+            } else if (distKm < 350000) {
+                voiceMessage = `Distance increasing to ${distKm.toLocaleString()} kilometers. Ocean tides are ${highTide.toFixed(1)} meters and still increasing. As the Moon moves closer, gravitational force strengthens the tidal effect.`;
+                document.getElementById('floodRisk').innerHTML = '<span style="color: #ff9800;">⚠ ELEVATED TIDE</span>';
+                document.getElementById('floodRisk').style.background = 'rgba(255, 152, 0, 0.2)';
+            } else if (distKm >= 360000 && distKm <= 400000) {
+                voiceMessage = `Perfect orbital distance of ${distKm.toLocaleString()} kilometers. Tides are balanced at ${highTide.toFixed(1)} meters. This is the natural range where ocean ecosystems thrive. Gravity and tidal forces are perfectly calibrated.`;
+                document.getElementById('floodRisk').innerHTML = '<span style="color: #00ff00;">✓ SAFE LEVEL</span>';
+                document.getElementById('floodRisk').style.background = 'rgba(0, 255, 0, 0.12)';
+            } else if (distKm < 430000) {
+                voiceMessage = `Distance is now ${distKm.toLocaleString()} kilometers. As the Moon moves farther, tidal height decreases to ${highTide.toFixed(1)} meters. Gravitational pull weakens with distance. The tide is falling.`;
+                document.getElementById('floodRisk').innerHTML = '<span style="color: #4169e1;">📉 LOWER TIDE</span>';
+                document.getElementById('floodRisk').style.background = 'rgba(65, 105, 225, 0.15)';
+            } else if (distKm < 445000) {
+                voiceMessage = `Moon distance of ${distKm.toLocaleString()} kilometers is far from Earth. Tides are now minimal at only ${highTide.toFixed(1)} meters. With less gravitational influence, ocean tides are much weaker.`;
+                document.getElementById('floodRisk').innerHTML = '<span style="color: #4169e1;">ℹ MINIMAL TIDE</span>';
+                document.getElementById('floodRisk').style.background = 'rgba(65, 105, 225, 0.12)';
+            } else {
+                voiceMessage = `The Moon is extremely far at ${distKm.toLocaleString()} kilometers. Tides are nearly flat at ${highTide.toFixed(1)} meters. Without the Moon's gravity, tides would vanish and ocean life would be affected.`;
+                document.getElementById('floodRisk').innerHTML = '<span style="color: #666;">❌ TIDAL FLAT</span>';
+                document.getElementById('floodRisk').style.background = 'rgba(100, 100, 100, 0.15)';
+            }
+
+            speakOnceSlide2(voiceMessage, `tide_voice_${Math.floor(distKm / 10000)}`);
+        }
+
+        function updateStability(highTide, distance) {
+            const stabilityRing = document.getElementById('stabilityRing');
+            const stabilityValue = document.getElementById('stabilityValue');
+
+            if (distance >= 360000 && distance <= 400000 && highTide >= 1 && highTide <= 3) {
+                stabilityRing.style.borderColor = '#00ff00';
+                stabilityValue.textContent = '✓';
+                stabilityValue.style.color = '#00ff00';
+            } else if (distance < 320000 || distance > 430000) {
+                stabilityRing.style.borderColor = '#ff4b2b';
+                stabilityValue.textContent = '!';
+                stabilityValue.style.color = '#ff4b2b';
+            } else {
+                stabilityRing.style.borderColor = '#ffb703';
+                stabilityValue.textContent = '~';
+                stabilityValue.style.color = '#ffb703';
+            }
+        }
+
+        function generateTideGraph() {
+            const svg = document.getElementById('tideGraph');
+            const width = svg.getAttribute('width') || 400;
+            const height = svg.getAttribute('height') || 100;
+            let points = '';
+
+            for (let i = 0; i < 40; i++) {
+                const x = (i / 39) * width;
+                const y = (height / 2) + Math.sin((i / 10) * Math.PI) * (height / 3);
+                points += `${x},${y} `;
+            }
+
+            const curve = svg.getElementById('tideCurve');
+            if (curve) curve.setAttribute('points', points);
+        }
+
+        function updateTideGraph() {
+            const svg = document.getElementById('tideGraph');
+            if (!svg) return;
+
+            const width = parseFloat(svg.getAttribute('width')) || 400;
+            const height = parseFloat(svg.getAttribute('height')) || 100;
+            const centerY = height / 2;
+            let points = '';
+
+            const avgHeight = tideHistory.length > 0 
+                ? tideHistory.reduce((a, b) => a + b, 0) / tideHistory.length 
+                : 1.8;
+
+            for (let i = 0; i < tideHistory.length; i++) {
+                const x = (i / Math.max(1, tideHistory.length - 1)) * (width - 20) + 10;
+                const normalized = (tideHistory[i] / 2.4) * (height / 3);
+                const y = centerY - normalized;
+                points += `${x},${y} `;
+            }
+
+            const curve = svg.querySelector('#tideCurve');
+            if (curve) curve.setAttribute('points', points);
+        }
+
+        // ===== SLIDE 3: ECLIPSE FORMATION LAB =====
+        let eclipseMission = 'free';
+        let isDraggingEarth = false;
+        let isDraggingMoon = false;
+        const synth3 = window.speechSynthesis;
+        const spokenSlide3 = new Set();
+        
+        function speakOnceSlide3(text, id) {
+            if (spokenSlide3.has(id)) return;
+            if (synth3.speaking) synth3.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.95;
+            utterance.pitch = 0.9;
+            synth3.speak(utterance);
+            spokenSlide3.add(id);
+        }
+
+        function initSlide3() {
+            speakOnceSlide3("Welcome to the Eclipse Formation Lab. Align the Sun, Earth, and Moon to create eclipses.", "slide3_intro");
+            setEclipseMission('free');
+            updateEclipseSim();
+        }
+
+        function setEclipseMission(type) {
+            eclipseMission = type;
+            
+            // UI Updates
+            document.getElementById('btnSolarMission').classList.remove('active-mission');
+            document.getElementById('btnLunarMission').classList.remove('active-mission');
+            document.getElementById('btnFreeMission').classList.remove('active-mission');
+            
+            if (type === 'solar') {
+                document.getElementById('btnSolarMission').classList.add('active-mission');
+                document.getElementById('missionText').innerText = "Position the Moon so it blocks sunlight from reaching Earth.";
+                speakOnceSlide3("A solar eclipse occurs when the Moon moves between the Sun and Earth, blocking sunlight.", "solar_mission_start");
+            } else if (type === 'lunar') {
+                document.getElementById('btnLunarMission').classList.add('active-mission');
+                document.getElementById('missionText').innerText = "Position Earth so its shadow falls on the Moon.";
+                speakOnceSlide3("A lunar eclipse occurs when Earth blocks sunlight from reaching the Moon.", "lunar_mission_start");
+            } else {
+                document.getElementById('btnFreeMission').classList.add('active-mission');
+                document.getElementById('missionText').innerText = "Select a mission to begin your training. Drag Earth and Moon freely to observe shadow formations.";
+            }
+            
+            updateEclipseSim();
+        }
+
+        function toggleShadowCones() {
+            updateEclipseSim();
+        }
+
+        function toggleLightRays() {
+            document.getElementById('lightRaysContainer').style.display = document.getElementById('showLightRays').checked ? 'block' : 'none';
+        }
+
+        // Drag logic for Slide 3
+        const eclipseEarth = document.getElementById('eclipseEarth');
+        const eclipseMoon = document.getElementById('eclipseMoon');
+        const eclipseSimArea = document.getElementById('eclipseSimArea');
+
+        eclipseEarth.onmousedown = (e) => {
+            if (currentSlide !== 3) return;
+            isDraggingEarth = true;
+            document.body.style.cursor = 'grabbing';
+            e.stopPropagation();
+        };
+
+        eclipseMoon.onmousedown = (e) => {
+            if (currentSlide !== 3) return;
+            isDraggingMoon = true;
+            document.body.style.cursor = 'grabbing';
+            e.stopPropagation();
+        };
+
+        window.addEventListener('mousemove', (e) => {
+            if (currentSlide !== 3) return;
+            if (!isDraggingEarth && !isDraggingMoon) return;
+
+            requestAnimationFrame(() => {
+                if (!isDraggingEarth && !isDraggingMoon) return;
+                
+                const rect = eclipseSimArea.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+                // Constrain within sim area
+                const safeX = Math.max(5, Math.min(95, x));
+                const safeY = Math.max(5, Math.min(95, y));
+
+                if (isDraggingEarth) {
+                    eclipseEarth.style.left = safeX + '%';
+                    eclipseEarth.style.top = safeY + '%';
+                } else if (isDraggingMoon) {
+                    eclipseMoon.style.left = safeX + '%';
+                    eclipseMoon.style.top = safeY + '%';
+                }
+
+                updateEclipseSim();
+            });
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDraggingEarth = false;
+            isDraggingMoon = false;
+            document.body.style.cursor = 'default';
+        });
+
+        function updateEclipseSim() {
+            if (currentSlide !== 3) return;
+
+            const earthRect = eclipseEarth.getBoundingClientRect();
+            const moonRect = eclipseMoon.getBoundingClientRect();
+            const simRect = eclipseSimArea.getBoundingClientRect();
+            
+            // Percentage positions relative to sim area
+            const ex = (earthRect.left + earthRect.width / 2 - simRect.left) / simRect.width * 100;
+            const ey = (earthRect.top + earthRect.height / 2 - simRect.top) / simRect.height * 100;
+            const mx = (moonRect.left + moonRect.width / 2 - simRect.left) / simRect.width * 100;
+            const my = (moonRect.top + moonRect.height / 2 - simRect.top) / simRect.height * 100;
+
+            const showCones = document.getElementById('showShadowCones').checked;
+            const sunX = -10; // Fixed sun X pos
+            const sunY = 50;  // Fixed sun Y pos
+
+            // Update Earth Shadow
+            const earthShadow = document.getElementById('earthShadow');
+            if (showCones) {
+                earthShadow.style.display = 'block';
+                const angle = Math.atan2(ey - sunY, ex - sunX) * 180 / Math.PI;
+                earthShadow.style.transform = `rotate(${angle}deg)`;
+            } else {
+                earthShadow.style.display = 'none';
+            }
+
+            // Update Moon Shadow
+            const moonShadow = document.getElementById('moonShadow');
+            if (showCones) {
+                moonShadow.style.display = 'block';
+                const angle = Math.atan2(my - sunY, mx - sunX) * 180 / Math.PI;
+                moonShadow.style.transform = `rotate(${angle}deg)`;
+            } else {
+                moonShadow.style.display = 'none';
+            }
+
+            // ACCURATE ALIGNMENT CHECK
+            // Target Y for alignment based on linear projection from Sun
+            const targetMyForSolar = sunY + (ey - sunY) * (mx - sunX) / (ex - sunX);
+            const targetMyForLunar = sunY + (ey - sunY) * (mx - sunX) / (ex - sunX);
+            
+            const solarDist = Math.abs(my - targetMyForSolar);
+            const lunarDist = Math.abs(my - targetMyForLunar);
+
+            let solarAlignment = (mx > sunX && mx < ex && solarDist < 3);
+            let lunarAlignment = (ex > sunX && ex < mx && lunarDist < 3);
+
+            // Update Previews
+            const previewSky = document.getElementById('previewSky');
+            const previewMoon = document.getElementById('previewMoon');
+            const moonPreview = document.getElementById('moonPreview');
+
+            // Reset Previews
+            previewSky.className = '';
+            previewMoon.style.left = '150%';
+            moonPreview.className = '';
+            moonPreview.style.background = '#888';
+            moonPreview.style.boxShadow = 'none';
+
+            if (solarAlignment) {
+                if (solarDist < 1.2) {
+                    previewSky.className = 'totality';
+                    previewMoon.style.left = '50%';
+                    previewMoon.style.transform = 'translate(-50%, -50%)';
+                    if (eclipseMission === 'solar') {
+                        speakOnceSlide3("Alignment achieved. The Moon’s shadow is now falling on Earth. A solar eclipse is occurring.", "solar_success");
+                        eclipseEarth.classList.add('alignment-success');
+                    }
+                } else {
+                    previewSky.className = 'partial';
+                    previewMoon.style.left = (50 + (my - targetMyForSolar) * 20) + '%';
+                    previewMoon.style.transform = 'translate(-50%, -50%)';
+                }
+            } else {
+                eclipseEarth.classList.remove('alignment-success');
+            }
+
+            if (lunarAlignment) {
+                if (lunarDist < 1.2) {
+                    moonPreview.className = 'blood-moon';
+                    if (eclipseMission === 'lunar') {
+                        speakOnceSlide3("The Moon appears red because Earth’s atmosphere bends and filters sunlight.", "lunar_blood_moon");
+                        speakOnceSlide3("Alignment achieved. Earth blocks sunlight from reaching the Moon.", "lunar_success");
+                        eclipseMoon.classList.add('alignment-success');
+                    }
+                } else {
+                    moonPreview.style.background = '#555';
+                    moonPreview.style.boxShadow = 'inset 10px 0 20px rgba(0,0,0,0.8)';
+                }
+            } else {
+                eclipseMoon.classList.remove('alignment-success');
+            }
+        }
+
+        const phaseNames = ['New Moon', 'Waxing Crescent', 'First Quarter', 'Waxing Gibbous', 'Full Moon', 'Waning Gibbous', 'Last Quarter', 'Waning Crescent'];
+        const phaseEmojis = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
+        const phaseDescriptions = [
+            'The Moon is positioned between Earth and the Sun. The illuminated side faces away from Earth.',
+            'A thin crescent of light appears as the Moon moves away from the Sun.',
+            'We see exactly half of the illuminated side. The Moon has completed one quarter of its orbit.',
+            'The Moon is mostly illuminated, approaching fullness.',
+            'The Moon is opposite the Sun. Its entire illuminated face is visible from Earth.',
+            'The Moon begins to decrease in illumination after Full Moon.',
+            'We see the remaining half of the illuminated side as Moon recedes.',
+            'A thin crescent fades as the Moon approaches the Sun again.'
+        ];
+
+        let phaseAngle = 0;
+        let currentPhaseIndex = 0;
+        let phaseChallenge = null;
+        let targetPhase = null;
+        const synthSlide4 = window.speechSynthesis;
+        const spokenSlide4 = new Set();
+
+        function getIllumination(angle) {
+            const normalizedAngle = ((angle % 360) + 360) % 360;
+            return Math.abs(Math.cos((normalizedAngle - 180) * Math.PI / 180));
+        }
+
+        function speakOnceSlide4(text, id) {
+            if (spokenSlide4.has(id)) return;
+            if (synthSlide4.speaking) synthSlide4.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.95;
+            utterance.pitch = 0.9;
+            synthSlide4.speak(utterance);
+            spokenSlide4.add(id);
+        }
+
+        function initSlide4() {
+            phaseAngle = 0;
+            updatePhaseFromAngle(0);
+            speakOnceSlide4('Welcome to Moon Phase Mission Control. Drag the Moon around Earth to observe the different phases.', 'slide4_intro');
+        }
+
+        function updatePhaseFromAngle(angle) {
+            phaseAngle = ((angle % 360) + 360) % 360;
+            currentPhaseIndex = Math.round((phaseAngle / 45)) % 8;
+            updatePhaseDisplay();
+            drawPhaseOrbitControl();
+            draw3DOrbitSimulation();
+        }
+
+        function updatePhaseDisplay() {
+            const illumination = getIllumination(phaseAngle) * 100;
+            const phaseName = phaseNames[currentPhaseIndex];
+            const dayInCycle = (phaseAngle / 360) * 29.5;
+
+            document.getElementById('currentPhaseName').textContent = phaseName;
+            document.getElementById('currentPhaseEmoji').textContent = phaseEmojis[currentPhaseIndex];
+            document.getElementById('illuminationPercent').textContent = Math.round(illumination) + '%';
+            document.getElementById('illuminationBar').style.width = illumination + '%';
+            document.getElementById('phaseNarrationText').textContent = phaseDescriptions[currentPhaseIndex];
+            document.getElementById('cycleDays').textContent = 'Day ' + Math.round(dayInCycle * 10) / 10 + ' of 29.5';
+
+            let position, visibility;
+            if (phaseAngle < 45) {
+                position = 'Between Sun and Earth';
+                visibility = 'Not visible';
+            } else if (phaseAngle < 90) {
+                position = 'East of Sun';
+                visibility = 'Visible after sunset';
+            } else if (phaseAngle < 135) {
+                position = 'East of Sun (90°)';
+                visibility = 'Visible afternoon/evening';
+            } else if (phaseAngle < 180) {
+                position = 'East of Sun (135°)';
+                visibility = 'Visible most of night';
+            } else if (phaseAngle < 225) {
+                position = 'Opposite the Sun';
+                visibility = 'Visible all night';
+            } else if (phaseAngle < 270) {
+                position = 'West of Sun (225°)';
+                visibility = 'Visible most of night';
+            } else if (phaseAngle < 315) {
+                position = 'West of Sun (270°)';
+                visibility = 'Visible in morning';
+            } else {
+                position = 'West of Sun';
+                visibility = 'Visible before sunrise';
+            }
+
+            document.getElementById('phasePosition').textContent = position;
+            document.getElementById('phaseVisibility').textContent = visibility;
+
+            if (phaseChallenge === 1 && targetPhase !== null) {
+                if (currentPhaseIndex === targetPhase) {
+                    document.getElementById('challengeStatus').textContent = '✅ CORRECT! ' + phaseNames[targetPhase] + ' matched!';
+                    document.getElementById('challengeStatus').style.color = '#00ff00';
+                    speakOnceSlide3('Correct! You found the ' + phaseNames[targetPhase], 'challenge_' + targetPhase);
+                    phaseChallenge = null;
+                } else {
+                    document.getElementById('challengeStatus').textContent = 'Current: ' + phaseNames[currentPhaseIndex];
+                }
+            } else if (phaseChallenge === 2 && targetPhase !== null) {
+                const targetIll = targetPhase * 25;
+                const currentIll = Math.round(illumination);
+                document.getElementById('challengeStatus').textContent = 'Target: ' + targetIll + '% | Current: ' + currentIll + '%';
+                if (Math.abs(currentIll - targetIll) < 5) {
+                    document.getElementById('challengeStatus').textContent = '✅ MATCHED! ' + currentIll + '% illumination!';
+                    document.getElementById('challengeStatus').style.color = '#00ff00';
+                    speakOnceSlide3('Excellent! You matched the illumination', 'challenge_ill');
+                }
+            }
+        }
+
+        function drawPhaseOrbitControl() {
+            const canvas = document.getElementById('phaseOrbitCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width, h = canvas.height;
+            const centerX = w / 2, centerY = h / 2;
+            const orbitRadius = 65;
+
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = 'rgba(10, 15, 30, 0.9)';
+            ctx.fillRect(0, 0, w, h);
+
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.25)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, orbitRadius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = '#1e90ff';
+            ctx.shadowColor = 'rgba(30, 144, 255, 0.5)';
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 11, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowColor = 'transparent';
+
+            const moonX = centerX + Math.cos(phaseAngle * Math.PI / 180) * orbitRadius;
+            const moonY = centerY + Math.sin(phaseAngle * Math.PI / 180) * orbitRadius;
+            const illumination = getIllumination(phaseAngle);
+
+            drawMoon(ctx, moonX, moonY, 7, phaseAngle, illumination);
+
+            ctx.fillStyle = '#ffd700';
+            ctx.shadowColor = 'rgba(255, 215, 0, 0.6)';
+            ctx.shadowBlur = 12;
+            ctx.font = 'bold 22px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('☀', centerX - orbitRadius - 20, centerY);
+            ctx.shadowColor = 'transparent';
+
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.4)';
+            ctx.font = '10px Arial';
+            ctx.fillText('SUN', centerX - orbitRadius - 20, centerY + 18);
+        }
+
+        function drawMoon(ctx, x, y, radius, angle, illumination) {
+            ctx.save();
+            
+            ctx.fillStyle = '#888';
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            const gradient = ctx.createLinearGradient(x - radius * 1.5, y, x + radius * 1.5, y);
+            gradient.addColorStop(0, '#000');
+            gradient.addColorStop(0.3, '#333');
+            gradient.addColorStop(0.5, '#555');
+            gradient.addColorStop(0.7, '#777');
+            gradient.addColorStop(1, '#999');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffed4e';
+            ctx.shadowColor = 'rgba(255, 237, 78, 0.6)';
+            ctx.shadowBlur = 6;
+            
+            if (illumination > 0.01) {
+                const phaseWidth = radius * 2 * illumination;
+                const startX = x - radius + (radius * 2 - phaseWidth) / 2;
+                ctx.fillRect(startX, y - radius, phaseWidth, radius * 2);
+            }
+
+            ctx.shadowColor = 'transparent';
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function draw3DOrbitSimulation() {
+            const canvas = document.getElementById('phase3DCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width, h = canvas.height;
+
+            ctx.clearRect(0, 0, w, h);
+            
+            const gradient = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w);
+            gradient.addColorStop(0, 'rgba(15, 30, 60, 0.9)');
+            gradient.addColorStop(1, 'rgba(0, 0, 20, 0.95)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, w, h);
+
+            const centerX = w * 0.3, centerY = h / 2;
+            const orbitWidth = 140, orbitHeight = 90;
+
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.2)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY, orbitWidth, orbitHeight, 0, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffd700';
+            ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
+            ctx.shadowBlur = 20;
+            ctx.beginPath();
+            ctx.arc(centerX - 160, centerY, 45, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.05)';
+            ctx.beginPath();
+            ctx.arc(centerX - 160, centerY, 100, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowColor = 'transparent';
+
+            ctx.fillStyle = '#1e90ff';
+            ctx.shadowColor = 'rgba(30, 144, 255, 0.5)';
+            ctx.shadowBlur = 12;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 18, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowColor = 'transparent';
+
+            const moonX = centerX + Math.cos(phaseAngle * Math.PI / 180) * orbitWidth;
+            const moonY = centerY + Math.sin(phaseAngle * Math.PI / 180) * orbitHeight;
+            const illumination = getIllumination(phaseAngle);
+
+            drawMoon(ctx, moonX, moonY, 14, phaseAngle, illumination);
+
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.5)';
+            ctx.font = 'bold 11px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('SUN', centerX - 160, centerY + 65);
+            ctx.fillText('EARTH', centerX, centerY + 50);
+            ctx.fillText(phaseNames[currentPhaseIndex], moonX, moonY - 28);
+
+            ctx.strokeStyle = 'rgba(100, 200, 255, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(centerX - 160, centerY);
+            ctx.lineTo(moonX, moonY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function resetPhaseSlide() {
+            phaseAngle = 0;
+            phaseChallenge = null;
+            targetPhase = null;
+            document.getElementById('challengeArea').style.display = 'none';
+            updatePhaseFromAngle(0);
+        }
+
+        function startPhaseChallenge(round) {
+            phaseChallenge = round;
+            document.getElementById('challengeArea').style.display = 'block';
+
+            if (round === 1) {
+                targetPhase = Math.floor(Math.random() * 8);
+                document.getElementById('challengeText').textContent = '🎯 Position the Moon to create: ' + phaseNames[targetPhase];
+                document.getElementById('challengeStatus').textContent = 'Current: ' + phaseNames[currentPhaseIndex];
+                speakOnceSlide4('Find the ' + phaseNames[targetPhase], 'challenge_find_' + targetPhase);
+            } else if (round === 2) {
+                targetPhase = Math.floor(Math.random() * 4);
+                const illuminationTarget = (targetPhase + 1) * 25;
+                document.getElementById('challengeText').textContent = '🎯 Achieve ' + illuminationTarget + '% illumination';
+                const currentIll = Math.round(getIllumination(phaseAngle) * 100);
+                document.getElementById('challengeStatus').textContent = 'Current: ' + currentIll + '%';
+                speakOnceSlide4('Achieve ' + illuminationTarget + ' percent illumination', 'challenge_illum_' + targetPhase);
+            } else if (round === 3) {
+                document.getElementById('challengeText').textContent = '🎯 Complete the full lunar cycle. Visit all 8 phases in order!';
+                document.getElementById('challengeStatus').textContent = 'Explore all phases: 🌑 🌒 🌓 🌔 🌕 🌖 🌗 🌘';
+            }
+        }
+
+        const phaseOrbitCanvas = document.getElementById('phaseOrbitCanvas');
+        if (phaseOrbitCanvas) {
+            let isDragging = false;
+
+            phaseOrbitCanvas.onmousedown = (e) => {
+                isDragging = true;
+            };
+
+            window.onmouseup = () => {
+                isDragging = false;
+            };
+
+            phaseOrbitCanvas.onmousemove = (e) => {
+                if (!isDragging || currentSlide !== 4) return;
+
+                const rect = phaseOrbitCanvas.getBoundingClientRect();
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                const dx = mouseX - centerX;
+                const dy = mouseY - centerY;
+                const angle = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360;
+
+                updatePhaseFromAngle(angle);
+            };
+        }
+        // ===== SLIDE 5: MOON BUILDER: LUNAR SCIENCE MISSION =====
+        let builderPhase = 1; // 1: Layers, 2: Elements, 3: Surface, 4: Stability
+        let builtLayers = { core: false, mantle: false, crust: false };
+        let assignedElements = { core: false, mantle: false, crust: false };
+        let surfaceMatches = { maria: false, highlands: false };
+        
+        const moonElements = [
+            { name: 'Oxygen', percent: 43, targets: ['crust', 'mantle'], hint: 'Oxygen is the most abundant element in the Moon’s rocks. Place it mainly in the crust and mantle.' },
+            { name: 'Silicon', percent: 21, targets: ['crust', 'mantle'], hint: 'Silicon is found in silicates across the Moon’s outer layers.' },
+            { name: 'Magnesium', percent: 19, targets: ['mantle'], hint: 'Magnesium is a key component of the lunar mantle.' },
+            { name: 'Iron', percent: 10, targets: ['core'], hint: 'Iron is dense and concentrated in the Moon’s small core.' },
+            { name: 'Calcium', percent: 3, targets: ['crust'], hint: 'Calcium is found in the anorthosite rocks of the highlands.' },
+            { name: 'Aluminum', percent: 3, targets: ['crust'], hint: 'Aluminum is a major part of the lunar crust.' },
+            { name: 'Other elements', percent: 1, targets: ['crust'], hint: 'Various trace elements are found in the lunar surface.' }
+        ];
+        let currentElementIndex = 0;
+        let totalProgressPercent = 0;
+
+        const synth5 = window.speechSynthesis;
+        const spokenSlide5 = new Set();
+        
+        function speakOnceSlide5(text, id) {
+            if (spokenSlide5.has(id)) return;
+            if (synth5.speaking) synth5.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.95;
+            utterance.pitch = 0.9;
+            synth5.speak(utterance);
+            spokenSlide5.add(id);
+        }
+
+        function initSlide5() {
+            speakOnceSlide5("Welcome to the Lunar Science Mission. Your task is to reconstruct the Moon using correct scientific data.", "slide5_intro");
+            // Next button is allowed for testing Slide 6
+            document.getElementById('nextBtn').disabled = false;
+            resetBuilder();
+        }
+
+        function resetBuilder() {
+            builderPhase = 1;
+            builtLayers = { core: false, mantle: false, crust: false };
+            assignedElements = { core: false, mantle: false, crust: false };
+            surfaceMatches = { maria: false, highlands: false };
+            currentElementIndex = 0;
+            totalProgressPercent = 0;
+            
+            document.getElementById('gamePhaseIndicator').innerText = "PHASE 1: LAYERS";
+            document.getElementById('builderInstruction').innerText = "MISSION: Build the Moon layers. Drag Core, Mantle, and Crust to their correct regions.";
+            
+            // UI Reset
+            document.getElementById('phase1Materials').style.display = 'block';
+            document.getElementById('currentElementBox').style.display = 'none';
+            document.getElementById('elementProgressContainer').style.display = 'none';
+            document.getElementById('surfaceView').style.display = 'none';
+            document.getElementById('interiorView').style.display = 'flex';
+            document.getElementById('elementChecklist').style.display = 'flex';
+            document.getElementById('surfaceChecklist').style.display = 'none';
+            document.getElementById('simulationResult').style.display = 'none';
+            document.getElementById('simOverlay').style.display = 'none';
+            document.getElementById('mariaMicro').style.display = 'none';
+            document.getElementById('highlandsMicro').style.display = 'none';
+            document.getElementById('spotMaria').style.borderColor = 'transparent';
+            document.getElementById('spotHighlands').style.borderColor = 'transparent';
+            
+            ['layerCore', 'layerMantle', 'layerCrust'].forEach(id => {
+                document.getElementById(id).classList.remove('layer-filled');
+                document.getElementById(id).classList.remove('layer-highlight');
+            });
+            
+            ['bankCore', 'bankMantle', 'bankCrust'].forEach(id => {
+                document.getElementById(id).style.opacity = '1';
+                document.getElementById(id).draggable = true;
+            });
+
+            ['check-core', 'check-mantle', 'check-crust', 'check-maria', 'check-highlands'].forEach(id => {
+                const label = id.includes('maria') ? 'Basalt (Maria)' : (id.includes('highlands') ? 'Anorthosite (Highlands)' : id.split('-')[1].charAt(0).toUpperCase() + id.split('-')[1].slice(1) + ' Elements');
+                document.getElementById(id).innerText = `[ ] ${label}`;
+                document.getElementById(id).style.color = '#555';
+            });
+            
+            setProgress(0);
+            updateBuilderMeters();
+        }
+
+        function setProgress(percent) {
+            const circle = document.getElementById('elementProgressCircle');
+            const radius = circle.r.baseVal.value;
+            const circumference = radius * 2 * Math.PI;
+            const offset = circumference - (percent / 100 * circumference);
+            circle.style.strokeDashoffset = offset;
+            document.getElementById('elementPercentText').innerText = Math.round(percent) + '%';
+        }
+
+        let isManualDragging = false;
+        let manualDragType = null;
+        let dragProxy = document.getElementById('dragProxy');
+
+        function onManualDragStart(e, type) {
+            if (currentSlide !== 5) return;
+            if (type === 'element' && builderPhase !== 2) return;
+            if (type !== 'element' && builderPhase !== 1) return;
+            
+            isManualDragging = true;
+            manualDragType = type;
+            dragProxy.style.display = 'block';
+            dragProxy.innerText = type === 'element' ? moonElements[currentElementIndex].name : type.toUpperCase();
+            
+            if (type === 'element') {
+                const element = moonElements[currentElementIndex];
+                speakOnceSlide5(element.hint, "drag_element_" + element.name);
+            } else {
+                let info = "";
+                if (type === 'core') info = "The Moon's core is small, about 15 percent of its radius, and consists mostly of iron. Drag this to the smallest, inner-most dashed circle.";
+                if (type === 'mantle') info = "The mantle is the largest layer, making up about 80 percent of the Moon's volume. Drag this to the large middle dashed circle.";
+                if (type === 'crust') info = "The crust is the thin outer layer, only about 70 to 100 kilometers thick. Drag this to the outer-most dashed circle.";
+                speakOnceSlide5(info, "drag_layer_" + type);
+            }
+            
+            updateDragProxy(e);
+            document.body.style.cursor = 'grabbing';
+            e.preventDefault();
+        }
+
+        function updateDragProxy(e) {
+            dragProxy.style.left = e.clientX + 'px';
+            dragProxy.style.top = e.clientY + 'px';
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            if (isManualDragging) {
+                updateDragProxy(e);
+                
+                // Visual hover feedback for drop zones
+                if (currentSlide === 5) {
+                    const el = document.elementFromPoint(e.clientX, e.clientY);
+                    const targetId = el ? el.closest('[id^="layer"]')?.id : null;
+                    
+                    ['layerCore', 'layerMantle', 'layerCrust'].forEach(id => {
+                        const layer = document.getElementById(id);
+                        if (id === targetId) {
+                            layer.style.filter = 'brightness(1.5) drop-shadow(0 0 10px #00ff96)';
+                        } else {
+                            layer.style.filter = '';
+                        }
+                    });
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (isManualDragging) {
+                isManualDragging = false;
+                dragProxy.style.display = 'none';
+                document.body.style.cursor = 'default';
+
+                const el = document.elementFromPoint(e.clientX, e.clientY);
+                const targetLayerEl = el ? el.closest('[id^="layer"]') : null;
+                
+                if (targetLayerEl) {
+                    const targetId = targetLayerEl.id;
+                    const layerKey = targetId.replace('layer', '').toLowerCase();
+                    
+                    if (manualDragType === 'element') {
+                        onLayerMaterialDropManual(layerKey);
+                    } else {
+                        onLayerDropManual(manualDragType, layerKey);
+                    }
+                }
+                
+                // Clear highlights
+                ['layerCore', 'layerMantle', 'layerCrust'].forEach(id => {
+                    document.getElementById(id).style.filter = '';
+                });
+            }
+        });
+
+        function onLayerDropManual(draggedLayer, targetLayer) {
+            if (draggedLayer === targetLayer) {
+                builtLayers[targetLayer] = true;
+                const layerEl = document.getElementById('layer' + targetLayer.charAt(0).toUpperCase() + targetLayer.slice(1));
+                layerEl.classList.add('layer-filled');
+                document.getElementById('bank' + targetLayer.charAt(0).toUpperCase() + targetLayer.slice(1)).style.opacity = '0.05';
+                document.getElementById('bank' + targetLayer.charAt(0).toUpperCase() + targetLayer.slice(1)).style.pointerEvents = 'none';
+                document.getElementById('bank' + targetLayer.charAt(0).toUpperCase() + targetLayer.slice(1)).style.borderStyle = 'dashed';
+                
+                checkPhase1Completion();
+            } else {
+                document.getElementById('interiorView').classList.add('error-shake');
+                setTimeout(() => document.getElementById('interiorView').classList.remove('error-shake'), 500);
+                speakOnceSlide5("Layer imbalance detected. Ensure you're placing the right structure.", "layer_error");
+            }
+        }
+
+        function onLayerMaterialDropManual(layer) {
+            const element = moonElements[currentElementIndex];
+            
+            if (element.targets.includes(layer)) {
+                totalProgressPercent += element.percent;
+                setProgress(totalProgressPercent);
+                
+                if (layer === 'core') assignedElements.core = true;
+                if (layer === 'mantle') assignedElements.mantle = true;
+                if (layer === 'crust') assignedElements.crust = true;
+                
+                updateChecklist();
+                currentElementIndex++;
+                updateCurrentElementUI();
+                updateBuilderMeters();
+            } else {
+                const layerEl = document.getElementById('layer' + layer.charAt(0).toUpperCase() + layer.slice(1));
+                layerEl.classList.add('layer-error-blink');
+                setTimeout(() => layerEl.classList.remove('layer-error-blink'), 1500);
+                
+                const explanation = getElementErrorExplanation(element.name, layer);
+                document.getElementById('builderInstruction').innerText = explanation;
+                
+                if (synth5.speaking) synth5.cancel();
+                const utterance = new SpeechSynthesisUtterance(explanation);
+                utterance.rate = 0.95;
+                synth5.speak(utterance);
+            }
+        }
+
+        function checkPhase1Completion() {
+            if (builtLayers.core && builtLayers.mantle && builtLayers.crust) {
+                builderPhase = 2;
+                document.getElementById('gamePhaseIndicator').innerText = "PHASE 2: ELEMENTS";
+                document.getElementById('phase1Materials').style.display = 'none';
+                document.getElementById('currentElementBox').style.display = 'block';
+                document.getElementById('elementProgressContainer').style.display = 'block';
+                
+                updateCurrentElementUI();
+                updateBuilderMeters();
+            }
+        }
+
+        function updateCurrentElementUI() {
+            if (currentElementIndex >= moonElements.length) {
+                checkPhase2Completion();
+                return;
+            }
+            const element = moonElements[currentElementIndex];
+            document.getElementById('activeElementName').innerText = element.name;
+            document.getElementById('activeElementPercent').innerText = element.percent + '%';
+            document.getElementById('currentElementName').innerText = element.name;
+            document.getElementById('builderInstruction').innerText = "MISSION: " + element.hint;
+            
+            speakOnceSlide5(element.hint, "element_hint_" + element.name);
+
+            // Highlight target layers
+            ['layerCore', 'layerMantle', 'layerCrust'].forEach(id => {
+                document.getElementById(id).classList.remove('layer-highlight');
+            });
+            element.targets.forEach(t => {
+                document.getElementById('layer' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('layer-highlight');
+            });
+        }
+
+        function getElementErrorExplanation(element, layer) {
+            const el = moonElements[currentElementIndex];
+            const targetsStr = el.targets.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(' or ');
+            
+            if (element === 'Iron' && layer !== 'core') {
+                return "Incorrect. Iron belongs in the Core because it is dense and sank there during the Moon's formation.";
+            }
+            if (element === 'Oxygen' && layer === 'core') {
+                return "Incorrect. Oxygen is found in rocks, not the metal core. Place it in the Crust or Mantle.";
+            }
+            
+            return `Incorrect. ${element} should be placed in the ${targetsStr}.`;
+        }
+
+        function updateChecklist() {
+            if (assignedElements.core) {
+                document.getElementById('check-core').innerText = "[✓] Core Elements Assigned";
+                document.getElementById('check-core').style.color = '#00ff96';
+            }
+            if (assignedElements.mantle) {
+                document.getElementById('check-mantle').innerText = "[✓] Mantle Elements Assigned";
+                document.getElementById('check-mantle').style.color = '#00ff96';
+            }
+            if (assignedElements.crust) {
+                document.getElementById('check-crust').innerText = "[✓] Crust Elements Assigned";
+                document.getElementById('check-crust').style.color = '#00ff96';
+            }
+        }
+
+        // Add drop listeners to layers for elements
+        // document.getElementById('layerCore').addEventListener('drop', (e) => onLayerMaterialDrop(e, 'core'));
+        // document.getElementById('layerMantle').addEventListener('drop', (e) => onLayerMaterialDrop(e, 'mantle'));
+        // document.getElementById('layerCrust').addEventListener('drop', (e) => onLayerMaterialDrop(e, 'crust'));
+
+        function checkPhase2Completion() {
+            builderPhase = 3;
+            document.getElementById('gamePhaseIndicator').innerText = "PHASE 3: SURFACE";
+            document.getElementById('builderInstruction').innerText = "MISSION: Identify lunar surface materials. Match Maria and Highlands.";
+            
+            document.getElementById('currentElementBox').style.display = 'none';
+            document.getElementById('interiorView').style.display = 'none';
+            document.getElementById('surfaceView').style.display = 'block';
+            document.getElementById('elementChecklist').style.display = 'none';
+            document.getElementById('surfaceChecklist').style.display = 'flex';
+            
+            speakOnceSlide5("Interior structure complete. Now identify the surface regions. Dark areas are Basaltic Maria, bright areas are Highlands.", "phase3_start");
+        }
+
+        function checkSurface(type) {
+            if (builderPhase !== 3) return;
+            
+            if (type === 'maria') {
+                surfaceMatches.maria = true;
+                document.getElementById('check-maria').innerText = "[✓] Basalt (Maria) Identified";
+                document.getElementById('check-maria').style.color = '#00ff96';
+                document.getElementById('spotMaria').style.borderColor = '#00ff96';
+                document.getElementById('mariaMicro').style.display = 'block';
+                speakOnceSlide5("Correct. Maria are dark basaltic plains formed by ancient volcanic eruptions. Notice the fine-grained texture.", "maria_check");
+            } else if (type === 'highlands') {
+                surfaceMatches.highlands = true;
+                document.getElementById('check-highlands').innerText = "[✓] Anorthosite (Highlands) Identified";
+                document.getElementById('check-highlands').style.color = '#00ff96';
+                document.getElementById('spotHighlands').style.borderColor = '#00ff96';
+                document.getElementById('highlandsMicro').style.display = 'block';
+                speakOnceSlide5("Correct. The Highlands are bright regions made of anorthosite rock. This is the oldest part of the lunar crust.", "highlands_check");
+            }
+            
+            if (surfaceMatches.maria && surfaceMatches.highlands) {
+                setTimeout(completeMission, 2000);
+            }
+        }
+
+        function completeMission() {
+            builderPhase = 4;
+            document.getElementById('gamePhaseIndicator').innerText = "PHASE 4: VALIDATION";
+            document.getElementById('simOverlay').style.display = 'flex';
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 2;
+                document.getElementById('simBar').style.width = progress + '%';
+                
+                if (progress < 40) {
+                    document.getElementById('simStatus').innerText = "Calculating Structural Integrity...";
+                } else if (progress < 70) {
+                    document.getElementById('simStatus').innerText = "Simulating Internal Pressure...";
+                } else if (progress < 90) {
+                    document.getElementById('simStatus').innerText = "Validating Mass & Density...";
+                } else {
+                    document.getElementById('simStatus').innerText = "Finalizing Simulation...";
+                }
+
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    document.getElementById('simOverlay').style.display = 'none';
+                    document.getElementById('gamePhaseIndicator').innerText = "MISSION COMPLETE";
+                    document.getElementById('builderInstruction').innerText = "STABILITY VALIDATED: The Moon is structurally sound.";
+                    document.getElementById('simulationResult').style.display = 'block';
+                    document.getElementById('surfaceView').classList.add('rotating-moon');
+                    document.getElementById('nextBtn').disabled = false;
+                    
+                    updateBuilderMeters();
+                    speakOnceSlide5("Excellent work. The Moon’s internal structure and surface composition are scientifically accurate. Mission Success.", "mission_success");
+                }
+            }, 50);
+        }
+
+        function updateBuilderMeters() {
+            const stability = document.getElementById('meterStability');
+            const density = document.getElementById('meterDensity');
+            const mass = document.getElementById('meterMass');
+            const pressure = document.getElementById('meterPressure');
+            
+            if (builderPhase === 1) {
+                const count = Object.values(builtLayers).filter(v => v).length;
+                stability.innerText = count === 3 ? "STABLE" : (count > 0 ? "UNSTABLE" : "---");
+                density.innerText = "---";
+                mass.innerText = "---";
+                pressure.innerText = "---";
+            } else if (builderPhase === 2) {
+                stability.innerText = "STABLE";
+                const progressFactor = totalProgressPercent / 100;
+                density.innerText = (2.0 + progressFactor * 1.344).toFixed(3) + " g/cm³";
+                mass.innerText = (5.0 + progressFactor * 2.342).toFixed(3) + "e22 kg";
+                pressure.innerText = (10.0 + progressFactor * 35).toFixed(1) + " kbar";
+            } else {
+                stability.innerText = "VALIDATED";
+                density.innerText = "3.344 g/cm³";
+                mass.innerText = "7.342e22 kg";
+                pressure.innerText = "45.0 kbar";
+            }
+        }
+
+        // ===== SLIDE 6: EARTH WITHOUT MOON SIMULATOR =====
+        let isMoonPresent = true;
+        let simVoicePlayed = new Set();
+        const simSynth = window.speechSynthesis;
+
+        function simSpeak(text, id) {
+            if (simVoicePlayed.has(id)) return;
+            if (simSynth.speaking) simSynth.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.95;
+            utterance.pitch = 0.9;
+            simSynth.speak(utterance);
+            simVoicePlayed.add(id);
+        }
+
+        function initSlide6() {
+            resetSim();
+            simSpeak("Earth’s Moon plays a critical role in stabilizing our planet. Let us explore what happens if it disappears.", "sim_intro");
+        }
+
+        function resetSim() {
+            isMoonPresent = true;
+            simVoicePlayed = new Set();
+            document.getElementById('moonOrbitSim').style.opacity = '1';
+            document.getElementById('moonSimObject').style.opacity = '1';
+            document.getElementById('earth3d').classList.remove('wobble-earth');
+            document.getElementById('axisIndicator').style.transform = 'translate(-50%, -50%) rotate(23.5deg)';
+            document.getElementById('axisLabel').innerText = '23.5°';
+            document.getElementById('toggleMoonBtn').innerText = '🔘 Remove Moon';
+            
+            // Reset Meters
+            updateSimMeter('simTide', 100, '100%');
+            updateSimMeter('simTilt', 100, 'STABLE');
+            updateSimMeter('simDay', 100, '24 Hours');
+            updateSimMeter('simClimate', 100, '100%');
+            updateSimMeter('simLife', 100, 'OPTIMAL', '#00ff00');
+            
+            document.getElementById('simChallenge1').style.display = 'none';
+            document.getElementById('simChallenge2').style.display = 'none';
+            document.getElementById('simFinalChallenge').style.display = 'none';
+            document.getElementById('simMessage').innerText = '"Earth\'s Moon plays a critical role in stabilizing our planet. Let us explore what happens if it disappears."';
+            
+            // Reset buttons
+            const buttons = document.querySelectorAll('.decision-btn');
+            buttons.forEach(btn => btn.classList.remove('correct'));
+        }
+
+        function toggleMoon() {
+            if (isMoonPresent) {
+                removeMoon();
+            } else {
+                resetSim();
+            }
+        }
+
+        function removeMoon() {
+            isMoonPresent = false;
+            document.getElementById('moonOrbitSim').style.opacity = '0';
+            document.getElementById('moonSimObject').style.opacity = '0';
+            document.getElementById('toggleMoonBtn').innerText = '🔘 Restore Moon';
+            
+            simSpeak("Gravitational stabilization lost. Monitoring planetary response.", "removed");
+            document.getElementById('simMessage').innerText = "Moon removed. Gravitational stabilizing force lost. Earth's stability is decreasing...";
+
+            setTimeout(() => {
+                // Effect 1: Tides
+                updateSimMeter('simTide', 30, '30%');
+                simSpeak("Without the Moon, tides would be much weaker. Solar tides alone are not enough to maintain strong ocean mixing.", "tide_drop");
+                document.getElementById('simChallenge1').style.display = 'block';
+            }, 2000);
+        }
+
+        function updateSimMeter(id, percent, text, color) {
+            document.getElementById(id + 'Fill').style.width = percent + '%';
+            document.getElementById(id + 'Value').innerText = text;
+            if (color) document.getElementById(id + 'Fill').style.background = color;
+        }
+
+        function checkSimAnswer(btn, isCorrect) {
+            if (isCorrect) {
+                btn.classList.add('correct');
+                simSpeak("Correct. Marine ecosystems depend on strong tidal mixing for nutrient distribution.", "tide_correct");
+                
+                setTimeout(() => {
+                    // Effect 2: Axis Tilt
+                    document.getElementById('earth3d').classList.add('wobble-earth');
+                    updateSimMeter('simTilt', 40, 'UNSTABLE');
+                    simSpeak("The Moon helps stabilize Earth’s tilt. Without it, tilt could vary wildly over time.", "tilt_shift");
+                    document.getElementById('simChallenge2').style.display = 'block';
+                }, 2000);
+            } else {
+                simSpeak("Incorrect. Ocean mixing would decrease significantly.", "tide_wrong");
+            }
+        }
+
+        function stabilizeEarth(isArtificial) {
+            if (isArtificial) {
+                document.getElementById('earth3d').classList.remove('wobble-earth');
+                updateSimMeter('simTilt', 90, 'STABILIZED', '#0096ff');
+                simSpeak("Artificial stabilization active. Tilt fixed.", "tilt_fixed");
+            } else {
+                simSpeak("Axial instability detected. Seasonal extremes increasing.", "tilt_natural");
+                updateSimMeter('simClimate', 20, 'CRITICAL', '#ff0000');
+            }
+
+            setTimeout(() => {
+                // Effect 3: Faster Rotation
+                updateSimMeter('simDay', 75, '18 Hours');
+                simSpeak("The Moon slows Earth’s rotation through tidal friction. Without it, days would be shorter.", "day_fast");
+                
+                // Effect 4: Life
+                updateSimMeter('simLife', 15, 'CRITICAL', '#ff0000');
+                simSpeak("The Moon has been essential in maintaining long-term climate stability and supporting complex life.", "conclusion");
+                document.getElementById('simFinalChallenge').style.display = 'block';
+            }, 2000);
+        }
+
+        function checkFinalSim(btn, type) {
+            if (type === 'microbial') {
+                btn.classList.add('correct');
+                simSpeak("Correct. While microbial life might survive, complex life as we know it would struggle in such an unstable environment.", "final_correct");
+                document.getElementById('simMessage').innerText = "SIMULATION COMPLETE: The Moon is essential for planetary stability and the development of complex life.";
+            } else {
+                simSpeak("In such extreme instability, only the hardiest organisms could survive.", "final_wrong");
+            }
+        }
+    </script>
+</body>
+</html>
+

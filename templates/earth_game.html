@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earth Explorer - Mission Earth: The Living Planet</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/earth_game.css') }}">
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <div class="dashboard-container">
+        <nav class="navbar">
+            <div class="navbar-brand">🚀 Mission Earth: The Living Planet</div>
+            <div class="navbar-right">
+                <div class="user-info">
+                    <span class="user-email">{{ user_email }}</span>
+                </div>
+                <button id="muteBtn" class="btn-logout" style="margin-right: 10px; border-color: #64c8ff; color: #64c8ff;">🔊 Mute</button>
+                <a href="{{ url_for('dashboard') }}" class="btn-logout" style="margin-right: 10px;">Dashboard</a>
+                <a href="{{ url_for('game_zone') }}" class="btn-logout">Exit</a>
+            </div>
+        </nav>
+
+        <div class="game-module-container">
+            <!-- Slide 1: Orbit Position Challenge -->
+            <div class="slide active" id="slide1">
+                <div class="game-header">
+                    <h1 class="game-title">🖥 SLIDE 1 – Orbit Position Challenge</h1>
+                    <p class="game-subtitle">🎯 “Place Earth in the Correct Orbit”</p>
+                </div>
+                <div class="game-content">
+                    <div class="orbit-challenge-container" id="orbitChallenge">
+                        <div class="sun-glow"></div>
+                        <div class="sun"></div>
+                        <div class="orbit" data-orbit="1"></div>
+                        <div class="orbit" data-orbit="2"></div>
+                        <div class="orbit" data-orbit="3"></div>
+                        <div class="orbit" data-orbit="4"></div>
+                        <div class="planet-mercury" title="Mercury"></div>
+                        <div class="planet-venus" title="Venus"></div>
+                        <div class="planet-mars" title="Mars"></div>
+                        <div id="draggableEarth" class="draggable-earth"></div>
+                    </div>
+                </div>
+                <div class="ai-narration">
+                    <p id="narration1">“Earth is perfectly positioned. Not too close like Mercury or Venus. Not too far like Mars. This position makes life possible.”</p>
+                </div>
+            </div>
+
+            <!-- Slide 2: Distance & Light Travel -->
+            <div class="slide" id="slide2">
+                <div class="game-header">
+                    <h1 class="game-title">🖥 SLIDE 2 – Distance & Light Travel</h1>
+                    <p class="game-subtitle">🎯 “How Far Is Earth from the Sun?”</p>
+                </div>
+                <div class="game-content">
+                    <div class="distance-simulation">
+                        <div class="sim-sun"></div>
+                        <div class="light-beam" id="lightBeam"></div>
+                        <div class="sim-earth" id="simEarth"></div>
+                        <div class="distance-line">
+                            <span id="distanceLabel">150 million km</span>
+                        </div>
+                        <div class="timer-box">
+                            <span id="lightTimer">0 minutes</span>
+                        </div>
+                    </div>
+                    <div class="controls-panel">
+                        <label>Distance Slider:</label>
+                        <input type="range" id="distanceSlider" min="50" max="250" value="150">
+                        <div class="status-indicator" id="distanceStatus">Perfect Distance: Liquid water visible</div>
+                    </div>
+                </div>
+                <div class="ai-narration">
+                    <p id="narration2">“Earth is located 149.6 million kilometers from the Sun. This distance is called one Astronomical Unit. Sunlight takes 8 minutes and 20 seconds to reach Earth. At this perfect distance, Earth maintains an average temperature of about 15 degrees Celsius. These conditions allow liquid water and life to exist.”</p>
+                </div>
+            </div>
+
+            <!-- Slide 3: How Sunlight Creates Morning -> Noon -> Evening -> Night -->
+            <div class="slide" id="slide3">
+                <div class="game-header">
+                    <h1 class="game-title">🖥 SLIDE 3 – HOW SUNLIGHT CREATES MORNING → NOON → EVENING → NIGHT</h1>
+                    <p class="game-subtitle">🎯 “Follow the Sunlight Across Earth”</p>
+                </div>
+                <div class="game-content" id="slide3Content">
+                    <div class="space-diagram-s3">
+                        <!-- Left Side - Sun -->
+                        <div class="sun-s3">
+                            <div class="sun-core-s3"></div>
+                            <div class="sun-rays-s3"></div>
+                            <div class="light-direction-arrow">
+                                <span>Sunlight Direction</span>
+                                <div class="arrow-head"></div>
+                            </div>
+                        </div>
+
+                        <!-- Center - Earth Model -->
+                        <div class="earth-system-s3">
+                            <div class="earth-3d-s3" id="earth3DS3">
+                                <div class="earth-texture-s3">
+                                    <div class="day-map-s3"></div>
+                                    <div class="night-map-s3"></div>
+                                    <div class="city-lights-s3"></div>
+                                </div>
+                                <div class="terminator-line-s3"></div>
+                                <div class="atmosphere-glow-s3"></div>
+                                
+                                <!-- Location Dots -->
+                                <div class="location-dot" id="dotNewYork" data-lat="40.7" data-lon="-74.0" title="New York"></div>
+                                <div class="location-dot" id="dotLondon" data-lat="51.5" data-lon="-0.1" title="London"></div>
+                                <div class="location-dot" id="dotIndia" data-lat="20.5" data-lon="78.9" title="India"></div>
+                                <div class="location-dot" id="dotAustralia" data-lat="-25.2" data-lon="133.7" title="Australia"></div>
+
+                                <!-- Shadow Stick -->
+                                <div class="shadow-stick-container" id="shadowStickMode" style="display:none;">
+                                    <div class="stick"></div>
+                                    <div class="stick-shadow"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Concept Visualizer Panel -->
+                        <div class="concept-panel-s3">
+                            <h3>Concept Visualizer</h3>
+                            <div class="indicator-group">
+                                <div class="indicator">
+                                    <label>Sun Angle</label>
+                                    <div class="angle-visual" id="sunAngleVisual">
+                                        <div class="angle-needle"></div>
+                                    </div>
+                                    <span id="sunAngleText">Low</span>
+                                </div>
+                                <div class="indicator">
+                                    <label>Brightness</label>
+                                    <div class="progress-bar"><div id="brightnessBar" class="bar"></div></div>
+                                    <span id="brightnessText">Medium</span>
+                                </div>
+                                <div class="indicator">
+                                    <label>Temperature</label>
+                                    <div class="progress-bar"><div id="tempBar" class="bar"></div></div>
+                                    <span id="tempText">Rising</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Interactive Timeline Bar -->
+                        <div class="timeline-bar-s3">
+                            <div class="timeline-point" data-state="morning">🌅 Morning</div>
+                            <div class="timeline-point" data-state="noon">☀ Noon</div>
+                            <div class="timeline-point" data-state="evening">🌇 Evening</div>
+                            <div class="timeline-point" data-state="night">🌙 Night</div>
+                            <div class="timeline-cursor" id="timelineCursor"></div>
+                        </div>
+                    </div>
+
+                    <div class="controls-overlay-s3">
+                        <div class="control-section">
+                            <h4>📍 Track Your City</h4>
+                            <div class="city-selector">
+                                <button class="btn-city" data-city="NewYork">New York</button>
+                                <button class="btn-city" data-city="London">London</button>
+                                <button class="btn-city" data-city="India">India</button>
+                                <button class="btn-city" data-city="Australia">Australia</button>
+                            </div>
+                        </div>
+
+                        <div class="control-section">
+                            <h4>🔄 Simulation Control</h4>
+                            <div class="sim-buttons">
+                                <button id="startRotationBtnS3" class="btn-game">▶ Start Rotation</button>
+                                <button id="stopRotationBtnS3" class="btn-game btn-danger">🛑 Stop Rotation</button>
+                            </div>
+                            <div class="slider-group">
+                                <label>Rotation Speed:</label>
+                                <input type="range" id="rotationSpeedSlider" min="0.5" max="5" step="0.5" value="1">
+                            </div>
+                        </div>
+
+                        <div class="control-section">
+                            <h4>🛠 Advanced Features</h4>
+                            <div class="toggle-group">
+                                <button id="toggleAxisTiltS3" class="btn-toggle">Axis Tilt: OFF</button>
+                                <button id="toggleShadowModeS3" class="btn-toggle">Shadow Mode: OFF</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mini-experiment-panel" id="experimentPanelS3" style="display:none;">
+                        <div class="experiment-alert">⚠️ WHAT IF EARTH STOPPED ROTATING?</div>
+                        <div class="experiment-results">
+                            <div class="result-side hot">🔥 SUN SIDE: Overheating! (100°C+)</div>
+                            <div class="result-side cold">❄️ DARK SIDE: Freezing! (-50°C)</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ai-narration">
+                    <p id="narration3">“Welcome to the Sunlight Tracker! Select a city and watch how Earth's rotation creates different times of day.”</p>
+                </div>
+            </div>
+
+            <!-- Slide 4: Revolution & Seasons - Tilt Controls Climate -->
+            <div class="slide" id="slide4">
+                <div class="game-header">
+                    <h1 class="game-title">🖥 SLIDE 4 – REVOLUTION & SEASONS</h1>
+                    <p class="game-subtitle">🎯 “Tilt Controls Climate”</p>
+                </div>
+                <div class="game-content" id="slide4Content">
+                    <div class="main-layout-s4">
+                        <!-- Left Side: Main Orbit View -->
+                        <div class="orbit-view-container-s4">
+                            <div class="sun-s4"></div>
+                            <div class="orbit-path-s4">
+                                <div class="orbit-label" style="top: 0; left: 50%;">June (Summer North)</div>
+                                <div class="orbit-label" style="top: 50%; left: 100%;">September (Autumn North)</div>
+                                <div class="orbit-label" style="top: 100%; left: 50%;">December (Winter North)</div>
+                                <div class="orbit-label" style="top: 50%; left: 0%;">March (Spring North)</div>
+                            </div>
+                            <div class="orbiting-earth-s4" id="earthOrbitingS4">
+                                <div class="earth-axis-s4"></div>
+                                <div class="polaris-arrow">Axis points toward Polaris ⬆</div>
+                            </div>
+                        </div>
+
+                        <!-- Right Side: Climate Panels & Indicators -->
+                        <div class="side-controls-s4">
+                            <div class="climate-panels-container">
+                                <div class="hemisphere-panel north">
+                                    <h4>Northern Hemisphere</h4>
+                                    <div class="indicator-s4">
+                                        <label>Sun Angle</label>
+                                        <div class="angle-gauge-s4"><div class="needle" id="northAngleNeedle"></div></div>
+                                    </div>
+                                    <div class="indicator-s4">
+                                        <label>Day Length</label>
+                                        <div class="progress-bar-s4"><div id="northDayBar" class="bar day"></div></div>
+                                    </div>
+                                    <div class="indicator-s4">
+                                        <label>Temperature</label>
+                                        <div class="progress-bar-s4"><div id="northTempBar" class="bar temp"></div></div>
+                                    </div>
+                                </div>
+                                <div class="hemisphere-panel south">
+                                    <h4>Southern Hemisphere</h4>
+                                    <div class="indicator-s4">
+                                        <label>Sun Angle</label>
+                                        <div class="angle-gauge-s4"><div class="needle" id="southAngleNeedle"></div></div>
+                                    </div>
+                                    <div class="indicator-s4">
+                                        <label>Day Length</label>
+                                        <div class="progress-bar-s4"><div id="southDayBar" class="bar day"></div></div>
+                                    </div>
+                                    <div class="indicator-s4">
+                                        <label>Temperature</label>
+                                        <div class="progress-bar-s4"><div id="southTempBar" class="bar temp"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="extra-visualizers-s4">
+                                <!-- Sun Angle Close-up -->
+                                <div class="sun-angle-visualizer-s4">
+                                    <h5>Sun Angle Visualizer</h5>
+                                    <div class="beam-simulation" id="beamSim">
+                                        <div class="incoming-light"></div>
+                                        <div class="surface-hit"></div>
+                                    </div>
+                                    <p id="angleDescription">Direct rays = Concentrated heat</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom: Shared Controls -->
+                    <div class="bottom-interactive-s4">
+                        <div class="timeline-control-s4">
+                            <label>Move Through the Year:</label>
+                            <input type="range" id="yearSliderS4" min="0" max="12" step="0.01" value="5.5">
+                            <div class="month-labels">
+                                <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
+                                <span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span><span>Jan</span>
+                            </div>
+                        </div>
+                        
+                        <div class="experiment-controls-s4">
+                            <div class="control-box">
+                                <label>Adjust Tilt Angle (0° - 45°):</label>
+                                <input type="range" id="tiltSliderS4" min="0" max="45" step="0.5" value="23.5">
+                                <span id="tiltValS4">23.5° (Perfect Tilt)</span>
+                                <div class="tilt-status" id="tiltStatusS4" style="font-size: 10px; color: #00ff00;">✅ Scientifically Accurate</div>
+                            </div>
+                            <div class="control-box">
+                                <button id="climateGameBtnS4" class="btn-game">Build a Climate</button>
+                                <button id="latConnectBtnS4" class="btn-game">Latitude Map</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Overlay Modals -->
+                    <div id="climateModalS4" class="modal-s4" style="display:none;">
+                        <h3>🛠 Build a Climate</h3>
+                        <div class="game-settings">
+                            <label>Tilt: <span id="gameTiltVal">23.5</span>°</label>
+                            <label>Orbit Speed: <span id="gameSpeedVal">Normal</span></label>
+                        </div>
+                        <div class="result-box-s4" id="climateResultS4">
+                            Result: Normal Seasons (Habitable)
+                        </div>
+                        <button onclick="document.getElementById('climateModalS4').style.display='none'" class="btn-game">Close</button>
+                    </div>
+                </div>
+                <div class="ai-narration">
+                    <p id="narration4">“Welcome to the Seasons Lab! Earth's 23.5 degree tilt is why we have different weather patterns throughout the year.”</p>
+                </div>
+            </div>
+
+            <!-- Slide 5: BUILD EARTH FROM INSIDE OUT -->
+            <div class="slide" id="slide5">
+                <div class="game-header">
+                    <h1 class="game-title">🎨 GLOBAL UI DESIGN (Student-Friendly + Realistic)</h1>
+                    <p class="game-subtitle">🎯 GAME MODE 1 – BUILD EARTH FROM INSIDE OUT</p>
+                </div>
+                <div class="game-content" id="slide5Content">
+                    <div class="earth-builder-container">
+                        <!-- Left side: Live Planet Status Panel -->
+                        <div class="planet-status-panel">
+                            <h3>📊 Planet Status Panel</h3>
+                            <div class="status-row">
+                                <span>Temperature:</span>
+                                <span id="status-temp">0°C</span>
+                            </div>
+                            <div class="status-row">
+                                <span>Atmosphere:</span>
+                                <span id="status-atmo">None</span>
+                            </div>
+                            <div class="status-row">
+                                <span>Magnetic Field:</span>
+                                <span id="status-mag">Inactive</span>
+                            </div>
+                            <div class="status-row">
+                                <span>Water Coverage:</span>
+                                <span id="status-water">0%</span>
+                            </div>
+                            <div class="status-row">
+                                <span>Life Probability:</span>
+                                <div class="life-indicator" id="life-indicator"></div>
+                            </div>
+                            
+                            <!-- Smart Information Popups -->
+                            <div id="smart-info-popup" class="smart-info-popup">
+                                <h4 id="popup-title">Welcome</h4>
+                                <div id="popup-content">Build Earth from the inside out!</div>
+                                <div class="popup-stats" id="popup-stats"></div>
+                            </div>
+                        </div>
+
+                        <!-- Center: Large 3D semi-transparent Earth -->
+                        <div class="earth-centerpiece">
+                            <div class="earth-3d-model" id="earth-3d-model">
+                                <!-- Core Layers -->
+                                <div class="build-layer inner-core hidden" id="layer-inner-core"></div>
+                                <div class="build-layer outer-core hidden" id="layer-outer-core"></div>
+                                <div class="build-layer mantle hidden" id="layer-mantle"></div>
+                                <div class="build-layer crust hidden" id="layer-crust"></div>
+                                <div class="build-layer atmosphere hidden" id="layer-atmosphere"></div>
+                                <div class="build-layer magnetic-field hidden" id="layer-magnetic-field"></div>
+                                <div class="build-layer water-layer hidden" id="layer-water"></div>
+                                
+                                <!-- Heat shimmer and other effects -->
+                                <div class="effect-heat-shimmer hidden" id="heat-shimmer"></div>
+                                <div class="effect-solar-wind hidden" id="solar-wind-effect"></div>
+                            </div>
+                        </div>
+
+                        <!-- Right side: Interactive Toolbox -->
+                        <div class="interactive-toolbox">
+                            <h3>🧩 Drag & Drop Toolbox</h3>
+                            <div class="toolbox-items">
+                                <div class="toolbox-item draggable" draggable="true" data-component="inner-core" id="tool-inner-core">
+                                    <span class="icon">🔴</span> Iron Core
+                                </div>
+                                <div class="toolbox-item draggable disabled" draggable="false" data-component="outer-core" id="tool-outer-core">
+                                    <span class="icon">🟠</span> Liquid Outer Core
+                                </div>
+                                <div class="toolbox-item draggable disabled" draggable="false" data-component="mantle" id="tool-mantle">
+                                    <span class="icon">🟡</span> Mantle Rock
+                                </div>
+                                <div class="toolbox-item draggable disabled" draggable="false" data-component="crust" id="tool-crust">
+                                    <span class="icon">🟤</span> Crust
+                                </div>
+                                <div class="toolbox-item draggable disabled" draggable="false" data-component="atmosphere" id="tool-atmosphere">
+                                    <span class="icon">🌫</span> Atmosphere
+                                </div>
+                                <div class="toolbox-item draggable disabled" draggable="false" data-component="magnetic-field" id="tool-magnetic-field">
+                                    <span class="icon">🧲</span> Magnetic Field
+                                </div>
+                                <div class="toolbox-item draggable disabled" draggable="false" data-component="water" id="tool-water">
+                                    <span class="icon">💧</span> Water Layer
+                                </div>
+                            </div>
+                            
+                            <div class="bonus-controls">
+                                <h3>🎮 BONUS MODE</h3>
+                                <button id="btn-reset-earth" class="btn-game">Reset Earth</button>
+                                <button id="btn-remove-layer" class="btn-game" disabled>Remove Top Layer</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ai-narration">
+                    <p id="narration5">“This is Earth’s inner core. Despite extreme heat, intense pressure keeps it solid.”</p>
+                </div>
+            </div>
+
+            <!-- Slide 6: Gravity Explorer -->
+            <div class="slide" id="slide6">
+                <div class="game-header">
+                    <h1 class="game-title">🖥 SLIDE 6 – 🌍 GRAVITY EXPLORER</h1>
+                    <p class="game-subtitle">🎯 “Why Does Everything Fall?”</p>
+                </div>
+                <div class="game-content" id="slide6Content">
+                    <div class="gravity-game-container">
+                        <!-- Left Panel – Object Selection -->
+                        <div class="objects-panel">
+                            <h3>🧍‍♂️ Select Objects</h3>
+                            <div class="object-item" data-mass="1" data-type="Ball" data-icon="⚽">
+                                <span>⚽ Ball (1 kg)</span>
+                            </div>
+                            <div class="object-item" data-mass="5" data-type="Brick" data-icon="🧱">
+                                <span>🧱 Brick (5 kg)</span>
+                            </div>
+                            <div class="object-item" data-mass="0.1" data-type="Feather" data-icon="🪶">
+                                <span>🪶 Feather (0.1 kg)</span>
+                            </div>
+                            <div class="object-item" data-mass="0.2" data-type="Apple" data-icon="🍎">
+                                <span>🍎 Apple (0.2 kg)</span>
+                            </div>
+                        </div>
+
+                        <!-- Center Screen (Main Scene) -->
+                        <div class="gravity-main-scene">
+                            <div class="soft-sunlight"></div>
+                            <div class="earth-horizon"></div>
+                            <div class="ground-platform" id="groundPlatformS6">
+                                <div class="height-scale">
+                                    <span style="bottom: 10%">10m</span>
+                                    <span style="bottom: 20%">20m</span>
+                                    <span style="bottom: 50%">50m</span>
+                                </div>
+                            </div>
+                            <div class="drop-zone" id="dropZone">
+                                <div class="dropping-object" id="obj1"></div>
+                                <div class="dropping-object" id="obj2"></div>
+                            </div>
+                            <div class="gravity-lines"></div>
+                        </div>
+                    </div>
+
+                    <div class="gravity-controls">
+                        <div class="height-control">
+                            <label>STEP 1: Choose Height</label>
+                            <input type="range" id="heightSlider" min="10" max="50" value="20">
+                        </div>
+                        <button id="dropBtn" class="btn-game glowing">DROP</button>
+                        <div class="gravity-adjust">
+                            <label>🌌 CHANGE GRAVITY</label>
+                            <input type="range" id="gravitySlider" min="1" max="20" step="0.1" value="9.8">
+                            <button id="noGravityBtn" class="btn-danger">NO GRAVITY</button>
+                        </div>
+                    </div>
+
+                    <!-- Information Panel (Initially Hidden) -->
+                    <div id="gravityInfoPanel" class="info-overlay hidden">
+                        <h3>What Is Gravity?</h3>
+                        <p>Gravity is a force that pulls objects toward the center of Earth.</p>
+                        <p>Earth’s gravity strength: <strong>9.8 m/s²</strong></p>
+                        <p>Meaning: Every second an object falls, its speed increases by 9.8 m/s.</p>
+                    </div>
+                </div>
+                <div class="ai-narration">
+                    <p id="narration6">“Select a height. Gravity pulls objects toward Earth at 9.8 meters per second squared.”</p>
+                </div>
+            </div>
+
+            <!-- Slide 7: The Biosphere & Water World Connection -->
+            <div class="slide" id="slide7">
+                <div class="game-header">
+                    <h1 class="game-title">🖥 SLIDE 7 – THE BIOSPHERE</h1>
+                    <p class="game-subtitle">🎯 “Everything is Connected”</p>
+                </div>
+                <div class="game-content" id="slide7Content">
+                    <div class="biosphere-lab">
+                        <div class="ecosystem-view" id="ecosystemViewS7">
+                            <div class="living-earth-mini"></div>
+                            <div class="connection-lines"></div>
+                        </div>
+                        <div class="connection-puzzles">
+                            <div class="puzzle-piece" data-type="core">Core (Magnetic Field)</div>
+                            <div class="puzzle-piece" data-type="atmo">Atmosphere (Oxygen)</div>
+                            <div class="puzzle-piece" data-type="water">Oceans (Water Cycle)</div>
+                            <div class="puzzle-piece" data-type="sun">Sun (Energy)</div>
+                            <div class="biosphere-status" id="biosphereStatusS7">
+                                <h3>Biosphere Health: <span id="healthValS7">100%</span></h3>
+                            </div>
+                        </div>
+                        <div class="balance-challenge">
+                            <button id="startBalanceBtnS7" class="btn-game">Test Ecosystem Balance</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="ai-narration">
+                    <p id="narration7">“The Biosphere is the sum of all ecosystems. Core, atmosphere, and water all work together to support life.”</p>
+                </div>
+            </div>
+
+            <!-- Slide 8: EARTH WATER BALANCE SIMULATOR -->
+            <div class="slide" id="slide8">
+                <div class="game-header">
+                    <h1 class="game-title">🖥 SLIDE 8 – 🌍 EARTH WATER BALANCE SIMULATOR</h1>
+                    <p class="game-subtitle">🎮 “Build, Balance & Protect Earth’s Water”</p>
+                </div>
+                <div class="game-content" id="slide8Content">
+                    <div class="water-simulator-container">
+                        <!-- Left Panel: Drag & Drop Controls -->
+                        <div class="sim-panel left-panel">
+                            <h3>🧰 CONTROLS</h3>
+                            <div class="drag-items-grid">
+                                <div class="drag-item" draggable="true" id="dragOcean" data-type="ocean">
+                                    <span class="item-icon">🌊</span>
+                                    <span class="item-label">Add Ocean (+10)</span>
+                                </div>
+                                <div class="drag-item remove" draggable="true" id="remOcean" data-type="remOcean">
+                                    <span class="item-icon">🌊❌</span>
+                                    <span class="item-label">Remove Water (-1)</span>
+                                </div>
+                                <div class="drag-item" draggable="true" id="dragLand" data-type="land">
+                                    <span class="item-icon">🌍</span>
+                                    <span class="item-label">Add Land (+5)</span>
+                                </div>
+                                <div class="drag-item remove" draggable="true" id="remLand" data-type="remLand">
+                                    <span class="item-icon">🌍❌</span>
+                                    <span class="item-label">Remove Land (-1)</span>
+                                </div>
+                                <div class="drag-item" draggable="true" id="dragIce" data-type="ice">
+                                    <span class="item-icon">🧊</span>
+                                    <span class="item-label">Add Ice (+5)</span>
+                                </div>
+                                <div class="drag-item" draggable="true" id="dragFreshwater" data-type="fresh">
+                                    <span class="item-icon">🚰</span>
+                                    <span class="item-label">Add Fresh (+0.5)</span>
+                                </div>
+                                <div class="drag-item" draggable="true" id="dragPollution" data-type="pollution">
+                                    <span class="item-icon">🏭</span>
+                                    <span class="item-label">Add Pollution (+10)</span>
+                                </div>
+                            </div>
+                            
+                            <div class="sliders-control">
+                                <div class="control-group">
+                                    <label>Global Water Level</label>
+                                    <input type="range" id="waterLevelSlider" min="0" max="100" value="50">
+                                </div>
+                                <div class="control-group">
+                                    <label>🔥 Global Temperature</label>
+                                    <input type="range" id="tempSlider" min="-10" max="50" value="15">
+                                </div>
+                                <button id="resetSimS8" class="btn-game btn-danger" style="width: 100%; margin-top: 10px;">🔄 Reset Simulator</button>
+                            </div>
+                        </div>
+
+                        <!-- Center: Interactive 3D Earth -->
+                        <div class="sim-center">
+                            <div class="top-data-bar">
+                                <div class="data-item">Water: <span id="val-water-surf">0</span>%</div>
+                                <div class="data-item">Land: <span id="val-land-surf">0</span>%</div>
+                                <div class="data-item">Temp: <span id="val-global-temp">15</span>°C</div>
+                            </div>
+                            <div class="earth-container-s8" id="earthDropZone">
+                                <div class="earth-3d-model-s8" id="earthModelS8">
+                                    <div class="earth-texture-s8"></div>
+                                    <div class="ocean-layer-s8"></div>
+                                    <div class="ice-layer-s8"></div>
+                                    <div class="pollution-layer-s8"></div>
+                                    <div class="flood-layer-s8"></div>
+                                    <div class="temp-glow-s8"></div>
+                                </div>
+                                <div id="surfaceStatusS8" class="status-indicator-s8">Surface Unbalanced</div>
+                            </div>
+                        </div>
+
+                        <!-- Right Panel: Live Data & Metrics -->
+                        <div class="sim-panel right-panel">
+                            <h3>📊 LIVE DATA</h3>
+                            <div class="metrics-list">
+                                <div class="metric-row main-metric" id="row-water-surf">
+                                    <span>Surface Water (T: 71%):</span>
+                                    <span class="metric-value"><span id="val-water-surf-live">0%</span> <small id="diff-water-surf"></small></span>
+                                </div>
+                                <div class="metric-row main-metric" id="row-land-surf">
+                                    <span>Surface Land (T: 29%):</span>
+                                    <span class="metric-value"><span id="val-land-surf-live">0%</span> <small id="diff-land-surf"></small></span>
+                                </div>
+                                <hr>
+                                <div class="metric-row" id="row-saltwater">
+                                    <span>Saltwater (T: 97%):</span>
+                                    <span class="metric-value"><span id="val-saltwater">0%</span> <small id="diff-saltwater"></small></span>
+                                </div>
+                                <div class="metric-row" id="row-freshwater">
+                                    <span>Freshwater (T: 3%):</span>
+                                    <span class="metric-value"><span id="val-freshwater">0%</span> <small id="diff-freshwater"></small></span>
+                                </div>
+                                <div class="metric-row sub" id="row-ice-coverage">
+                                    <span>- Ice (T: 69% of F):</span>
+                                    <span class="metric-value"><span id="val-ice-coverage">0%</span> <small id="diff-ice-coverage"></small></span>
+                                </div>
+                                <div class="metric-row sub" id="row-drinkable">
+                                    <span>- Drinkable (T: 1% of F):</span>
+                                    <span class="metric-value"><span id="val-drinkable">0%</span> <small id="diff-drinkable"></small></span>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Sea Level:</span>
+                                    <span id="val-sea-level">Normal</span>
+                                </div>
+                                <hr>
+                                <div class="pollution-meter-container">
+                                    <label>🏭 Pollution Meter (Safe: < 20%)</label>
+                                    <div class="meter-bg"><div id="pollution-bar" class="meter-fill pollution"></div></div>
+                                    <div id="pollution-alert" class="alert-text hidden">⚠️ HIGH POLLUTION ALERT!</div>
+                                </div>
+                                <div class="stability-meter">
+                                    <label>Life Stability Meter</label>
+                                    <div class="meter-bg" id="stability-glow-box"><div id="life-stability-bar" class="meter-fill"></div></div>
+                                </div>
+                            </div>
+                            <div id="gameStepS8" class="game-step-hint">Step 1: Drag Ocean & Land to balance surface.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ai-narration">
+                    <p id="narration8">“Welcome to the Earth Water Balance Simulator. Adjust land and water to match real Earth.”</p>
+                </div>
+            </div>
+
+            <!-- Slide 9: ATMOSPHERIC COMPOSITION LAB -->
+            <div class="slide" id="slide9">
+                <div class="game-header">
+                    <h1 class="game-title">🖥 SLIDE 9 – 🌫 WHAT IS EARTH’S AIR MADE OF?</h1>
+                    <p class="game-subtitle">🎯 “Atmospheric Composition Lab – Balance the Air”</p>
+                </div>
+                <div class="game-content" id="slide9Content">
+                    <div class="atmo-lab-container">
+                        <!-- Top Header for Simulation -->
+                        <div class="atmo-sim-header">
+                            <div class="sim-metric">🌡 Temp: <span id="atmo-temp">15°C</span></div>
+                            <div class="sim-metric">
+                                Life Stability: 
+                                <div class="life-meter-s9"><div id="life-bar-s9"></div></div>
+                            </div>
+                            <div class="atmo-toggle-container">
+                                <label class="switch">
+                                    <input type="checkbox" id="atmo-toggle" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                                <span>ATMOSPHERE</span>
+                            </div>
+                        </div>
+
+                        <div class="atmo-main-layout">
+                            <!-- Left Panel: Gas Control Lab -->
+                            <div class="atmo-panel left-panel">
+                                <h3>🎛 Gas Control Lab</h3>
+                                <div class="gas-slider-group">
+                                    <div class="gas-slider">
+                                        <label>🟦 Nitrogen (N₂): <span id="val-nitrogen">78</span>%</label>
+                                        <input type="range" id="slider-nitrogen" min="0" max="100" value="78">
+                                    </div>
+                                    <div class="gas-slider">
+                                        <label>🟩 Oxygen (O₂): <span id="val-oxygen">21</span>%</label>
+                                        <input type="range" id="slider-oxygen" min="0" max="100" value="21">
+                                    </div>
+                                    <div class="gas-slider">
+                                        <label>🟥 Carbon Dioxide (CO₂): <span id="val-co2">0.04</span>%</label>
+                                        <input type="range" id="slider-co2" min="0" max="10" step="0.01" value="0.04">
+                                    </div>
+                                    <div class="gas-slider locked">
+                                        <label>🟨 Argon: 0.93% (Locked)</label>
+                                        <div class="locked-bar"></div>
+                                    </div>
+                                </div>
+                                <div id="atmo-warning" class="atmo-warning hidden">⚠️ Atmosphere must equal 100%</div>
+                                <div id="atmo-total" class="atmo-total">Total: 100%</div>
+                            </div>
+
+                            <!-- Center: Earth Display -->
+                            <div class="atmo-center-display">
+                                <div class="earth-atmo-model" id="earth-atmo-model">
+                                    <div class="atmo-glow" id="atmo-glow"></div>
+                                    <div class="clouds-layer" id="clouds-layer"></div>
+                                    <div class="uv-radiation hidden" id="uv-radiation"></div>
+                                    <div class="meteor-strike hidden" id="meteor-strike"></div>
+                                    <div class="fire-sparks hidden" id="fire-sparks"></div>
+                                </div>
+                            </div>
+
+                            <!-- Right Panel: Live Visual Data -->
+                            <div class="atmo-panel right-panel">
+                                <h3>📊 Live Visual Data</h3>
+                                <div class="chart-container">
+                                    <svg viewBox="0 0 100 100" class="pie-chart">
+                                        <circle cx="50" cy="50" r="40" class="chart-bg" />
+                                        <path id="pie-nitrogen" d="" fill="#0077b6" />
+                                        <path id="pie-oxygen" d="" fill="#4dff4d" />
+                                        <path id="pie-co2" d="" fill="#ff4d4d" />
+                                        <path id="pie-argon" d="" fill="#ffcc00" />
+                                    </svg>
+                                </div>
+                                <div class="atmo-gauges">
+                                    <div class="gauge">
+                                        <label>Air Pressure</label>
+                                        <div class="gauge-bar"><div id="gauge-pressure" style="width: 100%;"></div></div>
+                                    </div>
+                                    <div class="gauge">
+                                        <label>Fire Risk</label>
+                                        <div class="gauge-bar"><div id="gauge-fire" style="width: 10%;"></div></div>
+                                    </div>
+                                    <div class="gauge">
+                                        <label>Plant Growth</label>
+                                        <div class="gauge-bar"><div id="gauge-plants" style="width: 90%;"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Feedback Popup -->
+                        <div id="atmo-feedback" class="atmo-feedback-popup hidden">
+                            <h4 id="feedback-title">Atmosphere Architect</h4>
+                            <p id="feedback-text">Perfect balance unlocked!</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="ai-narration">
+                    <p id="narration9">“Welcome to the Atmospheric Lab. Find the perfect balance of gases to sustain life on Earth.”</p>
+                </div>
+            </div>
+
+            <!-- Final Comparison Table -->
+            <div class="slide" id="finalSlide">
+                <div class="game-header">
+                    <h1 class="game-title">📊 Final Comparison Table</h1>
+                </div>
+                <div class="game-content">
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Earth</th>
+                                <th>Venus</th>
+                                <th>Mercury</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Life</td>
+                                <td>Yes</td>
+                                <td>No</td>
+                                <td>No</td>
+                            </tr>
+                            <tr>
+                                <td>Atmosphere</td>
+                                <td>Balanced</td>
+                                <td>Thick CO₂</td>
+                                <td>Very Thin</td>
+                            </tr>
+                            <tr>
+                                <td>Water</td>
+                                <td>Liquid</td>
+                                <td>No</td>
+                                <td>Ice at poles</td>
+                            </tr>
+                            <tr>
+                                <td>Moons</td>
+                                <td>1</td>
+                                <td>0</td>
+                                <td>0</td>
+                            </tr>
+                            <tr>
+                                <td>Avg Temp</td>
+                                <td>15°C</td>
+                                <td>470°C</td>
+                                <td>Extreme</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="ai-narration">
+                    <p id="closingNarration">“Earth is special. It has the right distance, atmosphere, water, and temperature. That is why life exists here. Protecting Earth means protecting our future.”</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-controls">
+            <button id="prevBtn" class="btn-nav" disabled>⬅ Previous</button>
+            <div class="slide-indicator"><span id="currentSlideNum">1</span> / 10</div>
+            <button id="nextBtn" class="btn-nav">Next ⮕</button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/earth_game.js') }}"></script>
+    <script>
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            const starCount = 100;
+            
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+        
+        createStars();
+    </script>
+</body>
+</html>

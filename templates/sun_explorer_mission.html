@@ -1,0 +1,1831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sun Explorer – Star Science Mission</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        :root {
+            --sun-core: #fff700;
+            --sun-radiative: #ffcc00;
+            --sun-convective: #ff9900;
+            --sun-photosphere: #ff6600;
+            --sun-chromosphere: #ff3300;
+            --sun-corona: #ff0000;
+            --nasa-blue: #0032a0;
+            --accent-gold: #ffcc00;
+        }
+
+        .sun-mission-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+            padding: 20px;
+        }
+
+        .slide-wrapper {
+            display: none;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .slide-wrapper.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .mission-card {
+            background: rgba(10, 10, 25, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 204, 0, 0.2);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 0 50px rgba(255, 100, 0, 0.2);
+            margin-top: 20px;
+            min-height: 700px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mission-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .mission-title {
+            font-size: 36px;
+            color: #ffffff;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #fff700 0%, #ff6600 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 800;
+        }
+
+        .mission-subtitle {
+            font-size: 18px;
+            color: #a0a0b0;
+            font-weight: 300;
+        }
+
+        .interactive-stage {
+            flex-grow: 1;
+            background: #000;
+            border-radius: 16px;
+            border: 1px solid #333;
+            position: relative;
+            overflow: hidden;
+            height: 500px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .ui-label {
+            color: var(--accent-gold);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            margin-bottom: 5px;
+            text-shadow: 0 0 5px rgba(0,0,0,0.8);
+        }
+
+        .ui-value {
+            color: #fff;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .controls-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+        }
+
+        .btn-mission {
+            background: linear-gradient(135deg, #ffcc00 0%, #ff6600 100%);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 30px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-mission:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.4);
+        }
+
+        .btn-mission:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-back-mission {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-back-mission:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .narration-box {
+            background: rgba(255, 204, 0, 0.1);
+            border-left: 4px solid var(--accent-gold);
+            padding: 15px 20px;
+            border-radius: 0 12px 12px 0;
+            margin-top: 20px;
+            font-size: 16px;
+            line-height: 1.5;
+            color: #e0e0f0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .speaker-icon {
+            font-size: 24px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Slide 1 - Earth's Orbit */
+        .orbit-path {
+            position: absolute;
+            border: 1px dashed rgba(100, 200, 255, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            display: none;
+        }
+
+        .orbit-path.visible {
+            display: block;
+        }
+
+        .orbit-path.success {
+            border-color: rgba(100, 200, 255, 0.8);
+            border-style: solid;
+            box-shadow: 0 0 15px rgba(100, 200, 255, 0.2);
+        }
+
+        .draggable-earth {
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle at 30% 30%, #4b9fff, #0032a0);
+            border-radius: 50%;
+            position: absolute;
+            cursor: grab;
+            z-index: 20;
+            box-shadow: 0 0 10px rgba(75, 159, 255, 0.5);
+        }
+
+        .draggable-earth:active {
+            cursor: grabbing;
+        }
+
+        .distance-label {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 25;
+            white-space: nowrap;
+        }
+
+        .distance-arrow {
+            position: absolute;
+            transform-origin: left center;
+            height: 2px;
+            background: rgba(255, 204, 0, 0.4);
+            pointer-events: none;
+            z-index: 5;
+            display: none;
+        }
+
+        .distance-arrow::after {
+            content: '';
+            position: absolute;
+            right: -5px;
+            top: -4px;
+            width: 0;
+            height: 0;
+            border-left: 10px solid rgba(255, 204, 0, 0.6);
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+        }
+
+        .year-progress-container {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            margin: 0 auto 10px;
+        }
+
+        .year-progress-svg {
+            transform: rotate(-90deg);
+        }
+
+        .year-progress-circle {
+            fill: none;
+            stroke: var(--accent-gold);
+            stroke-width: 4;
+            stroke-dasharray: 251.2;
+            stroke-dashoffset: 251.2;
+            transition: stroke-dashoffset 0.1s linear;
+        }
+
+        /* Slide 2 - NASA Structure Lab */
+        .sun-build-stage {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .sun-visual-area {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle, rgba(255, 100, 0, 0.05), transparent);
+            border-radius: 16px;
+        }
+
+        .stellar-frame {
+            width: 350px;
+            height: 350px;
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .sun-layer-circle {
+            position: absolute;
+            border-radius: 50%;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            transform: scale(0);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .sun-layer-circle.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Layer specific styles */
+        .layer-core { width: 60px; height: 60px; background: radial-gradient(circle, #fff, #fff700); z-index: 10; box-shadow: 0 0 40px #fff700; }
+        .layer-radiative { width: 140px; height: 140px; background: radial-gradient(circle, #fff700, #ffcc00); z-index: 9; }
+        .layer-convective { width: 220px; height: 220px; background: radial-gradient(circle, #ffcc00, #ff9900); z-index: 8; }
+        .layer-photosphere { width: 280px; height: 280px; background: radial-gradient(circle, #ff9900, #ff6600); z-index: 7; border: 1px solid rgba(255,255,255,0.2); }
+        .layer-chromosphere { width: 310px; height: 310px; background: rgba(255, 51, 0, 0.6); z-index: 6; border: 2px solid #ff3300; }
+        .layer-corona { width: 450px; height: 450px; background: radial-gradient(circle, rgba(255, 255, 255, 0.2), transparent); z-index: 5; filter: blur(10px); }
+
+        .monitor-panel {
+            width: 280px;
+            background: rgba(0, 50, 160, 0.1);
+            border: 1px solid rgba(100, 200, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .monitor-header {
+            color: #64c8ff;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(100, 200, 255, 0.3);
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .data-label { color: #a0a0b0; font-size: 11px; text-transform: uppercase; }
+        .data-value { color: #fff; font-family: monospace; font-size: 16px; }
+
+        .energy-meter-container {
+            height: 30px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .energy-meter-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, #ff6600, #4ade80);
+            transition: width 1s ease;
+        }
+
+        .energy-meter-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            line-height: 30px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 5px #000;
+        }
+
+        .layer-cards-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            margin-top: 10px;
+        }
+
+        .layer-card {
+            width: 130px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            cursor: grab;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .layer-card:hover {
+            background: rgba(255, 204, 0, 0.1);
+            border-color: var(--accent-gold);
+            transform: translateY(-5px);
+        }
+
+        .layer-card .card-name {
+            display: block;
+            color: #fff;
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .layer-card .card-hint {
+            display: block;
+            color: var(--accent-gold);
+            font-size: 10px;
+            opacity: 0.8;
+        }
+
+        .layer-card.placed {
+            opacity: 0.3;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        /* Slide 3 - Fusion */
+        .atom {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #fff, #64c8ff);
+            box-shadow: 0 0 10px rgba(100, 200, 255, 0.5);
+        }
+
+        .helium {
+            background: radial-gradient(circle at 30% 30%, #fff, #ffcc00);
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.8);
+            width: 35px;
+            height: 35px;
+        }
+
+        /* Slide 6 - Sun Surface & Solar Storms */
+        .sun-surface-stage {
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: radial-gradient(circle at center, #fff700, #ff6600, #ff3300);
+            box-shadow: 0 0 100px rgba(255, 100, 0, 0.6);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sunspot {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 50%;
+            filter: blur(5px);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .flare-animation {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            filter: blur(10px);
+            box-shadow: 0 0 30px #fff, 0 0 60px #ffcc00;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .magnetic-line {
+            position: absolute;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        /* Red Giant */
+        .timeline-container {
+            width: 100%;
+            padding: 20px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        @keyframes rotateEarth {
+            from { background-position: 0 0; }
+            to { background-position: 1200px 0; }
+        }
+
+        @keyframes pulse-green {
+            0% { transform: scale(1); box-shadow: 0 0 10px rgba(74, 222, 128, 0.5); }
+            50% { transform: scale(1.1); box-shadow: 0 0 20px rgba(74, 222, 128, 0.8); }
+            100% { transform: scale(1); box-shadow: 0 0 10px rgba(74, 222, 128, 0.5); }
+        }
+
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <div class="sun-mission-container">
+        <nav class="navbar">
+            <div class="navbar-brand">🚀 Space Explorer – Sun Mission</div>
+            <div class="navbar-right">
+                <span class="user-email">{{ user_email }}</span>
+                <a href="{{ url_for('dashboard') }}" class="btn-logout" style="margin-right: 10px;">Dashboard</a>
+                <a href="{{ url_for('game_zone') }}" class="btn-logout">Exit Mission</a>
+            </div>
+        </nav>
+
+        <div class="mission-card">
+            <div id="slide1" class="slide-wrapper active">
+                <div class="mission-header">
+                    <h1 class="mission-title">Slide 1: Earth's Orbit Around the Sun</h1>
+                    <p class="mission-subtitle">Build and explore Earth's elliptical path through space.</p>
+                </div>
+                
+                <div class="interactive-stage" id="s1-stage">
+                    <div class="ui-overlay">
+                        <div class="ui-label">SYSTEM FOCUS</div>
+                        <div class="ui-value" id="s1-focus">SUN (CENTER)</div>
+                        <div class="ui-label">MISSION STATUS</div>
+                        <div id="s1-status" class="ui-value" style="color: #ffcc00; font-size: 14px;">AWAITING EARTH PLACEMENT</div>
+                    </div>
+
+                    <!-- Orbit Path -->
+                    <div id="s1-orbit" class="orbit-path"></div>
+                    
+                    <!-- Sun -->
+                    <div id="s1-sun" class="sun-surface" style="width: 120px; height: 120px; z-index: 10;"></div>
+                    
+                    <!-- Draggable Earth -->
+                    <div id="s1-earth" class="draggable-earth"></div>
+                    
+                    <!-- Distance Arrow -->
+                    <div id="s1-distance-arrow" class="distance-arrow"></div>
+                    
+                    <!-- Distance Line & Label -->
+                    <div id="s1-distance-label" class="distance-label" style="display: none;">📏 149.6M km</div>
+                </div>
+
+                <div class="controls-panel">
+                    <div style="display: flex; gap: 15px;">
+                        <button class="btn-back-mission" id="s1-pause-btn" style="display: none;">Pause Orbit</button>
+                        <button class="btn-back-mission" id="s1-speed-btn" style="display: none;">Speed Up Time</button>
+                        <button class="btn-back-mission" id="s1-ellipse-btn" style="display: none;">Show Ellipse</button>
+                        <button class="btn-back-mission" onclick="initSlide1()">Reset Simulation</button>
+                    </div>
+
+                    <div id="s1-right-panel" style="display: none; background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 12px; min-width: 200px;">
+                        <div class="year-progress-container">
+                            <svg class="year-progress-svg" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="40" class="year-progress-circle" id="s1-year-circle"></circle>
+                            </svg>
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--accent-gold); font-weight: bold; font-size: 12px;">YEAR</div>
+                        </div>
+                        <div style="font-size: 12px; color: #a0a0b0; text-align: center;">
+                            <div>Distance: <span id="s1-live-dist" style="color: #fff;">-</span></div>
+                            <div>Speed: <span id="s1-live-speed" style="color: #fff;">~29.8 km/s</span></div>
+                            <div>Time: <span id="s1-live-time" style="color: #fff;">0 Days</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="narration-box">
+                    <span class="speaker-icon">🎤</span>
+                    <p id="s1-narration">“The Sun is at the center of our solar system.”</p>
+                </div>
+            </div>
+
+            <div id="slide2" class="slide-wrapper">
+                <div class="mission-header">
+                    <h1 class="mission-title">Slide 2: Inside the Sun (Structure Lab)</h1>
+                    <p class="mission-subtitle">Mission Control – Construct the Sun layer-by-layer from the core outward.</p>
+                </div>
+                
+                <div class="interactive-stage" style="flex-direction: column;">
+                    <div class="sun-build-stage">
+                        <div class="sun-visual-area" id="s2-drop-zone">
+                            <div class="stellar-frame">
+                                <div id="s2-layer-corona" class="sun-layer-circle layer-corona"></div>
+                                <div id="s2-layer-chromosphere" class="sun-layer-circle layer-chromosphere"></div>
+                                <div id="s2-layer-photosphere" class="sun-layer-circle layer-photosphere"></div>
+                                <div id="s2-layer-convective" class="sun-layer-circle layer-convective"></div>
+                                <div id="s2-layer-radiative" class="sun-layer-circle layer-radiative"></div>
+                                <div id="s2-layer-core" class="sun-layer-circle layer-core"></div>
+                            </div>
+                        </div>
+
+                        <div class="monitor-panel">
+                            <div class="monitor-header">📊 LIVE DATA MONITOR</div>
+                            <div class="data-row">
+                                <div class="data-label">Core Temp:</div>
+                                <div class="data-value" id="s2-core-temp">---</div>
+                            </div>
+                            <div class="data-row">
+                                <div class="data-label">Surface Temp:</div>
+                                <div class="data-value" id="s2-surf-temp">---</div>
+                            </div>
+                            <div class="data-row">
+                                <div class="data-label">Corona Temp:</div>
+                                <div class="data-value" id="s2-cor-temp">---</div>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <div class="data-label" style="margin-bottom: 5px;">Energy Flow Meter:</div>
+                                <div class="energy-meter-container">
+                                    <div class="energy-meter-fill" id="s2-energy-fill"></div>
+                                    <div class="energy-meter-text" id="s2-energy-text">INACTIVE</div>
+                                </div>
+                            </div>
+                            <div style="margin-top: auto;">
+                                <button class="btn-back-mission" style="width: 100%; font-size: 10px;" id="s2-cutaway-btn">TOGGLE CUTAWAY MODE</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="layer-cards-container">
+                        <div class="layer-card" draggable="true" data-layer="core">
+                            <span class="card-name">Core</span>
+                            <span class="card-hint">~15M °C</span>
+                        </div>
+                        <div class="layer-card" draggable="true" data-layer="radiative">
+                            <span class="card-name">Radiative Zone</span>
+                            <span class="card-hint">Energy Zone</span>
+                        </div>
+                        <div class="layer-card" draggable="true" data-layer="convective">
+                            <span class="card-name">Convective Zone</span>
+                            <span class="card-hint">Plasma Cells</span>
+                        </div>
+                        <div class="layer-card" draggable="true" data-layer="photosphere">
+                            <span class="card-name">Photosphere</span>
+                            <span class="card-hint">~5,500 °C</span>
+                        </div>
+                        <div class="layer-card" draggable="true" data-layer="chromosphere">
+                            <span class="card-name">Chromosphere</span>
+                            <span class="card-hint">Inner Atmosphere</span>
+                        </div>
+                        <div class="layer-card" draggable="true" data-layer="corona">
+                            <span class="card-name">Corona</span>
+                            <span class="card-hint">~1M °C</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="narration-box">
+                    <span class="speaker-icon">🎤</span>
+                    <p id="s2-narration">“Construct the Sun by placing each layer in its correct position from the center outward.”</p>
+                </div>
+            </div>
+
+            <div id="slide3" class="slide-wrapper">
+                <div class="mission-header">
+                    <h1 class="mission-title">Slide 3: Nuclear Fusion Simulator</h1>
+                    <p class="mission-subtitle">Increase pressure and temperature to ignite hydrogen fusion.</p>
+                </div>
+                
+                <div class="interactive-stage" id="fusion-stage">
+                    <div class="ui-overlay">
+                        <div class="ui-label">PRESSURE</div>
+                        <div class="ui-value" id="s3-pressure">LOW</div>
+                        <div class="ui-label">TEMPERATURE</div>
+                        <div class="ui-value" id="s3-temp">1.2M °C</div>
+                    </div>
+
+                    <div id="fusion-visual" style="width: 100%; height: 100%; position: relative;"></div>
+                </div>
+
+                <div class="controls-panel">
+                    <div style="flex-grow: 1; margin-right: 40px;">
+                        <label style="color: #fff; display: block; margin-bottom: 5px;">Temperature</label>
+                        <input type="range" id="fusion-temp-slider" min="0" max="100" value="10">
+                        <label style="color: #fff; display: block; margin-top: 15px; margin-bottom: 5px;">Pressure</label>
+                        <input type="range" id="fusion-press-slider" min="0" max="100" value="10">
+                    </div>
+                    <div id="fusion-status" style="font-size: 20px; font-weight: bold; color: #ff6600;">NO FUSION</div>
+                </div>
+
+                <div class="narration-box">
+                    <span class="speaker-icon">🎤</span>
+                    <p id="s3-narration">“In the core, hydrogen atoms combine to form helium. This process releases enormous energy.”</p>
+                </div>
+            </div>
+
+            <div id="slide4" class="slide-wrapper">
+                <div class="mission-header">
+                    <h1 class="mission-title">Slide 4: “LIFE DEPENDS ON SUNLIGHT” – Interactive Survival Lab</h1>
+                    <p class="mission-subtitle">Maintain the delicate balance required for life on Earth.</p>
+                </div>
+                
+                <div class="interactive-stage" style="display: flex; gap: 20px; padding: 20px;">
+                    <!-- MAIN SCREEN (CENTER) -->
+                    <div style="flex-grow: 1; position: relative; background: radial-gradient(circle, #1a1a2e 0%, #000 100%); border-radius: 16px; overflow: hidden; display: flex; justify-content: center; align-items: center;">
+                        <!-- Sun Source -->
+                        <div id="s4-sun-source" style="position: absolute; left: -100px; width: 300px; height: 300px; background: radial-gradient(circle, #fff700 0%, #ff6600 70%, transparent 100%); filter: blur(30px); opacity: 0.8; z-index: 1;"></div>
+                        
+                        <!-- 3D Rotating Earth (simulated with CSS/JS) -->
+                        <div id="s4-earth-container" style="position: relative; width: 250px; height: 250px; z-index: 2; transition: filter 0.5s ease;">
+                            <div id="s4-earth-globe" style="width: 100%; height: 100%; border-radius: 50%; background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Earth_Western_Hemisphere_transparent_background.png/1200px-Earth_Western_Hemisphere_transparent_background.png'); background-size: cover; box-shadow: inset -30px 0 50px rgba(0,0,0,0.8), 0 0 20px rgba(75, 159, 255, 0.3); animation: rotateEarth 20s linear infinite;"></div>
+                            <div id="s4-earth-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; background: rgba(0,0,0,0.5); pointer-events: none; transition: background 0.5s ease;"></div>
+                            <div id="s4-ice-caps" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle at top, #fff 0%, transparent 40%), radial-gradient(circle at bottom, #fff 0%, transparent 40%); opacity: 0; transition: opacity 1s ease;"></div>
+                            <div id="s4-desert-glow" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle, rgba(255, 150, 0, 0.3) 0%, transparent 70%); opacity: 0; transition: opacity 1s ease;"></div>
+                            
+                            <!-- Forest Region Highlight -->
+                            <div id="s4-forest-region" style="position: absolute; top: 40%; left: 30%; width: 40px; height: 40px; background: rgba(74, 222, 128, 0.4); border: 2px solid #4ade80; border-radius: 50%; display: none; cursor: pointer; animation: pulse-green 2s infinite; z-index: 10;">
+                                <div style="position: absolute; top: -25px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #4ade80; padding: 2px 8px; border-radius: 4px; font-size: 10px; white-space: nowrap; pointer-events: none; border: 1px solid #4ade80;">FOREST LAB</div>
+                            </div>
+                        </div>
+
+                        <!-- Clouds (moving) -->
+                        <div id="s4-clouds-container" style="position: absolute; width: 100%; height: 100%; pointer-events: none; opacity: 0.5; z-index: 3;"></div>
+
+                        <!-- Mini Simulation Overlay (Phase 2) -->
+                        <div id="s4-mini-sim" style="position: absolute; width: 300px; height: 200px; background: rgba(0, 0, 0, 0.9); border: 2px solid var(--accent-gold); border-radius: 12px; display: none; flex-direction: column; align-items: center; justify-content: space-around; padding: 15px; z-index: 100;">
+                            <h3 style="color: var(--accent-gold); margin: 0; font-size: 14px;">PHOTOSYNTHESIS LAB</h3>
+                            <div style="display: flex; gap: 10px;">
+                                <div id="drag-sun" draggable="true" style="padding: 10px; background: #ffcc00; color: #000; border-radius: 5px; cursor: grab; font-size: 10px; font-weight: bold;">SUNLIGHT</div>
+                                <div id="drag-co2" draggable="true" style="padding: 10px; background: #666; color: #fff; border-radius: 5px; cursor: grab; font-size: 10px; font-weight: bold;">CO₂</div>
+                                <div id="drag-water" draggable="true" style="padding: 10px; background: #4b9fff; color: #fff; border-radius: 5px; cursor: grab; font-size: 10px; font-weight: bold;">WATER</div>
+                            </div>
+                            <div id="plant-target" style="width: 80px; height: 80px; background: url('https://cdn-icons-png.flaticon.com/512/628/628283.png'); background-size: contain; background-repeat: no-repeat; transition: all 0.5s ease; border: 2px dashed rgba(255, 255, 255, 0.2); border-radius: 10px;"></div>
+                            <div style="color: #fff; font-size: 10px; text-align: center;">Drag elements into the plant</div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT DATA PANEL (LIVE METERS) -->
+                    <div class="monitor-panel" style="width: 300px;">
+                        <div class="monitor-header">📊 PLANET LIFE METERS</div>
+                        <div class="data-row">
+                            <div class="data-label">Solar Radiation ☀️</div>
+                            <div class="data-value" id="s4-rad-val">0%</div>
+                        </div>
+                        <div class="energy-meter-container" style="height: 10px; margin-bottom: 10px;">
+                            <div class="energy-meter-fill" id="s4-rad-meter" style="width: 0%; background: #ffcc00;"></div>
+                        </div>
+
+                        <div class="data-row">
+                            <div class="data-label">Global Temp 🌡</div>
+                            <div class="data-value" id="s4-temp-val">0°C</div>
+                        </div>
+                        <div class="energy-meter-container" style="height: 10px; margin-bottom: 10px;">
+                            <div class="energy-meter-fill" id="s4-temp-meter" style="width: 0%; background: #4ade80;"></div>
+                        </div>
+
+                        <div class="data-row">
+                            <div class="data-label">Oxygen Level 🌿</div>
+                            <div class="data-value" id="s4-ox-val">0%</div>
+                        </div>
+                        <div class="energy-meter-container" style="height: 10px; margin-bottom: 10px;">
+                            <div class="energy-meter-fill" id="s4-ox-meter" style="width: 0%; background: #64c8ff;"></div>
+                        </div>
+
+                        <div class="data-row">
+                            <div class="data-label">Plant Growth 🌱</div>
+                            <div class="data-value" id="s4-growth-val">0%</div>
+                        </div>
+                        <div class="energy-meter-container" style="height: 10px; margin-bottom: 10px;">
+                            <div class="energy-meter-fill" id="s4-growth-meter" style="width: 0%; background: #22c55e;"></div>
+                        </div>
+
+                        <div class="data-row">
+                            <div class="data-label">Life Stability ❤️</div>
+                            <div class="data-value" id="s4-life-val">0%</div>
+                        </div>
+                        <div class="energy-meter-container" style="height: 10px;">
+                            <div class="energy-meter-fill" id="s4-life-meter" style="width: 0%; background: #ef4444;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="controls-panel">
+                    <div style="flex-grow: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-right: 40px;">
+                        <div>
+                            <label style="color: #fff; display: block; margin-bottom: 5px; font-size: 12px;">🔆 Sunlight Intensity (0% – 150%)</label>
+                            <input type="range" id="s4-rad-slider" min="0" max="150" value="0">
+                        </div>
+                        <div>
+                            <label style="color: #fff; display: block; margin-bottom: 5px; font-size: 12px;">☁️ Cloud Cover</label>
+                            <input type="range" id="s4-cloud-slider" min="0" max="100" value="50">
+                        </div>
+                        <div>
+                            <label style="color: #fff; display: block; margin-bottom: 5px; font-size: 12px;">📐 Solar Angle</label>
+                            <input type="range" id="s4-angle-slider" min="0" max="90" value="23.5">
+                        </div>
+                        <div style="display: flex; align-items: flex-end;">
+                            <button class="btn-back-mission" style="width: 100%; background: #444; color: #fff; border-color: #666;" id="s4-off-btn">🌑 Turn Off Sun</button>
+                        </div>
+                    </div>
+                    <div id="s4-game-phase" style="font-size: 16px; font-weight: bold; color: var(--accent-gold); width: 150px; text-align: center;">PHASE 1: ACTIVATE</div>
+                </div>
+
+                <div class="narration-box">
+                    <span class="speaker-icon">🎤</span>
+                    <p id="s4-narration">“Without sunlight, Earth cannot support life. Adjust solar radiation to begin.”</p>
+                </div>
+            </div>
+
+            <div id="slide5" class="slide-wrapper">
+                <div class="mission-header">
+                    <h1 class="mission-title">Slide 5: Sun Lifecycle – Red Giant</h1>
+                    <p class="mission-subtitle">Travel through time to see the Sun's inevitable transformation.</p>
+                </div>
+                
+                <div class="interactive-stage" id="lifecycle-stage" style="flex-direction: column;">
+                    <div class="ui-overlay">
+                        <div class="ui-label">HYDROGEN FUEL</div>
+                        <div class="ui-value" id="s5-fuel">100%</div>
+                        <div class="ui-label">CORE PRESSURE</div>
+                        <div class="ui-value" id="s5-press">STABLE</div>
+                    </div>
+
+                    <div id="lifecycle-sun" style="width: 100px; height: 100px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #fff700, #ff6600); box-shadow: 0 0 50px rgba(255, 204, 0, 0.5); transition: all 1s ease;"></div>
+                    <div id="lifecycle-earth" style="width: 20px; height: 20px; border-radius: 50%; background: #4b9fff; margin-top: 50px; transition: all 1s ease;"></div>
+                </div>
+
+                <div class="timeline-container">
+                    <label style="color: #fff; display: block; margin-bottom: 10px;">Time Travel (Billion Years in Future)</label>
+                    <input type="range" id="time-slider" min="0" max="8" value="0">
+                    <div style="display: flex; justify-content: space-between; color: #a0a0b0; font-size: 12px; margin-top: 5px;">
+                        <span>Present</span>
+                        <span>+2bn</span>
+                        <span>+4bn</span>
+                        <span>+6bn</span>
+                        <span>+8bn</span>
+                    </div>
+                </div>
+
+                <div class="narration-box">
+                    <span class="speaker-icon">🎤</span>
+                    <p id="s8-narration">“The Sun is currently in its main sequence phase, fusing hydrogen into helium.”</p>
+                </div>
+            </div>
+
+            <div id="slide6" class="slide-wrapper">
+                <div class="mission-header">
+                    <h1 class="mission-title">Slide 6: SUN SURFACE & SOLAR STORMS</h1>
+                    <p class="mission-subtitle">Control the Sun's magnetic stability to prevent eruptions.</p>
+                </div>
+                
+                <div class="interactive-stage" style="display: flex; gap: 20px; padding: 20px;">
+                    <div style="flex-grow: 1; position: relative; background: #000; border-radius: 16px; display: flex; justify-content: center; align-items: center;">
+                        <div class="ui-overlay">
+                            <div class="ui-label">MAGNETIC FIELD</div>
+                            <div class="ui-value" id="s6-mag-status">STABLE</div>
+                            <div class="ui-label">FLARE ALERT</div>
+                            <div class="ui-value" id="s6-flare-alert" style="color: #4ade80;">NONE</div>
+                        </div>
+
+                        <div id="s6-sun-surface" class="sun-surface-stage">
+                            <!-- Sunspots and Loops will be added here via JS -->
+                        </div>
+                    </div>
+
+                    <div class="monitor-panel" style="width: 250px;">
+                        <div class="monitor-header">📊 SURFACE ACTIVITY</div>
+                        <div class="data-row">
+                            <div class="data-label">Instability Index</div>
+                            <div class="data-value" id="s6-instability-val">0%</div>
+                        </div>
+                        <div class="energy-meter-container" style="height: 10px;">
+                            <div class="energy-meter-fill" id="s6-instability-meter" style="width: 0%; background: #ff6600;"></div>
+                        </div>
+                        
+                        <div style="margin-top: 20px;">
+                            <p style="color: #a0a0b0; font-size: 11px;">OBSERVATION LOG:</p>
+                            <div id="s6-log" style="font-size: 10px; color: #fff; height: 100px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 4px;">
+                                > System online...<br>
+                                > Monitoring magnetic flux...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="controls-panel">
+                    <div style="flex-grow: 1; margin-right: 40px;">
+                        <label style="color: #fff; display: block; margin-bottom: 10px;">🧲 Magnetic Field Strength</label>
+                        <input type="range" id="s6-mag-slider" min="0" max="100" value="50">
+                        <div style="display: flex; justify-content: space-between; color: #a0a0b0; font-size: 10px; margin-top: 5px;">
+                            <span>WEAK</span>
+                            <span>OPTIMAL</span>
+                            <span>CRITICAL</span>
+                        </div>
+                    </div>
+                    <button class="btn-mission" id="s6-stabilize-btn">Stabilize Field</button>
+                </div>
+
+                <div class="narration-box">
+                    <span class="speaker-icon">🎤</span>
+                    <p id="s6-narration">“You are observing the Sun’s surface. Adjust the magnetic field carefully to keep the surface stable.”</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center;">
+                <button id="prevBtn" class="btn-back-mission" onclick="prevSlide()" style="display: none;">← Previous</button>
+                <div style="color: #555; font-size: 14px;">Slide <span id="current-slide-num">1</span> of 6</div>
+                <button id="nextBtn" class="btn-mission" onclick="nextSlide()">Next Slide →</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 6;
+        let slideCompletions = [false, false, false, false, false, false, false];
+
+        // Star background
+        function initStars() {
+            const starsContainer = document.getElementById('stars');
+            for (let i = 0; i < 150; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.pitch = 1;
+                utterance.rate = 1;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function showSlide(n) {
+            document.querySelectorAll('.slide-wrapper').forEach(s => s.classList.remove('active'));
+            document.getElementById('slide' + n).classList.add('active');
+            
+            document.getElementById('current-slide-num').textContent = n;
+            document.getElementById('prevBtn').style.display = n === 1 ? 'none' : 'block';
+            
+            const nextBtn = document.getElementById('nextBtn');
+            if (n === totalSlides) {
+                nextBtn.textContent = 'Finish Mission';
+                nextBtn.onclick = () => window.location.href = "{{ url_for('game_zone') }}";
+            } else {
+                nextBtn.textContent = 'Next Slide →';
+                nextBtn.onclick = nextSlide;
+            }
+
+            // Slide specific init
+            if (n === 1) {
+                initSlide1();
+            } else if (n === 2) {
+                initSlide2();
+            } else if (n === 3) {
+                initSlide3();
+            } else if (n === 4) {
+                initSlide4();
+            } else if (n === 5) {
+                initSlide5();
+            } else if (n === 6) {
+                initSlide6();
+            }
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides) {
+                currentSlide++;
+                showSlide(currentSlide);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 1) {
+                currentSlide--;
+                showSlide(currentSlide);
+            }
+        }
+
+        // SLIDE 1 LOGIC
+        let orbitInterval;
+        let orbitAngle = 0;
+        let isOrbitPaused = false;
+        let orbitSpeedMultiplier = 1;
+        
+        function initSlide1() {
+            const earth = document.getElementById('s1-earth');
+            const orbit = document.getElementById('s1-orbit');
+            const stage = document.getElementById('s1-stage');
+            
+            clearInterval(orbitInterval);
+            orbitAngle = 0;
+            isOrbitPaused = false;
+            orbitSpeedMultiplier = 1;
+            
+            // Reset UI
+            document.getElementById('s1-orbit').classList.remove('visible', 'success');
+            document.getElementById('s1-status').textContent = 'AWAITING EARTH PLACEMENT';
+            document.getElementById('s1-status').style.color = '#ffcc00';
+            document.getElementById('s1-distance-label').style.display = 'none';
+            document.getElementById('s1-distance-arrow').style.display = 'none';
+            document.getElementById('s1-right-panel').style.display = 'none';
+            document.getElementById('s1-pause-btn').style.display = 'none';
+            document.getElementById('s1-speed-btn').style.display = 'none';
+            document.getElementById('s1-ellipse-btn').style.display = 'none';
+            document.getElementById('s1-narration').textContent = '“The Sun is at the center of our solar system.”';
+            
+            // Initial position for Earth
+            earth.style.left = '50px';
+            earth.style.top = '50px';
+            earth.style.display = 'block';
+
+            // Reset Sun position
+            const sun = document.getElementById('s1-sun');
+            sun.style.position = 'absolute';
+            sun.style.left = '-500px'; // Hide initially or move out of view
+            
+            speakText("The Sun is at the center of our solar system. Drag Earth into its correct orbital path.");
+            
+            setTimeout(() => {
+                orbit.classList.add('visible');
+                const stageRect = stage.getBoundingClientRect();
+                const centerX = stageRect.width / 2;
+                const centerY = stageRect.height / 2;
+                const radius = 180;
+                
+                orbit.style.width = (radius * 2) + 'px';
+                orbit.style.height = (radius * 2) + 'px';
+                orbit.style.left = (centerX - radius) + 'px';
+                orbit.style.top = (centerY - radius) + 'px';
+
+                // Center the Sun
+                const sun = document.getElementById('s1-sun');
+                sun.style.position = 'absolute';
+                sun.style.left = (centerX - 60) + 'px';
+                sun.style.top = (centerY - 60) + 'px';
+            }, 2000);
+
+            // Dragging Logic
+            let isDragging = false;
+            earth.onmousedown = (e) => {
+                if (slideCompletions[1]) return;
+                isDragging = true;
+                earth.style.cursor = 'grabbing';
+            };
+
+            window.onmousemove = (e) => {
+                if (!isDragging) return;
+                const rect = stage.getBoundingClientRect();
+                let x = e.clientX - rect.left - 15;
+                let y = e.clientY - rect.top - 15;
+                earth.style.left = x + 'px';
+                earth.style.top = y + 'px';
+            };
+
+            window.onmouseup = () => {
+                if (!isDragging) return;
+                isDragging = false;
+                earth.style.cursor = 'grab';
+                
+                const rect = stage.getBoundingClientRect();
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const earthX = parseInt(earth.style.left) + 15;
+                const earthY = parseInt(earth.style.top) + 15;
+                
+                const dist = Math.sqrt(Math.pow(earthX - centerX, 2) + Math.pow(earthY - centerY, 2));
+                
+                if (Math.abs(dist - 180) < 20) {
+                    snapEarthToOrbit();
+                } else {
+                    // Snap back
+                    earth.style.transition = 'all 0.5s ease';
+                    earth.style.left = '50px';
+                    earth.style.top = '50px';
+                    speakText("Place Earth directly on the orbital path.");
+                    setTimeout(() => earth.style.transition = '', 500);
+                }
+            };
+        }
+
+        function snapEarthToOrbit() {
+            const earth = document.getElementById('s1-earth');
+            const orbit = document.getElementById('s1-orbit');
+            orbit.classList.add('success');
+            slideCompletions[1] = true;
+            
+            document.getElementById('s1-status').textContent = 'ORBIT ESTABLISHED';
+            document.getElementById('s1-status').style.color = '#4ade80';
+            document.getElementById('s1-distance-label').style.display = 'block';
+            document.getElementById('s1-distance-arrow').style.display = 'block';
+            document.getElementById('s1-right-panel').style.display = 'block';
+            document.getElementById('s1-pause-btn').style.display = 'block';
+            document.getElementById('s1-speed-btn').style.display = 'block';
+            document.getElementById('s1-ellipse-btn').style.display = 'block';
+            
+            const successText = "Earth now orbits the Sun at an average distance of 149.6 million kilometers. This motion defines one year.";
+            document.getElementById('s1-narration').textContent = successText;
+            speakText(successText);
+            
+            startOrbitAnimation();
+        }
+
+        function startOrbitAnimation() {
+            const earth = document.getElementById('s1-earth');
+            const stage = document.getElementById('s1-stage');
+            const distLabel = document.getElementById('s1-distance-label');
+            const distArrow = document.getElementById('s1-distance-arrow');
+            const liveDist = document.getElementById('s1-live-dist');
+            const liveTime = document.getElementById('s1-live-time');
+            const circle = document.getElementById('s1-year-circle');
+            
+            const rect = stage.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            orbitInterval = setInterval(() => {
+                if (isOrbitPaused) return;
+                
+                orbitAngle += 0.01 * orbitSpeedMultiplier;
+                if (orbitAngle >= Math.PI * 2) orbitAngle -= Math.PI * 2;
+                
+                // Elliptical parameters
+                const a = 180; // Semi-major axis
+                const b = 175; // Semi-minor axis (slight ellipse)
+                
+                const x = centerX + a * Math.cos(orbitAngle) - 15;
+                const y = centerY + b * Math.sin(orbitAngle) - 15;
+                
+                earth.style.left = x + 'px';
+                earth.style.top = y + 'px';
+                
+                // Update Arrow
+                const angleDeg = orbitAngle * (180 / Math.PI);
+                const currentRadius = Math.sqrt(Math.pow(a * Math.cos(orbitAngle), 2) + Math.pow(b * Math.sin(orbitAngle), 2));
+                distArrow.style.left = centerX + 'px';
+                distArrow.style.top = centerY + 'px';
+                distArrow.style.width = (currentRadius - 15) + 'px';
+                distArrow.style.transform = `rotate(${angleDeg}deg)`;
+
+                // Distance calculation (147 - 152 million km)
+                const baseDist = 149.6;
+                const variance = 2.5 * Math.cos(orbitAngle);
+                const currentDist = baseDist + variance;
+                distLabel.textContent = `📏 ${currentDist.toFixed(1)}M km`;
+                liveDist.textContent = `${currentDist.toFixed(1)}M km`;
+                
+                // Update distance label position
+                distLabel.style.left = (x + 40) + 'px';
+                distLabel.style.top = (y - 10) + 'px';
+                
+                // Year progress
+                const days = Math.floor((orbitAngle / (Math.PI * 2)) * 365);
+                liveTime.textContent = `${days} Days`;
+                
+                const offset = 251.2 - (251.2 * (days / 365));
+                circle.style.strokeDashoffset = offset;
+                
+                if (days === 180 && !slideCompletions[1.5]) {
+                    speakText("The orbit is slightly elliptical, causing small variations in distance.");
+                    slideCompletions[1.5] = true;
+                }
+            }, 20);
+
+            document.getElementById('s1-pause-btn').onclick = () => {
+                isOrbitPaused = !isOrbitPaused;
+                document.getElementById('s1-pause-btn').textContent = isOrbitPaused ? 'Resume Orbit' : 'Pause Orbit';
+            };
+
+            document.getElementById('s1-speed-btn').onclick = () => {
+                orbitSpeedMultiplier = orbitSpeedMultiplier === 1 ? 5 : 1;
+                document.getElementById('s1-speed-btn').textContent = orbitSpeedMultiplier === 1 ? 'Speed Up Time' : 'Normal Speed';
+            };
+            
+            document.getElementById('s1-ellipse-btn').onclick = () => {
+                const orbit = document.getElementById('s1-orbit');
+                const isEllipse = orbit.style.height === '350px';
+                orbit.style.height = isEllipse ? '360px' : '350px';
+                document.getElementById('s1-ellipse-btn').textContent = isEllipse ? 'Show Ellipse' : 'Back to Normal';
+            };
+        }
+
+        // SLIDE 2 LOGIC
+        const sunBuildOrder = ["core", "radiative", "convective", "photosphere", "chromosphere", "corona"];
+        let sunBuildIndex = 0;
+        let isCutawayMode = false;
+
+        function initSlide2() {
+            sunBuildIndex = 0;
+            isCutawayMode = false;
+            
+            // Reset UI
+            document.querySelectorAll('.sun-layer-circle').forEach(l => l.classList.remove('active'));
+            document.querySelectorAll('.layer-card').forEach(c => c.classList.remove('placed'));
+            
+            document.getElementById('s2-core-temp').textContent = '---';
+            document.getElementById('s2-surf-temp').textContent = '---';
+            document.getElementById('s2-cor-temp').textContent = '---';
+            document.getElementById('s2-energy-fill').style.width = '0%';
+            document.getElementById('s2-energy-text').textContent = 'INACTIVE';
+            document.getElementById('s2-energy-text').style.color = '#fff';
+            
+            document.getElementById('s2-narration').textContent = '“Construct the Sun by placing each layer in its correct position from the center outward.”';
+            speakText("Construct the Sun by placing each layer in its correct position from the center outward.");
+
+            // Draggable Setup
+            document.querySelectorAll('.layer-card').forEach(card => {
+                card.ondragstart = (e) => {
+                    e.dataTransfer.setData('text/plain', card.dataset.layer);
+                };
+            });
+
+            const dropZone = document.getElementById('s2-drop-zone');
+            dropZone.ondragover = (e) => e.preventDefault();
+            dropZone.ondrop = (e) => {
+                e.preventDefault();
+                const layer = e.dataTransfer.getData('text/plain');
+                handleLayerDrop(layer);
+            };
+
+            document.getElementById('s2-cutaway-btn').onclick = () => {
+                isCutawayMode = !isCutawayMode;
+                const frame = document.querySelector('.stellar-frame');
+                if (isCutawayMode) {
+                    frame.style.clipPath = 'polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 50%, 50% 50%, 50% 0)';
+                    frame.style.transform = 'rotate(-45deg)';
+                } else {
+                    frame.style.clipPath = 'none';
+                    frame.style.transform = 'none';
+                }
+            };
+        }
+
+        function handleLayerDrop(layer) {
+            if (layer === sunBuildOrder[sunBuildIndex]) {
+                // Correct placement
+                const circle = document.getElementById(`s2-layer-${layer}`);
+                circle.classList.add('active');
+                
+                const card = document.querySelector(`.layer-card[data-layer="${layer}"]`);
+                card.classList.add('placed');
+                
+                updateSlide2Progress(layer);
+                sunBuildIndex++;
+
+                if (sunBuildIndex === sunBuildOrder.length) {
+                    finalizeSlide2();
+                }
+            } else {
+                // Incorrect placement
+                speakText("That layer does not belong there. Try again.");
+                const frame = document.querySelector('.stellar-frame');
+                frame.animate([
+                    { transform: 'translateX(-5px)' },
+                    { transform: 'translateX(5px)' }
+                ], { duration: 100, iterations: 5 });
+            }
+        }
+
+        function updateSlide2Progress(layer) {
+            const coreTemp = document.getElementById('s2-core-temp');
+            const surfTemp = document.getElementById('s2-surf-temp');
+            const corTemp = document.getElementById('s2-cor-temp');
+            const energyFill = document.getElementById('s2-energy-fill');
+            const energyText = document.getElementById('s2-energy-text');
+
+            if (layer === 'core') {
+                coreTemp.textContent = '15,000,000 °C';
+                energyFill.style.width = '20%';
+                speakText("The core is where nuclear fusion occurs. Hydrogen atoms combine to form helium, releasing enormous energy.");
+            } else if (layer === 'radiative') {
+                energyFill.style.width = '40%';
+                speakText("In the radiative zone, energy moves outward slowly through radiation. This journey can take thousands of years.");
+            } else if (layer === 'convective') {
+                energyFill.style.width = '60%';
+                speakText("In the convective zone, hot plasma rises and cooler plasma sinks, transporting energy toward the surface.");
+            } else if (layer === 'photosphere') {
+                surfTemp.textContent = '5,500 °C';
+                energyFill.style.width = '80%';
+                speakText("The photosphere is the visible surface of the Sun. This is where sunlight escapes into space.");
+            } else if (layer === 'chromosphere') {
+                energyFill.style.width = '90%';
+                speakText("The chromosphere lies above the surface and becomes visible during a solar eclipse.");
+            } else if (layer === 'corona') {
+                corTemp.textContent = '1,000,000 °C';
+                energyFill.style.width = '100%';
+                speakText("The corona is the Sun’s outer atmosphere. Surprisingly, it is much hotter than the surface.");
+            }
+        }
+
+        function finalizeSlide2() {
+            const energyText = document.getElementById('s2-energy-text');
+            energyText.textContent = 'STABLE';
+            energyText.style.color = '#4ade80';
+            
+            const successText = "You have successfully constructed the Sun. Energy produced in the core travels through multiple layers before escaping into space as light and heat.";
+            document.getElementById('s2-narration').textContent = successText;
+            speakText(successText);
+            slideCompletions[2] = true;
+
+            // Visual celebration
+            const frame = document.querySelector('.stellar-frame');
+            frame.animate([
+                { transform: 'scale(1)', filter: 'brightness(1)' },
+                { transform: 'scale(1.1)', filter: 'brightness(1.5)' },
+                { transform: 'scale(1)', filter: 'brightness(1)' }
+            ], { duration: 1000, iterations: 1 });
+        }
+
+        // SLIDE 3 LOGIC
+        let fusionInterval;
+        function initSlide3() {
+            const tempSlider = document.getElementById('fusion-temp-slider');
+            const pressSlider = document.getElementById('fusion-press-slider');
+            const visual = document.getElementById('fusion-visual');
+            const status = document.getElementById('fusion-status');
+            
+            speakText("In the core, hydrogen atoms combine to form helium. Increase temperature and pressure to start the reaction.");
+
+            function updateFusion() {
+                const temp = parseInt(tempSlider.value);
+                const press = parseInt(pressSlider.value);
+                
+                document.getElementById('s3-temp').textContent = (temp * 0.15).toFixed(1) + 'M °C';
+                document.getElementById('s3-pressure').textContent = press > 80 ? 'CRITICAL' : (press > 40 ? 'HIGH' : 'LOW');
+                
+                visual.innerHTML = '';
+                const atomCount = 10 + Math.floor(temp / 2);
+                for(let i=0; i<atomCount; i++) {
+                    const a = document.createElement('div');
+                    a.className = 'atom';
+                    a.style.left = Math.random() * 90 + '%';
+                    a.style.top = Math.random() * 90 + '%';
+                    visual.appendChild(a);
+                }
+
+                if (temp > 80 && press > 80) {
+                    status.textContent = 'FUSION ACTIVE';
+                    status.style.color = '#4ade80';
+                    const h = document.createElement('div');
+                    h.className = 'atom helium';
+                    h.style.left = '45%';
+                    h.style.top = '40%';
+                    visual.appendChild(h);
+                    if (!slideCompletions[3]) {
+                        const winText = "Nuclear fusion achieved! Mass converts into energy. E=mc² in action!";
+                        document.getElementById('s3-narration').textContent = winText;
+                        speakText(winText);
+                        slideCompletions[3] = true;
+                    }
+                } else {
+                    status.textContent = 'NO FUSION';
+                    status.style.color = '#ff6600';
+                }
+            }
+
+            tempSlider.oninput = updateFusion;
+            pressSlider.oninput = updateFusion;
+            updateFusion();
+        }
+
+        // SLIDE 4 LOGIC - LIFE DEPENDS ON SUNLIGHT
+        let s4Phase = 1;
+        let s4GameActive = false;
+        let s4Interval;
+        let s4LifeStability = 0;
+        let s4Oxygen = 0;
+        let s4PlantGrowth = 0;
+        let s4Temperature = 0;
+        let s4Sunlight = 0;
+        let s4PhotoElements = { sun: false, co2: false, water: false };
+
+        function initSlide4() {
+            s4Phase = 1;
+            s4GameActive = true;
+            s4LifeStability = 0;
+            s4Oxygen = 0;
+            s4PlantGrowth = 0;
+            s4Temperature = 0;
+            s4Sunlight = 0;
+            s4PhotoElements = { sun: false, co2: false, water: false };
+
+            // Reset UI
+            document.getElementById('s4-rad-slider').value = 0;
+            document.getElementById('s4-cloud-slider').value = 50;
+            document.getElementById('s4-angle-slider').value = 23.5;
+            document.getElementById('s4-game-phase').textContent = "PHASE 1: ACTIVATE";
+            document.getElementById('s4-mini-sim').style.display = 'none';
+            document.getElementById('s4-forest-region').style.display = 'none';
+            document.getElementById('s4-earth-overlay').style.background = 'rgba(0,0,0,0.8)';
+            document.getElementById('s4-ice-caps').style.opacity = '1';
+            document.getElementById('s4-desert-glow').style.opacity = '0';
+            
+            updateS4Meters();
+            
+            speakText("Without sunlight, Earth cannot support life. Adjust solar radiation to begin.");
+            document.getElementById('s4-narration').textContent = "Without sunlight, Earth cannot support life. Adjust solar radiation to begin.";
+
+            // Slider Listeners
+            document.getElementById('s4-rad-slider').oninput = (e) => {
+                s4Sunlight = parseInt(e.target.value);
+                handleS4Phase1();
+            };
+
+            document.getElementById('s4-cloud-slider').oninput = updateS4Environment;
+            document.getElementById('s4-angle-slider').oninput = updateS4Environment;
+
+            document.getElementById('s4-off-btn').onclick = handleS4Phase4;
+
+            // Photosynthesis Lab (Phase 2)
+            document.getElementById('s4-forest-region').onclick = (e) => {
+                e.stopPropagation();
+                if (s4Phase === 2) {
+                    document.getElementById('s4-mini-sim').style.display = 'flex';
+                    speakText("Plants convert sunlight into chemical energy. Drag sunlight, carbon dioxide, and water into the plant.");
+                }
+            };
+
+            // Drag and Drop for Phase 2
+            const setupDrag = (id, type) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.ondragstart = (e) => e.dataTransfer.setData('type', type);
+            };
+            setupDrag('drag-sun', 'sun');
+            setupDrag('drag-co2', 'co2');
+            setupDrag('drag-water', 'water');
+
+            const plantTarget = document.getElementById('plant-target');
+            plantTarget.ondragover = (e) => e.preventDefault();
+            plantTarget.ondrop = (e) => {
+                const type = e.dataTransfer.getData('type');
+                s4PhotoElements[type] = true;
+                if (type === 'sun') speakText("Sunlight absorbed.");
+                if (type === 'co2') speakText("Carbon dioxide absorbed.");
+                if (type === 'water') speakText("Water absorbed.");
+                
+                if (s4PhotoElements.sun && s4PhotoElements.co2 && s4PhotoElements.water) {
+                    handleS4Phase2Complete();
+                }
+            };
+
+            if (s4Interval) clearInterval(s4Interval);
+            s4Interval = setInterval(updateS4Simulation, 100);
+            
+            initS4Clouds();
+        }
+
+        function initS4Clouds() {
+            const container = document.getElementById('s4-clouds-container');
+            if (!container) return;
+            container.innerHTML = '';
+            for (let i = 0; i < 10; i++) {
+                const cloud = document.createElement('div');
+                cloud.style.position = 'absolute';
+                cloud.style.width = (50 + Math.random() * 100) + 'px';
+                cloud.style.height = (30 + Math.random() * 50) + 'px';
+                cloud.style.background = '#fff';
+                cloud.style.borderRadius = '50%';
+                cloud.style.filter = 'blur(10px)';
+                cloud.style.left = Math.random() * 100 + '%';
+                cloud.style.top = Math.random() * 100 + '%';
+                cloud.style.opacity = '0.3';
+                container.appendChild(cloud);
+                
+                // Simple float animation
+                let x = parseFloat(cloud.style.left);
+                setInterval(() => {
+                    x += 0.1;
+                    if (x > 100) x = -20;
+                    cloud.style.left = x + '%';
+                }, 50);
+            }
+        }
+
+        function handleS4Phase1() {
+            if (s4Phase !== 1) return;
+            
+            if (s4Sunlight >= 80 && s4Sunlight <= 100) {
+                s4Phase = 2;
+                document.getElementById('s4-game-phase').textContent = "PHASE 2: PHOTOSYNTHESIS";
+                document.getElementById('s4-forest-region').style.display = 'block';
+                speakText("Optimal sunlight detected. Photosynthesis is active. Click on the highlighted forest region to enter the lab.");
+                document.getElementById('s4-narration').textContent = "Optimal sunlight detected. Photosynthesis is active. Click on the highlighted forest region to enter the lab.";
+            } else if (s4Sunlight > 120) {
+                speakText("Too much radiation. Extreme heat threatens life.");
+                document.getElementById('s4-narration').textContent = "Too much radiation. Extreme heat threatens life.";
+            } else if (s4Sunlight < 40 && s4Sunlight > 0) {
+                speakText("Insufficient sunlight. Photosynthesis cannot occur.");
+                document.getElementById('s4-narration').textContent = "Insufficient sunlight. Photosynthesis cannot occur.";
+            }
+        }
+
+        function handleS4Phase2Complete() {
+            document.getElementById('plant-target').style.filter = 'drop-shadow(0 0 10px #4ade80) brightness(1.5)';
+            speakText("Plants convert sunlight into chemical energy. This process is called photosynthesis.");
+            setTimeout(() => {
+                document.getElementById('s4-mini-sim').style.display = 'none';
+                document.getElementById('s4-forest-region').style.display = 'none';
+                s4Phase = 3;
+                document.getElementById('s4-game-phase').textContent = "PHASE 3: TEMPERATURE";
+                speakText("The Sun regulates Earth’s climate. Maintain temperature between 14°C and 18°C using clouds and solar angle.");
+                document.getElementById('s4-narration').textContent = "The Sun regulates Earth’s climate. Maintain temperature between 14°C and 18°C using clouds and solar angle.";
+            }, 2000);
+        }
+
+        function handleS4Phase4() {
+            s4GameActive = false;
+            s4Sunlight = 0;
+            document.getElementById('s4-rad-slider').value = 0;
+            document.getElementById('s4-game-phase').textContent = "PHASE 4: SHOCK TEST";
+            speakText("Without the Sun, Earth would quickly freeze. Photosynthesis would stop. Most life would not survive.");
+            document.getElementById('s4-narration').textContent = "Without the Sun, Earth would quickly freeze. Photosynthesis would stop. Most life would not survive.";
+            
+            setTimeout(() => {
+                s4GameActive = true;
+                s4Sunlight = 100;
+                document.getElementById('s4-rad-slider').value = 100;
+                s4Phase = 5; // Success state
+                speakText("Sun automatically restores.");
+            }, 10000);
+        }
+
+        function updateS4Environment() {
+            // Visual changes based on sliders
+            const clouds = parseInt(document.getElementById('s4-cloud-slider').value);
+            document.getElementById('s4-clouds-container').style.opacity = (clouds / 100);
+        }
+
+        function updateS4Simulation() {
+            if (!s4GameActive) {
+                s4Temperature = Math.max(-50, s4Temperature - 0.5);
+                s4PlantGrowth = Math.max(0, s4PlantGrowth - 1);
+                s4Oxygen = Math.max(0, s4Oxygen - 0.5);
+                s4LifeStability = Math.max(0, s4LifeStability - 1);
+                updateS4Meters();
+                updateS4Visuals();
+                return;
+            }
+
+            // Temperature logic
+            const targetTemp = (s4Sunlight * 0.2) - (parseInt(document.getElementById('s4-cloud-slider').value) * 0.1);
+            s4Temperature += (targetTemp - s4Temperature) * 0.1;
+
+            // Growth and Oxygen logic
+            if (s4Sunlight >= 80 && s4Sunlight <= 110 && s4Temperature > 10 && s4Temperature < 30) {
+                s4PlantGrowth = Math.min(100, s4PlantGrowth + 0.5);
+                s4Oxygen = Math.min(100, s4Oxygen + 0.3);
+            } else {
+                s4PlantGrowth = Math.max(0, s4PlantGrowth - 0.2);
+                s4Oxygen = Math.max(0, s4Oxygen - 0.1);
+            }
+
+            // Life Stability
+            let stabilityTarget = 0;
+            if (s4Temperature >= 14 && s4Temperature <= 18) stabilityTarget += 40;
+            if (s4Oxygen > 80) stabilityTarget += 30;
+            if (s4PlantGrowth > 80) stabilityTarget += 30;
+            s4LifeStability += (stabilityTarget - s4LifeStability) * 0.05;
+
+            updateS4Meters();
+            updateS4Visuals();
+
+            if (s4Phase === 3 && s4LifeStability > 95) {
+                s4Phase = 4;
+                document.getElementById('s4-game-phase').textContent = "PHASE 4: SHOCK TEST";
+                speakText("Stability reached. Now, what if the Sun disappeared? Press the Turn Off Sun button to find out.");
+            }
+
+            if (s4Phase === 5 && s4LifeStability > 90) {
+                handleS4Success();
+            }
+        }
+
+        function updateS4Meters() {
+            if (!document.getElementById('s4-rad-val')) return;
+            document.getElementById('s4-rad-val').textContent = s4Sunlight + '%';
+            document.getElementById('s4-rad-meter').style.width = (s4Sunlight / 1.5) + '%';
+            
+            document.getElementById('s4-temp-val').textContent = s4Temperature.toFixed(1) + '°C';
+            document.getElementById('s4-temp-meter').style.width = Math.min(100, Math.max(0, (s4Temperature + 50) / 1.5)) + '%';
+            
+            document.getElementById('s4-ox-val').textContent = s4Oxygen.toFixed(0) + '%';
+            document.getElementById('s4-ox-meter').style.width = s4Oxygen + '%';
+            
+            document.getElementById('s4-growth-val').textContent = s4PlantGrowth.toFixed(0) + '%';
+            document.getElementById('s4-growth-meter').style.width = s4PlantGrowth + '%';
+            
+            document.getElementById('s4-life-val').textContent = s4LifeStability.toFixed(0) + '%';
+            document.getElementById('s4-life-meter').style.width = s4LifeStability + '%';
+        }
+
+        function updateS4Visuals() {
+            if (!document.getElementById('s4-earth-globe')) return;
+            // Earth brightness
+            const brightness = 0.2 + (s4Sunlight / 100) * 0.8;
+            document.getElementById('s4-earth-globe').style.filter = `brightness(${brightness})`;
+            document.getElementById('s4-earth-overlay').style.background = `rgba(0,0,0,${1 - brightness})`;
+            
+            // Ice and Desert
+            document.getElementById('s4-ice-caps').style.opacity = s4Temperature < 0 ? 1 : (s4Temperature < 10 ? 0.5 : 0);
+            document.getElementById('s4-desert-glow').style.opacity = s4Temperature > 30 ? 0.5 : (s4Temperature > 40 ? 1 : 0);
+        }
+
+        function handleS4Success() {
+            if (slideCompletions[4]) return;
+            s4Phase = 6;
+            const successText = "You have maintained the delicate balance required for life. The Sun is the primary source of energy for Earth’s ecosystem.";
+            document.getElementById('s4-narration').textContent = successText;
+            speakText(successText);
+            slideCompletions[4] = true;
+            
+            // Earth glows blue-green
+            document.getElementById('s4-earth-globe').style.boxShadow = '0 0 50px rgba(0, 255, 100, 0.6)';
+        }
+
+
+        // SLIDE 5 LOGIC - SUN LIFECYCLE
+        function initSlide5() {
+            const timeSlider = document.getElementById('time-slider');
+            const sun = document.getElementById('lifecycle-sun');
+            const earth = document.getElementById('lifecycle-earth');
+            
+            speakText("Stars are not permanent. They evolve over billions of years. Move the timeline to see the Sun's future.");
+
+            timeSlider.oninput = () => {
+                const val = parseInt(timeSlider.value);
+                const fuel = Math.max(0, 100 - (val * 12.5));
+                document.getElementById('s5-fuel').textContent = fuel.toFixed(0) + '%';
+                
+                if (val < 5) {
+                    sun.style.width = (100 + val * 20) + 'px';
+                    sun.style.height = (100 + val * 20) + 'px';
+                    sun.style.background = 'radial-gradient(circle at 30% 30%, #fff700, #ff6600)';
+                    document.getElementById('s5-press').textContent = 'STABLE';
+                    earth.style.opacity = '1';
+                } else if (val < 7) {
+                    // Red Giant
+                    sun.style.width = '300px';
+                    sun.style.height = '300px';
+                    sun.style.background = 'radial-gradient(circle at 30% 30%, #ff3300, #990000)';
+                    document.getElementById('s5-press').textContent = 'EXPANDING';
+                    earth.style.background = '#666';
+                    earth.style.transform = 'scale(0.8)';
+                    if (val === 6) {
+                        speakText("The Sun is expanding dramatically. Oceans evaporate. Earth becomes lifeless.");
+                    }
+                } else {
+                    // White Dwarf
+                    sun.style.width = '20px';
+                    sun.style.height = '20px';
+                    sun.style.background = '#fff';
+                    sun.style.boxShadow = '0 0 30px #fff';
+                    document.getElementById('s5-press').textContent = 'COLLAPSED';
+                    earth.style.opacity = '0.2';
+                    if (val === 8) {
+                        speakText("The Sun’s outer layers drift away, leaving a white dwarf behind.");
+                    }
+                }
+            };
+        }
+
+        // SLIDE 6 LOGIC - SUN SURFACE & SOLAR STORMS
+        let s6Interval;
+        let s6Instability = 0;
+        let s6FlareActive = false;
+
+        function initSlide6() {
+            const surface = document.getElementById('s6-sun-surface');
+            const slider = document.getElementById('s6-mag-slider');
+            const log = document.getElementById('s6-log');
+            
+            s6Instability = 0;
+            s6FlareActive = false;
+            slider.value = 50;
+            surface.innerHTML = '';
+            
+            speakText("You are observing the Sun’s surface. Sunspots form where magnetic fields are strong. When magnetic field lines twist and suddenly reconnect, they release energy as a solar flare. Solar flares can affect satellites and power systems on Earth. Adjust the magnetic field carefully to keep the surface stable.");
+
+            // Create initial sunspots
+            for(let i=0; i<5; i++) createS6Sunspot();
+
+            // Create plasma loops (css arcs)
+            for(let i=0; i<3; i++) createS6Loop();
+
+            if (s6Interval) clearInterval(s6Interval);
+            s6Interval = setInterval(updateS6Simulation, 100);
+
+            slider.oninput = () => {
+                const val = parseInt(slider.value);
+                if (val > 80 || val < 20) {
+                    addS6Log("Magnetic field tension increasing...");
+                }
+            };
+
+            document.getElementById('s6-stabilize-btn').onclick = () => {
+                slider.value = 50;
+                s6Instability = Math.max(0, s6Instability - 30);
+                addS6Log("Manual stabilization engaged.");
+            };
+        }
+
+        function createS6Sunspot() {
+            const surface = document.getElementById('s6-sun-surface');
+            const spot = document.createElement('div');
+            spot.className = 'sunspot';
+            const size = 10 + Math.random() * 30;
+            spot.style.width = size + 'px';
+            spot.style.height = size + 'px';
+            spot.style.left = 50 + Math.random() * 300 + 'px';
+            spot.style.top = 50 + Math.random() * 300 + 'px';
+            spot.style.opacity = 0.5 + Math.random() * 0.5;
+            surface.appendChild(spot);
+        }
+
+        function createS6Loop() {
+            const surface = document.getElementById('s6-sun-surface');
+            const loop = document.createElement('div');
+            loop.className = 'magnetic-line';
+            const w = 40 + Math.random() * 60;
+            const h = 20 + Math.random() * 40;
+            loop.style.width = w + 'px';
+            loop.style.height = h + 'px';
+            loop.style.left = 100 + Math.random() * 200 + 'px';
+            loop.style.top = 100 + Math.random() * 200 + 'px';
+            loop.style.borderTop = "2px solid rgba(255,255,255,0.4)";
+            loop.style.transform = `rotate(${Math.random() * 360}deg)`;
+            surface.appendChild(loop);
+        }
+
+        function updateS6Simulation() {
+            if (s6FlareActive) return;
+
+            const slider = document.getElementById('s6-mag-slider');
+            const val = parseInt(slider.value);
+            
+            // Instability grows if slider is far from 50
+            const diff = Math.abs(val - 50);
+            if (diff > 30) {
+                s6Instability += (diff - 30) * 0.05;
+            } else {
+                s6Instability = Math.max(0, s6Instability - 0.2);
+            }
+
+            document.getElementById('s6-instability-val').textContent = Math.floor(s6Instability) + '%';
+            document.getElementById('s6-instability-meter').style.width = Math.min(100, s6Instability) + '%';
+
+            const statusEl = document.getElementById('s6-mag-status');
+            if (s6Instability > 70) {
+                statusEl.textContent = 'CRITICAL';
+                statusEl.style.color = '#ef4444';
+            } else if (s6Instability > 30) {
+                statusEl.textContent = 'UNSTABLE';
+                statusEl.style.color = '#ff6600';
+            } else {
+                statusEl.textContent = 'STABLE';
+                statusEl.style.color = '#4ade80';
+            }
+
+            if (s6Instability >= 100) {
+                triggerS6Eruption();
+            }
+        }
+
+        function triggerS6Eruption() {
+            s6FlareActive = true;
+            s6Instability = 0;
+            const alertEl = document.getElementById('s6-flare-alert');
+            alertEl.textContent = 'ERUPTION!';
+            alertEl.style.color = '#ef4444';
+            addS6Log("SOLAR FLARE DETECTED!");
+            speakText("Solar flare erupted! Energy released into the solar system.");
+
+            const surface = document.getElementById('s6-sun-surface');
+            const flare = document.createElement('div');
+            flare.className = 'flare-animation';
+            flare.style.width = '10px';
+            flare.style.height = '10px';
+            flare.style.left = '50%';
+            flare.style.top = '50%';
+            surface.appendChild(flare);
+
+            flare.animate([
+                { transform: 'scale(1)', opacity: 1 },
+                { transform: 'scale(50)', opacity: 0 }
+            ], { duration: 1500, easing: 'ease-out' });
+
+            setTimeout(() => {
+                flare.remove();
+                s6FlareActive = false;
+                alertEl.textContent = 'NONE';
+                alertEl.style.color = '#4ade80';
+                addS6Log("Magnetic field reset.");
+                document.getElementById('s6-mag-slider').value = 50;
+                
+                if (!slideCompletions[6]) {
+                    slideCompletions[6] = true;
+                    addS6Log("Mission objective complete.");
+                }
+            }, 2000);
+        }
+
+        function addS6Log(msg) {
+            const log = document.getElementById('s6-log');
+            log.innerHTML += `<br>> ${msg}`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        window.onload = () => {
+            initStars();
+            showSlide(1);
+        };
+    </script>
+</body>
+</html>

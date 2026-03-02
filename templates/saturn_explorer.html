@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission Saturn - Realistic Interactive Explorer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
+        .mission-container { min-height: 100vh; position: relative; z-index: 2; padding-bottom: 50px; }
+        .slide-wrapper { display: none; padding: 40px 20px; max-width: 1200px; margin: 0 auto; min-height: 100vh; animation: slideIn 0.5s ease-in-out; }
+        .slide-wrapper.active { display: block; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .slide-header { text-align: center; margin-bottom: 30px; }
+        .slide-number { font-size: 14px; color: #64c8ff; font-weight: bold; margin-bottom: 10px; }
+        .slide-title { font-size: 36px; color: #ffffff; margin-bottom: 15px; background: linear-gradient(135deg, #64c8ff 0%, #ffb703 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .narration-box { background: rgba(100, 200, 255, 0.1); border-left: 4px solid #64c8ff; padding: 15px; margin-bottom: 25px; border-radius: 8px; font-size: 18px; line-height: 1.6; }
+        .speaker-icon { color: #64c8ff; font-weight: bold; margin-right: 10px; }
+        
+        .interactive-area { background: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 12px; border: 1px solid #444; margin-bottom: 25px; position: relative; overflow: hidden; min-height: 500px; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        
+        .navigation { display: flex; justify-content: space-between; gap: 15px; margin-top: 30px; }
+        .btn-nav { flex: 1; padding: 12px; font-size: 14px; border: 2px solid; border-radius: 8px; cursor: pointer; transition: all 0.3s; font-weight: bold; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; }
+        .btn-prev { border-color: #64c8ff; color: #64c8ff; background: transparent; }
+        .btn-next { border-color: #ffb703; color: #ffb703; background: transparent; }
+        .btn-next:disabled { border-color: #555; color: #555; cursor: not-allowed; }
+        
+        .btn-start { padding: 15px 40px; font-size: 24px; background: #64c8ff; color: #fff; border: none; border-radius: 30px; cursor: pointer; transition: transform 0.2s; font-weight: bold; box-shadow: 0 0 20px rgba(100, 200, 255, 0.5); }
+        .btn-start:hover { transform: scale(1.1); }
+
+        /* Saturn Styles */
+        .saturn-realistic { width: 300px; height: 300px; position: relative; }
+        .saturn-planet { width: 150px; height: 150px; background: radial-gradient(circle at 30% 30%, #f4e4bc, #d2b48c 60%, #8b7355); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: inset -10px -10px 30px rgba(0,0,0,0.8); z-index: 2; }
+        .saturn-rings-visual { width: 300px; height: 80px; border: 15px solid rgba(210, 180, 140, 0.6); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotateX(75deg); z-index: 1; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        
+        /* Orbit Game */
+        .orbit-container { position: relative; width: 100%; height: 500px; overflow: hidden; background: radial-gradient(circle at center, rgba(255, 140, 0, 0.05) 0%, transparent 70%); }
+        .sun-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: radial-gradient(circle, #fff700, #ff8c00); border-radius: 50%; box-shadow: 0 0 50px #ff8c00; z-index: 5; }
+        .orbit-ring { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; display: flex; justify-content: center; align-items: flex-start; }
+        .orbit-label { color: rgba(255,255,255,0.5); font-size: 10px; pointer-events: none; margin-top: -18px; white-space: nowrap; transition: all 0.3s; }
+        .orbit-ring.target-orbit { border-color: rgba(100, 200, 255, 0.4); border-style: dashed; }
+        .orbit-ring.target-orbit .orbit-label { color: #64c8ff; font-weight: bold; }
+        .orbit-ring.highlight { border-color: #64c8ff; border-width: 2px; box-shadow: 0 0 20px rgba(100, 200, 255, 0.4); }
+        
+        .draggable-saturn { width: 50px; height: 30px; position: absolute; cursor: grab; z-index: 10; display: flex; align-items: center; justify-content: center; transition: all 1s cubic-bezier(0.4, 0, 0.2, 1); transform-origin: center center; }
+        .draggable-saturn:hover { filter: brightness(1.2); }
+        
+        @keyframes orbitRotate {
+            from { transform: translate(-50%, -50%) rotate(0deg) translateX(200px) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg) translateX(200px) rotate(-360deg); }
+        }
+        
+        .orbiting-saturn {
+            animation: orbitRotate 15s linear infinite;
+            left: 50% !important;
+            top: 50% !important;
+            transition: none !important;
+        }
+        .mini-saturn { width: 20px; height: 20px; background: #f4e4bc; border-radius: 50%; position: relative; }
+        .mini-rings { width: 40px; height: 10px; border: 2px solid rgba(210, 180, 140, 0.6); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotateX(70deg); }
+        
+        /* Ring Builder */
+        .ring-zone { width: 400px; height: 400px; position: relative; border: 2px dashed rgba(255,255,255,0.2); border-radius: 50%; }
+        .particle { width: 8px; height: 8px; border-radius: 50%; position: absolute; cursor: pointer; transition: transform 0.2s; }
+        .ice-particle { background: #e0f7fa; box-shadow: 0 0 5px #fff; }
+        .rock-particle { background: #795548; }
+        
+        /* Density Tank */
+        .water-tank { width: 400px; height: 300px; border: 3px solid #64c8ff; background: rgba(0, 150, 255, 0.1); position: relative; border-radius: 0 0 20px 20px; border-top: none; }
+        .water-surface { width: 100%; height: 10px; background: rgba(100, 200, 255, 0.5); position: absolute; top: 0; }
+        .tank-planet { position: absolute; transition: all 2s ease-in-out; }
+
+        /* Gravity */
+        .gravity-panel { display: flex; gap: 50px; align-items: center; }
+        
+        /* Storm */
+        .storm-shield { width: 100px; height: 100px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; border: 2px solid transparent; transition: all 0.3s; background: rgba(255,255,255,0.05); }
+        .storm-shield:hover { background: rgba(255,255,255,0.1); }
+        .storm-shield.selected { border-color: #64c8ff; background: rgba(100, 200, 255, 0.2); }
+        
+        /* Titan */
+        .titan-bg { width: 100%; height: 100%; position: absolute; background: linear-gradient(to bottom, #ff9800, #5d4037); opacity: 0.8; z-index: 1; }
+        .methane-lake { position: absolute; bottom: 0; width: 100%; height: 100px; background: rgba(0, 0, 0, 0.4); border-radius: 50% 50% 0 0; }
+
+        /* Descent Simulator */
+        .hud-container { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 20px; width: 100%; height: 100%; padding: 20px; background: #050505; border: 2px solid #333; border-radius: 10px; font-family: 'Courier New', Courier, monospace; color: #00ff00; position: relative; overflow: hidden; }
+        .hud-gauge { background: rgba(0, 255, 0, 0.05); border: 1px solid rgba(0, 255, 0, 0.2); padding: 10px; border-radius: 5px; display: flex; flex-direction: column; justify-content: center; }
+        .gauge-label { font-size: 12px; color: #888; margin-bottom: 5px; text-transform: uppercase; }
+        .gauge-value { font-size: 20px; font-weight: bold; }
+        .gauge-bar { width: 100%; height: 10px; background: #111; border-radius: 5px; margin-top: 5px; overflow: hidden; }
+        .gauge-fill { height: 100%; background: #00ff00; width: 0%; transition: width 0.3s, background 0.3s; }
+        .hud-center { display: flex; flex-direction: column; align-items: center; justify-content: space-between; position: relative; }
+        .descent-view { width: 100%; height: 200px; background: #000; border: 1px solid #333; position: relative; overflow: hidden; border-radius: 5px; }
+        .cloud-layer { position: absolute; width: 200%; height: 200%; background: linear-gradient(transparent, rgba(244, 228, 188, 0.2), transparent); animation: cloudMove 10s linear infinite; }
+        @keyframes cloudMove { from { transform: translateY(-50%); } to { transform: translateY(0%); } }
+        .lightning-flash { position: absolute; width: 100%; height: 100%; background: white; opacity: 0; pointer-events: none; }
+        
+        .probe-builder { display: flex; gap: 20px; width: 100%; justify-content: center; margin-top: 20px; }
+        .build-slot { width: 120px; height: 120px; border: 2px dashed #444; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 10px; color: #666; transition: all 0.3s; }
+        .build-slot.filled { border-color: #64c8ff; background: rgba(100, 200, 255, 0.1); color: #fff; }
+        .part-item { width: 100px; padding: 10px; background: #222; border: 1px solid #444; border-radius: 8px; cursor: grab; text-align: center; font-size: 12px; transition: transform 0.2s; }
+        .part-item:hover { transform: scale(1.05); border-color: #64c8ff; }
+        .part-icon { font-size: 24px; margin-bottom: 5px; display: block; }
+        
+        .dial-container { width: 150px; height: 75px; position: relative; overflow: hidden; }
+        .dial-bg { width: 150px; height: 150px; border: 15px solid #222; border-radius: 50%; border-bottom-color: transparent; position: absolute; top: 0; left: 0; }
+        .dial-safe-zone { width: 150px; height: 150px; border: 15px solid #00ff00; border-radius: 50%; border-bottom-color: transparent; border-left-color: transparent; border-right-color: transparent; position: absolute; top: 0; left: 0; transform: rotate(-30deg); opacity: 0.3; }
+        .dial-needle { width: 4px; height: 60px; background: #ff0000; position: absolute; bottom: 0; left: 73px; transform-origin: bottom center; transform: rotate(-60deg); transition: transform 0.2s; }
+        
+        .warning-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 0, 0, 0.2); display: none; align-items: center; justify-content: center; z-index: 10; pointer-events: none; animation: flashRed 0.5s infinite; }
+        @keyframes flashRed { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+        .crush-effect { animation: crushAnim 2s forwards; }
+        @keyframes crushAnim { to { transform: scale(0.1); opacity: 0; } }
+        
+        .learning-goal-card { background: rgba(100, 200, 255, 0.1); border: 1px solid #64c8ff; padding: 20px; border-radius: 12px; max-width: 500px; width: 100%; }
+        .learning-goal-card h3 { color: #64c8ff; margin-bottom: 15px; border-bottom: 1px solid rgba(100, 200, 255, 0.3); padding-bottom: 10px; }
+        .goal-item { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 15px; }
+        .goal-dot { width: 8px; height: 8px; background: #64c8ff; border-radius: 50%; }
+
+        /* General UI */
+        .fact-panel { background: rgba(100, 200, 255, 0.2); padding: 15px; border-radius: 10px; border: 1px solid #64c8ff; margin-top: 15px; display: none; width: 100%; }
+        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(1px 1px at 20px 30px, #fff, transparent), radial-gradient(1px 1px at 40px 70px, #fff, transparent), radial-gradient(1px 1px at 50px 160px, #fff, transparent); background-size: 200px 200px; }
+    </style>
+</head>
+<body>
+    <div class="stars-bg"></div>
+    <div class="mission-container">
+        <nav class="navbar" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 40px; background: rgba(0, 0, 0, 0.7); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+            <div class="navbar-brand">🚀 Saturn Explorer Mission</div>
+            <div class="navbar-right">
+                <a href="{{ url_for('dashboard') }}" class="btn-logout" style="margin-right: 10px; text-decoration: none; color: #fff; border: 1px solid #fff; padding: 5px 15px; border-radius: 20px;">Dashboard</a>
+                <a href="{{ url_for('game_zone') }}" class="btn-logout" style="text-decoration: none; color: #fff; border: 1px solid #fff; padding: 5px 15px; border-radius: 20px;">Exit</a>
+            </div>
+        </nav>
+        <!-- Progress Bar -->
+        <div style="position: fixed; top: 0; width: 100%; height: 6px; background: #222; z-index: 100;">
+            <div id="progressFill" style="width: 0%; height: 100%; background: #64c8ff; transition: width 0.5s;"></div>
+        </div>
+
+        <!-- Start Screen -->
+        <div class="slide-wrapper active" id="slide0">
+            <div class="slide-header">
+                <h1 class="slide-title" style="font-size: 48px;">🪐 MISSION SATURN</h1>
+                <p style="color: #64c8ff; font-weight: bold; letter-spacing: 2px;">REALISTIC INTERACTIVE EXPLORER</p>
+            </div>
+            <div class="interactive-area">
+                <div class="saturn-realistic">
+                    <div class="saturn-planet"></div>
+                    <div class="saturn-rings-visual"></div>
+                </div>
+                <div style="margin-top: 30px; text-align: center;">
+                    <div class="narration-box" id="narration0" style="max-width: 600px;">
+                        <span class="speaker-icon">🎤 AI Voice:</span> Welcome, astronaut. Saturn is the second largest planet in our Solar System. It is famous for its beautiful rings. In this mission, you will place Saturn in orbit, build its rings, test its density, explore its moon Titan, and survive powerful storms. Complete all challenges to finish Mission Saturn.
+                    </div>
+                    <button class="btn-start" onclick="startMission()">🚀 Start Mission</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 1: Orbit Placement -->
+        <div class="slide-wrapper" id="slide1">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 1 – Orbit Placement Challenge</div>
+                <h1 class="slide-title">🎯 Place Saturn in the Correct Orbit</h1>
+            </div>
+            <div class="narration-box" id="narration1">
+                <span class="speaker-icon">🎤 AI Voice:</span> Count the planets from the Sun and drag Saturn to the correct orbit.
+            </div>
+            <div class="interactive-area">
+                <div class="orbit-container" id="orbitArea">
+                    <div class="sun-center"></div>
+                    <div class="orbit-ring" style="width: 80px; height: 80px;" data-orbit="1"><span class="orbit-label">Orbit 1</span></div>
+                    <div class="orbit-ring" style="width: 140px; height: 140px;" data-orbit="2"><span class="orbit-label">Orbit 2</span></div>
+                    <div class="orbit-ring" style="width: 200px; height: 200px;" data-orbit="3"><span class="orbit-label">Orbit 3</span></div>
+                    <div class="orbit-ring" style="width: 260px; height: 260px;" data-orbit="4"><span class="orbit-label">Orbit 4</span></div>
+                    <div class="orbit-ring" style="width: 320px; height: 320px;" data-orbit="5"><span class="orbit-label">Orbit 5</span></div>
+                    <div class="orbit-ring target-orbit" style="width: 400px; height: 400px;" data-orbit="6" id="targetOrbit"><span class="orbit-label">Orbit 6 (Target)</span></div>
+                    <div class="orbit-ring" style="width: 480px; height: 480px;" data-orbit="7"><span class="orbit-label">Orbit 7</span></div>
+                    <div class="orbit-ring" style="width: 560px; height: 560px;" data-orbit="8"><span class="orbit-label">Orbit 8</span></div>
+                    <div class="orbit-ring" style="width: 640px; height: 640px;" data-orbit="9"><span class="orbit-label">Orbit 9</span></div>
+                    
+                    <div class="draggable-saturn" id="dragSaturn" draggable="true" style="bottom: 40px; left: 40px;">
+                        <div class="mini-saturn" style="width: 15px; height: 15px;"></div>
+                        <div class="mini-rings" style="width: 30px; height: 8px;"></div>
+                    </div>
+                </div>
+                <div class="fact-panel" id="fact1">
+                    Excellent. Saturn is the sixth planet from the Sun. It orbits far beyond Jupiter. <br>
+                    <strong>Average distance: 1.4 billion km</strong>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="next1" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 2: Build Rings -->
+        <div class="slide-wrapper" id="slide2">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 2 – Build Saturn’s Rings</div>
+                <h1 class="slide-title">🎯 Create the Ring System</h1>
+            </div>
+            <div class="narration-box" id="narration2">
+                <span class="speaker-icon">🎤 AI Voice:</span> Saturn’s rings are not solid. They are made of billions of small pieces of ice and rock. Keep adding particles to build the ring system.
+            </div>
+            <div class="interactive-area">
+                <div style="margin-bottom: 20px; color: #64c8ff; font-weight: bold;">Particles Added: <span id="particleCount">0</span> / 10</div>
+                <div style="display: flex; gap: 40px; align-items: center;">
+                    <div id="particleSource" style="display: flex; flex-direction: column; gap: 20px;">
+                        <div class="particle ice-particle" draggable="true" ondragstart="event.dataTransfer.setData('type', 'ice')" style="position: static; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 20px;">❄</div>
+                        <p>Ice</p>
+                        <div class="particle rock-particle" draggable="true" ondragstart="event.dataTransfer.setData('type', 'rock')" style="position: static; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 20px;">🪨</div>
+                        <p>Rock</p>
+                    </div>
+                    <div class="ring-zone" id="ringZone" ondragover="event.preventDefault()" ondrop="handleParticleDrop(event)">
+                        <div class="saturn-planet" style="width: 100px; height: 100px;"></div>
+                        <div id="finalRings" style="width: 350px; height: 100px; border: 15px solid rgba(210, 180, 140, 0.4); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotateX(75deg); opacity: 0; transition: opacity 2s;"></div>
+                    </div>
+                </div>
+                <div class="fact-panel" id="fact2">
+                    You have created Saturn’s beautiful ring system.
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="next2" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 3: Density Experiment -->
+        <div class="slide-wrapper" id="slide3">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 3 – Density Experiment</div>
+                <h1 class="slide-title">🎯 Will Saturn Float?</h1>
+            </div>
+            <div class="narration-box" id="narration3">
+                <span class="speaker-icon">🎤 AI Voice:</span> Saturn is mostly made of gas. It is less dense than water. If there were a large enough ocean, Saturn would float.
+            </div>
+            <div class="interactive-area">
+                <div style="display: flex; gap: 50px; margin-bottom: 30px;">
+                    <button class="btn-nav" onclick="dropPlanet('saturn')" id="btnDropSaturn">Drop Saturn into Water</button>
+                    <button class="btn-nav" onclick="dropPlanet('earth')" id="btnDropEarth">Drop Earth</button>
+                </div>
+                <div class="water-tank">
+                    <div class="water-surface"></div>
+                    <div id="tankSaturn" class="tank-planet" style="top: -100px; left: 50px;">
+                        <div class="mini-saturn" style="width: 60px; height: 60px;"></div>
+                        <div class="mini-rings" style="width: 120px; height: 30px;"></div>
+                    </div>
+                    <div id="tankEarth" class="tank-planet" style="top: -100px; right: 80px; width: 40px; height: 40px; background: #4b9cd3; border-radius: 50%;"></div>
+                </div>
+                <div class="fact-panel" id="fact3">
+                    Saturn density: 0.69 g/cm³ | Water density: 1.0 g/cm³ <br>
+                    Saturn floats because it is less dense than water!
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="next3" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 4: Gravity Challenge -->
+        <div class="slide-wrapper" id="slide4">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 4 – Gravity Challenge</div>
+                <h1 class="slide-title">🎯 Compare Weight on Saturn</h1>
+            </div>
+            <div class="narration-box" id="narration4">
+                <span class="speaker-icon">🎤 AI Voice:</span> Saturn is very large, but its gravity is only slightly stronger than Earth’s. That is because Saturn is mostly gas.
+            </div>
+            <div class="interactive-area">
+                <div class="gravity-panel">
+                    <div style="text-align: center;">
+                        <p>Earth (1.0g)</p>
+                        <div style="font-size: 60px; margin: 10px;">🧍</div>
+                        <input type="number" id="weightInput" placeholder="Earth kg" style="padding: 10px; border-radius: 5px; width: 100px; background: #222; color: #fff; border: 1px solid #444;">
+                    </div>
+                    <button class="btn-start" style="font-size: 18px;" onclick="calculateSaturnWeight()">Calculate</button>
+                    <div style="text-align: center;">
+                        <p>Saturn (1.07g)</p>
+                        <div id="saturnHuman" style="font-size: 60px; margin: 10px; transition: transform 0.5s;">🧍</div>
+                        <div id="saturnWeightResult" style="font-size: 24px; font-weight: bold; color: #64c8ff;">? kg</div>
+                    </div>
+                </div>
+                <div class="fact-panel" id="fact4">
+                    Your weight on Saturn = Weight × 1.07. <br>
+                    Notice how the jump height would be slightly lower!
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="next4" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 5: Landing Simulation -->
+        <div class="slide-wrapper" id="slide5">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 5 – “CAN WE LAND ON SATURN?”</div>
+                <h1 class="slide-title">🚀 Atmospheric Descent & Survival Simulator</h1>
+            </div>
+
+            <div class="narration-box" id="narration5">
+                <span class="speaker-icon">🎤 AI Voice:</span> Welcome astronaut. Before we attempt to land on Saturn, let's understand the challenges of exploring a gas giant. Read the mission goals and start the mission when you're ready.
+            </div>
+
+            <!-- Pre-Mission Goals -->
+            <div id="missionGoals" class="interactive-area" style="display: flex;">
+                <div class="learning-goal-card">
+                    <h3>🎯 Mission Learning Goals</h3>
+                    <div class="goal-item"><div class="goal-dot"></div> Does Saturn have a solid surface?</div>
+                    <div class="goal-item"><div class="goal-dot"></div> What is Saturn mostly made of?</div>
+                    <div class="goal-item"><div class="goal-dot"></div> What happens to pressure as you go deeper?</div>
+                    <div class="goal-item"><div class="goal-dot"></div> What happens to temperature as you go deeper?</div>
+                    <button class="btn-start" style="margin-top: 20px; width: 100%;" onclick="startProbeBuilding()">🚀 Begin Landing Attempt</button>
+                </div>
+            </div>
+
+            <!-- Phase 1: Build Probe -->
+            <div id="probeBuilding" class="interactive-area" style="display: none; flex-direction: column;">
+                <h2 style="color: #64c8ff; margin-bottom: 20px;">🛠 Choose the Correct Equipment</h2>
+                <div class="probe-builder">
+                    <div class="build-slot" id="slotHeat" ondragover="event.preventDefault()" ondrop="dropPart(event, 'slotHeat')">Drag Heat Shield</div>
+                    <div class="build-slot" id="slotHull" ondragover="event.preventDefault()" ondrop="dropPart(event, 'slotHull')">Drag Hull Type</div>
+                    <div class="build-slot" id="slotMode" ondragover="event.preventDefault()" ondrop="dropPart(event, 'slotMode')">Drag Mission Mode</div>
+                </div>
+                <div id="availableParts" style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; margin-top: 30px;">
+                    <div class="part-item" draggable="true" ondragstart="dragPart(event, 'legs', 'Landing Legs')"><span class="part-icon">🦵</span>Landing Legs</div>
+                    <div class="part-item" draggable="true" ondragstart="dragPart(event, 'wheels', 'Rover Wheels')"><span class="part-icon">🛞</span>Rover Wheels</div>
+                    <div class="part-item" draggable="true" ondragstart="dragPart(event, 'basicHeat', 'Basic Shield')"><span class="part-icon">🛡️</span>Basic Heat Shield</div>
+                    <div class="part-item" draggable="true" ondragstart="dragPart(event, 'reinforcedHeat', 'Reinforced Shield')"><span class="part-icon">🔥</span>Reinforced Heat Shield</div>
+                    <div class="part-item" draggable="true" ondragstart="dragPart(event, 'pressureHull', 'High-Pressure Hull')"><span class="part-icon">🕋</span>High-Pressure Hull</div>
+                    <div class="part-item" draggable="true" ondragstart="dragPart(event, 'probeMode', 'Atmospheric Probe')"><span class="part-icon">📡</span>Atmospheric Probe Mode</div>
+                </div>
+                <div id="buildFeedback" style="margin-top: 20px; height: 30px; color: #ffb703; font-weight: bold;"></div>
+                <button class="btn-start" id="btnLaunchDescent" style="margin-top: 20px; display: none;" onclick="launchDescentMission()">🚀 Launch Descent</button>
+            </div>
+
+            <!-- Phase 2 & 3: Descent HUD -->
+            <div id="descentHUD" class="interactive-area" style="display: none; padding: 0;">
+                <div class="hud-container">
+                    <div class="warning-overlay" id="warningHUD">⚠ WARNING: SURFACE NOT DETECTED</div>
+                    
+                    <!-- Left Column -->
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <div class="hud-gauge">
+                            <span class="gauge-label">Altitude</span>
+                            <span class="gauge-value" id="hudAlt">800 km</span>
+                            <div class="gauge-bar"><div class="gauge-fill" id="fillAlt" style="width: 100%;"></div></div>
+                        </div>
+                        <div class="hud-gauge">
+                            <span class="gauge-label">Descent Speed</span>
+                            <span class="gauge-value" id="hudSpeed">450 m/s</span>
+                        </div>
+                        <div class="hud-gauge">
+                            <span class="gauge-label">Entry Angle</span>
+                            <div class="dial-container">
+                                <div class="dial-bg"></div>
+                                <div class="dial-safe-zone"></div>
+                                <div class="dial-needle" id="hudNeedle"></div>
+                            </div>
+                            <input type="range" min="0" max="100" value="50" id="angleSlider" style="width: 100%; margin-top: 10px;">
+                        </div>
+                    </div>
+
+                    <!-- Center Column -->
+                    <div class="hud-center">
+                        <div style="text-align: center; font-size: 12px; color: #64c8ff;">UPPER ATMOSPHERE - HYDROGEN & HELIUM</div>
+                        <div class="descent-view">
+                            <div class="cloud-layer" id="cloudAnim"></div>
+                            <div class="lightning-flash" id="lightningHUD"></div>
+                            <div id="probeVisual" style="font-size: 40px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); transition: transform 0.1s;">📡</div>
+                        </div>
+                        <button class="btn-nav" id="btnHeatShield" style="width: 100%; background: #ff4444; border-color: #ff4444; color: white; display: none;" onclick="activateHeatShield()">ACTIVATE HEAT SHIELD</button>
+                        <div id="phaseMsg" style="font-size: 12px; color: #aaa; text-align: center; height: 40px;">Descending through hydrogen clouds...</div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <div class="hud-gauge">
+                            <span class="gauge-label">Pressure</span>
+                            <span class="gauge-value" id="hudPressure">1 bar</span>
+                            <div class="gauge-bar"><div class="gauge-fill" id="fillPressure" style="width: 0.1%;"></div></div>
+                            <span id="pressureCompare" style="font-size: 9px; color: #888; margin-top: 5px;">Earth Sea Level</span>
+                        </div>
+                        <div class="hud-gauge">
+                            <span class="gauge-label">Temperature</span>
+                            <span class="gauge-value" id="hudTemp">-180 °C</span>
+                            <div class="gauge-bar"><div class="gauge-fill" id="fillTemp" style="width: 10%;"></div></div>
+                        </div>
+                        <div class="hud-gauge">
+                            <span class="gauge-label">Hull Stress</span>
+                            <span class="gauge-value" id="hudStress">SAFE</span>
+                            <div class="gauge-bar"><div class="gauge-fill" id="fillStress" style="width: 0%;"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mission Conclusion -->
+            <div class="narration-box" id="descentNarration" style="display: none;">
+                <span class="speaker-icon">🎤 AI Voice:</span> <span id="descentText"></span>
+            </div>
+
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="next5" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 6: Titan Explorer -->
+        <div class="slide-wrapper" id="slide6">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 6 – Titan Moon Explorer</div>
+                <h1 class="slide-title">🎯 Explore Titan</h1>
+            </div>
+            <div class="narration-box" id="narration6">
+                <span class="speaker-icon">🎤 AI Voice:</span> Titan is Saturn’s largest moon. It has a thick atmosphere and lakes of liquid methane. It is one of the most fascinating moons in our Solar System.
+            </div>
+            <div class="interactive-area">
+                <div id="titanView" style="width: 100%; height: 100%; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;">
+                    <div class="titan-bg"></div>
+                    <div id="saturnInSky" style="position: absolute; top: 50px; right: 50px; opacity: 0.3; z-index: 2;">
+                        <div class="mini-saturn"></div>
+                        <div class="mini-rings"></div>
+                    </div>
+                    <div class="methane-lake" style="z-index: 2;"></div>
+                    <div id="probe" style="font-size: 50px; z-index: 3; position: absolute; top: -100px;">🛰</div>
+                    <button class="btn-start" id="landBtn" style="z-index: 4;" onclick="landOnTitan()">🚀 Land on Titan</button>
+                </div>
+                <div class="fact-panel" id="fact6">
+                    <strong>Environmental Data:</strong><br>
+                    Temperature: -179°C <br>
+                    Atmosphere: Thick nitrogen <br>
+                    Terrain: Rocky icy with methane lakes.
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <button class="btn-nav btn-next" id="next6" onclick="nextSlide()" disabled>Next Slide →</button>
+            </div>
+        </div>
+
+        <!-- SLIDE 7: Ring Stability -->
+        <div class="slide-wrapper" id="slide7">
+            <div class="slide-header">
+                <div class="slide-number">🖥 SLIDE 7 – Ring Stability Experiment</div>
+                <h1 class="slide-title">🎯 What Happens If Rings Disappear?</h1>
+            </div>
+            <div class="narration-box" id="narration7">
+                <span class="speaker-icon">🎤 AI Voice:</span> Saturn’s rings are delicate and constantly changing. Scientists believe they may disappear in millions of years.
+            </div>
+            <div class="interactive-area">
+                <div class="saturn-realistic" style="margin-bottom: 40px;">
+                    <div class="saturn-planet"></div>
+                    <div id="expRings" class="saturn-rings-visual"></div>
+                    <div id="debrisField" style="position: absolute; width: 100%; height: 100%; display: none;">
+                        <!-- Particles created by JS -->
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <span style="font-weight: bold;">Rings:</span>
+                    <button class="btn-nav" id="ringToggle" onclick="toggleRings()" style="width: 150px; background: #64c8ff; color: #fff;">OFF</button>
+                </div>
+                <div class="fact-panel" id="fact7" style="display: block;">
+                    Without the rings, the gravity balance changes and small debris moves unpredictably.
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav btn-prev" onclick="prevSlide()">← Previous</button>
+                <a href="{{ url_for('game_zone') }}" class="btn-nav" style="border-color: #00ff88; color: #00ff88; text-decoration: none;">Finish Mission 🏆</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const totalSlides = 7;
+
+        // Initialize voice click listeners
+        document.querySelectorAll('.narration-box').forEach(box => {
+            box.addEventListener('click', () => {
+                const text = box.innerText.replace('🎤 AI Voice:', '').trim();
+                speak(text);
+            });
+        });
+
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function updateProgress() {
+            const progress = (currentSlide / totalSlides) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        function showSlide(n) {
+            document.querySelectorAll('.slide-wrapper').forEach(s => s.classList.remove('active'));
+            document.getElementById('slide' + n).classList.add('active');
+            currentSlide = n;
+            updateProgress();
+            
+            const narration = document.getElementById('narration' + n).innerText.replace('🎤 AI Voice:', '').trim();
+            speak(narration);
+            window.scrollTo(0, 0);
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides) {
+                showSlide(currentSlide + 1);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                showSlide(currentSlide - 1);
+            }
+        }
+
+        function startMission() {
+            showSlide(1);
+        }
+
+        // Slide 1: Orbit Logic
+        const dragSaturn = document.getElementById('dragSaturn');
+        const targetOrbit = document.getElementById('targetOrbit');
+        const orbitArea = document.getElementById('orbitArea');
+
+        dragSaturn.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', 'saturn');
+            targetOrbit.classList.add('highlight');
+        });
+
+        dragSaturn.addEventListener('dragend', () => {
+            targetOrbit.classList.remove('highlight');
+        });
+
+        orbitArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+
+        orbitArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            targetOrbit.classList.remove('highlight');
+            
+            const rect = orbitArea.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const dist = Math.sqrt(Math.pow(e.clientX - centerX, 2) + Math.pow(e.clientY - centerY, 2));
+            
+            // Orbit 6 radius is 200px (400px width)
+            const targetRadius = 200;
+            const tolerance = 40;
+            
+            if (Math.abs(dist - targetRadius) < tolerance) {
+                targetOrbit.style.borderColor = '#64c8ff';
+                targetOrbit.style.boxShadow = '0 0 20px #64c8ff';
+                targetOrbit.style.borderStyle = 'solid';
+                
+                // Move slowly to the orbit position (200px from center)
+                dragSaturn.style.position = 'absolute';
+                dragSaturn.style.top = '50%';
+                dragSaturn.style.left = '50%';
+                dragSaturn.style.transform = 'translate(-50%, -50%) translateX(200px)';
+                dragSaturn.draggable = false;
+                dragSaturn.style.cursor = 'default';
+                
+                // Start orbiting slowly after movement completes
+                setTimeout(() => {
+                    dragSaturn.classList.add('orbiting-saturn');
+                }, 1000);
+                
+                document.getElementById('fact1').style.display = 'block';
+                document.getElementById('next1').disabled = false;
+                const msg = "Excellent. Saturn is the sixth planet from the Sun. It orbits far beyond Jupiter.";
+                document.getElementById('narration1').innerHTML = '<span class="speaker-icon">🎤 AI Voice:</span> ' + msg;
+                speak(msg);
+            } else {
+                const msg = "Count the planets from the Sun and try again. Saturn is the 6th planet.";
+                document.getElementById('narration1').innerHTML = '<span class="speaker-icon">🎤 AI Voice:</span> ' + msg;
+                speak(msg);
+            }
+        });
+
+        // Slide 2: Ring Builder
+        let particles = 0;
+        function handleParticleDrop(e) {
+            e.preventDefault();
+            const type = e.dataTransfer.getData('type');
+            if (particles >= 10) return;
+            
+            const p = document.createElement('div');
+            p.className = 'particle ' + (type === 'ice' ? 'ice-particle' : 'rock-particle');
+            
+            const rect = document.getElementById('ringZone').getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            p.style.left = x + 'px';
+            p.style.top = y + 'px';
+            document.getElementById('ringZone').appendChild(p);
+            
+            particles++;
+            document.getElementById('particleCount').innerText = particles;
+            document.getElementById('finalRings').style.opacity = (particles / 10).toString();
+            
+            if (particles === 10) {
+                document.getElementById('fact2').style.display = 'block';
+                document.getElementById('next2').disabled = false;
+                const msg = "You have created Saturn’s beautiful ring system.";
+                document.getElementById('narration2').innerHTML = '<span class="speaker-icon">🎤 AI Voice:</span> ' + msg;
+                speak(msg);
+            }
+        }
+
+        // Slide 3: Density
+        function dropPlanet(planet) {
+            if (planet === 'saturn') {
+                const s = document.getElementById('tankSaturn');
+                s.style.top = '0px'; // Floats
+                document.getElementById('btnDropSaturn').disabled = true;
+                const msg = "Saturn is mostly made of gas. It is less dense than water. If there were a large enough ocean, Saturn would float.";
+                document.getElementById('narration3').innerHTML = '<span class="speaker-icon">🎤 AI Voice:</span> ' + msg;
+                speak(msg);
+            } else {
+                const e = document.getElementById('tankEarth');
+                e.style.top = '250px'; // Sinks
+                document.getElementById('btnDropEarth').disabled = true;
+            }
+            
+            if (document.getElementById('btnDropSaturn').disabled && document.getElementById('btnDropEarth').disabled) {
+                document.getElementById('fact3').style.display = 'block';
+                document.getElementById('next3').disabled = false;
+            }
+        }
+
+        // Slide 4: Gravity
+        function calculateSaturnWeight() {
+            const earthW = document.getElementById('weightInput').value;
+            if (!earthW) return;
+            
+            const saturnW = (earthW * 1.07).toFixed(2);
+            document.getElementById('saturnWeightResult').innerText = saturnW + ' kg';
+            
+            const human = document.getElementById('saturnHuman');
+            human.style.transform = 'translateY(10px)';
+            
+            document.getElementById('fact4').style.display = 'block';
+            document.getElementById('next4').disabled = false;
+            const msg = "Saturn is very large, but its gravity is only slightly stronger than Earth’s. That is because Saturn is mostly gas.";
+            document.getElementById('narration4').innerHTML = '<span class="speaker-icon">🎤 AI Voice:</span> ' + msg;
+            speak(msg);
+        }
+
+        // Slide 5: Descent Simulator
+        let selectedParts = { slotHeat: null, slotHull: null, slotMode: null };
+        let missionActive = false;
+        let altitude = 800;
+        let pressure = 1;
+        let temperature = -180;
+        let hullStress = 0;
+        let heatShieldActive = false;
+        let descentInterval;
+
+        let heatShieldWarned = false;
+        let pressureWarned = false;
+
+        function startProbeBuilding() {
+            document.getElementById('missionGoals').style.display = 'none';
+            document.getElementById('probeBuilding').style.display = 'flex';
+            speak("Let's build a special probe that can survive Saturn's atmosphere. Drag the correct equipment to the slots.");
+        }
+
+        function dragPart(ev, id, name) {
+            ev.dataTransfer.setData("partId", id);
+            ev.dataTransfer.setData("partName", name);
+        }
+
+        function dropPart(ev, slotId) {
+            ev.preventDefault();
+            const id = ev.dataTransfer.getData("partId");
+            const name = ev.dataTransfer.getData("partName");
+            const feedback = document.getElementById('buildFeedback');
+
+            if (slotId === 'slotHeat') {
+                if (id === 'reinforcedHeat') {
+                    selectedParts.slotHeat = id;
+                    ev.target.innerText = name;
+                    ev.target.classList.add('filled');
+                    feedback.innerText = "✅ Reinforced shield selected.";
+                    speak("Excellent. The reinforced shield will protect us from friction heat during entry.");
+                } else if (id === 'basicHeat') {
+                    const msg = "Basic shield is too thin for gas giants! It would burn up instantly.";
+                    feedback.innerText = "❌ " + msg;
+                    speak(msg);
+                } else {
+                    feedback.innerText = "❌ That's not a heat shield!";
+                }
+            } else if (slotId === 'slotHull') {
+                if (id === 'pressureHull') {
+                    selectedParts.slotHull = id;
+                    ev.target.innerText = name;
+                    ev.target.classList.add('filled');
+                    feedback.innerText = "✅ High-pressure hull selected.";
+                    speak("Correct. The pressure in Saturn's atmosphere is immense.");
+                } else if (id === 'legs') {
+                    const msg = "Saturn has no solid surface to stand on. Choose something else.";
+                    feedback.innerText = "❌ " + msg;
+                    speak(msg);
+                } else if (id === 'wheels') {
+                    const msg = "There is no ground to drive on in Saturn's atmosphere.";
+                    feedback.innerText = "❌ " + msg;
+                    speak(msg);
+                } else {
+                    feedback.innerText = "❌ Choose a hull that resists pressure.";
+                }
+            } else if (slotId === 'slotMode') {
+                if (id === 'probeMode') {
+                    selectedParts.slotMode = id;
+                    ev.target.innerText = name;
+                    ev.target.classList.add('filled');
+                    feedback.innerText = "✅ Atmospheric probe mode ready.";
+                    speak("Perfect. A probe is best for exploring deep into the gas clouds.");
+                } else {
+                    feedback.innerText = "❌ Only a probe can explore these depths!";
+                }
+            }
+
+            if (selectedParts.slotHeat && selectedParts.slotHull && selectedParts.slotMode) {
+                document.getElementById('btnLaunchDescent').style.display = 'block';
+                feedback.innerText = "🚀 All systems ready for descent!";
+            }
+        }
+
+        function launchDescentMission() {
+            document.getElementById('probeBuilding').style.display = 'none';
+            document.getElementById('descentHUD').style.display = 'flex';
+            document.getElementById('descentNarration').style.display = 'block';
+            missionActive = true;
+            
+            const msg = "Mission Start: Initiating atmospheric entry. Maintain safe entry angle.";
+            document.getElementById('descentText').innerText = msg;
+            speak(msg);
+
+            descentInterval = setInterval(updateDescent, 100);
+        }
+
+        function activateHeatShield() {
+            heatShieldActive = true;
+            document.getElementById('btnHeatShield').style.display = 'none';
+            document.getElementById('descentText').innerText = "Heat shield deployed! Friction temperature stabilized.";
+        }
+
+        function updateDescent() {
+            if (!missionActive) return;
+
+            // Altitude logic
+            altitude -= 1;
+            document.getElementById('hudAlt').innerText = Math.round(altitude) + " km";
+            document.getElementById('fillAlt').style.width = (altitude / 800 * 100) + "%";
+
+            // Angle Logic
+            const angleValue = document.getElementById('angleSlider').value;
+            const needle = document.getElementById('hudNeedle');
+            const rotation = (angleValue - 50) * 1.2; // -60 to 60 deg
+            needle.style.transform = `rotate(${rotation}deg)`;
+
+            // Hazards based on angle
+            if (angleValue < 35 || angleValue > 65) {
+                hullStress += 0.5;
+                temperature += 5;
+            }
+
+            // Phase logic based on altitude
+            if (altitude > 600) {
+                // Upper atmosphere
+                pressure = 1 + (800 - altitude) * 0.01;
+                temperature = -180 + (800 - altitude) * 0.1;
+                document.getElementById('phaseMsg').innerText = "Descending through hydrogen clouds...";
+            } else if (altitude > 400) {
+                // Entry Heat Phase
+                document.getElementById('btnHeatShield').style.display = 'block';
+                temperature += 10;
+                if (!heatShieldWarned) {
+                    speak("Warning! Atmospheric friction detected. Activate the heat shield immediately!");
+                    heatShieldWarned = true;
+                }
+                if (!heatShieldActive) {
+                    hullStress += 1;
+                    document.getElementById('probeVisual').style.transform = 'translate(-50%, -50%) scale(1.1)';
+                    document.getElementById('probeVisual').innerText = '🔥';
+                } else {
+                    document.getElementById('probeVisual').innerText = '📡';
+                    document.getElementById('probeVisual').style.transform = 'translate(-50%, -50%)';
+                }
+                document.getElementById('phaseMsg').innerText = "ATMOSPHERIC FRICTION DETECTED! ACTIVATE SHIELD!";
+            } else if (altitude > 100) {
+                // Deep Pressure Phase
+                pressure += 2;
+                temperature += 5;
+                if (!pressureWarned) {
+                    speak("We are entering the deep atmosphere. Pressure and temperature are rising rapidly. Structural stress is increasing.");
+                    pressureWarned = true;
+                }
+                document.getElementById('phaseMsg').innerText = "Deep atmosphere: Pressure rising rapidly.";
+                document.getElementById('pressureCompare').innerText = pressure > 50 ? "Deep Ocean Pressure" : "Earth Sea Level x" + Math.round(pressure);
+                
+                if (Math.random() > 0.95) {
+                    document.getElementById('lightningHUD').style.opacity = '0.5';
+                    setTimeout(() => document.getElementById('lightningHUD').style.opacity = '0', 100);
+                }
+            } else {
+                // Crushing Phase
+                missionActive = false;
+                clearInterval(descentInterval);
+                finishDescentMission();
+            }
+
+            // Update Meters
+            document.getElementById('hudPressure').innerText = Math.round(pressure) + " bar";
+            document.getElementById('fillPressure').style.width = Math.min(100, (pressure / 100 * 100)) + "%";
+            
+            document.getElementById('hudTemp').innerText = Math.round(temperature) + " °C";
+            document.getElementById('fillTemp').style.width = Math.min(100, (Math.abs(temperature) / 1000 * 100)) + "%";
+
+            document.getElementById('hudStress').innerText = hullStress > 70 ? "CRITICAL" : (hullStress > 30 ? "WARNING" : "SAFE");
+            document.getElementById('fillStress').style.width = Math.min(100, hullStress) + "%";
+            document.getElementById('fillStress').style.background = hullStress > 70 ? "#ff0000" : (hullStress > 30 ? "#ffb703" : "#00ff00");
+
+            if (hullStress >= 100) {
+                missionActive = false;
+                clearInterval(descentInterval);
+                document.getElementById('descentText').innerText = "MISSION FAILURE: Probe structural integrity lost.";
+                speak("Mission failure. Probe crushed by extreme pressure.");
+                document.getElementById('probeVisual').classList.add('crush-effect');
+                setTimeout(() => location.reload(), 3000);
+            }
+        }
+
+        function finishDescentMission() {
+            document.getElementById('warningHUD').style.display = 'flex';
+            document.getElementById('probeVisual').classList.add('crush-effect');
+            
+            const msg = "Saturn does not have a solid surface like Earth. It is made mostly of hydrogen and helium gas. As we descend deeper, pressure and temperature increase rapidly. Eventually, any spacecraft would be crushed long before reaching the core.";
+            document.getElementById('descentText').innerText = msg;
+            speak(msg);
+
+            setTimeout(() => {
+                document.getElementById('next5').disabled = false;
+            }, 5000);
+        }
+
+        // Slide 6: Titan
+        function landOnTitan() {
+            const probe = document.getElementById('probe');
+            probe.style.transition = 'top 3s cubic-bezier(0.4, 0, 0.2, 1)';
+            probe.style.top = '70%';
+            
+            document.getElementById('landBtn').style.display = 'none';
+            
+            setTimeout(() => {
+                document.getElementById('fact6').style.display = 'block';
+                document.getElementById('next6').disabled = false;
+                const msg = "Titan is Saturn’s largest moon. It has a thick atmosphere and lakes of liquid methane.";
+                document.getElementById('narration6').innerHTML = '<span class="speaker-icon">🎤 AI Voice:</span> ' + msg;
+                speak(msg);
+            }, 3000);
+        }
+
+        // Slide 7: Ring Toggle
+        let ringsOn = true;
+        function toggleRings() {
+            ringsOn = !ringsOn;
+            const btn = document.getElementById('ringToggle');
+            const rings = document.getElementById('expRings');
+            const debris = document.getElementById('debrisField');
+            
+            if (ringsOn) {
+                btn.innerText = "OFF";
+                btn.style.background = "#64c8ff";
+                rings.style.display = 'block';
+                debris.style.display = 'none';
+                speak("Rings restored.");
+            } else {
+                btn.innerText = "ON";
+                btn.style.background = "#ffb703";
+                rings.style.display = 'none';
+                debris.style.display = 'block';
+                createDebris();
+                speak("Rings disappeared. The system looks unstable.");
+            }
+        }
+
+        function createDebris() {
+            const field = document.getElementById('debrisField');
+            field.innerHTML = '';
+            for (let i = 0; i < 50; i++) {
+                const d = document.createElement('div');
+                d.className = 'particle ice-particle';
+                d.style.left = Math.random() * 100 + '%';
+                d.style.top = Math.random() * 100 + '%';
+                d.style.animation = `float ${2 + Math.random() * 3}s infinite alternate`;
+                field.appendChild(d);
+            }
+        }
+    </script>
+</body>
+</html>

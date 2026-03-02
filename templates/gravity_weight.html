@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gravity & Weight Explorer - Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/gravity_weight.css') }}">
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <div class="dashboard-container">
+        <div class="floating-planets">
+            <div class="planet planet1"></div>
+            <div class="planet planet2"></div>
+            <div class="planet planet3"></div>
+        </div>
+
+        <nav class="navbar">
+            <div class="navbar-brand">🚀 Space Explorer</div>
+            <div class="navbar-right">
+                <div class="user-info">
+                    <span class="user-email">{{ user_email }}</span>
+                </div>
+                <a href="{{ url_for('game_zone') }}" class="btn-logout">Back</a>
+            </div>
+        </nav>
+
+        <div class="gravity-weight-container">
+            <div class="game-header">
+                <h1 class="game-title">🎮 Slide 3 – Gravity & Weight Explorer</h1>
+                <p class="game-subtitle">⚖️ "How Much Do You Weigh on Mercury?"</p>
+            </div>
+
+            <div class="split-screen">
+                <div class="planet-side earth-side">
+                    <h2 class="planet-name">🌍 You on Earth</h2>
+                    <div class="avatar-container">
+                        <div class="student-avatar earth-avatar"></div>
+                    </div>
+                    <div class="gravity-info">
+                        <p class="gravity-label">Gravity</p>
+                        <p class="gravity-value">100%</p>
+                        <div class="gravity-meter">
+                            <div class="gravity-bar earth-bar" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <div class="weight-display" id="earthWeightDisplay">
+                        <p class="weight-label">Your Weight</p>
+                        <p class="weight-value">—</p>
+                    </div>
+                </div>
+
+                <div class="planet-side mercury-side">
+                    <h2 class="planet-name">🪐 You on Mercury</h2>
+                    <div class="avatar-container">
+                        <div class="student-avatar mercury-avatar" id="mercuryAvatar"></div>
+                    </div>
+                    <div class="gravity-info">
+                        <p class="gravity-label">Gravity</p>
+                        <p class="gravity-value">38%</p>
+                        <div class="gravity-meter">
+                            <div class="gravity-bar mercury-bar" style="width: 38%"></div>
+                        </div>
+                    </div>
+                    <div class="weight-display" id="mercuryWeightDisplay">
+                        <p class="weight-label">Your Weight</p>
+                        <p class="weight-value">—</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calculation-panel">
+                <h3 class="panel-title">⚙ Weight Calculator</h3>
+                
+                <div class="formula-display">
+                    <p class="formula">Mercury Weight = Earth Weight × 0.38</p>
+                </div>
+
+                <div class="input-section">
+                    <label for="weightInput" class="input-label">📊 Enter Your Weight (kg)</label>
+                    <input 
+                        type="number" 
+                        id="weightInput" 
+                        class="weight-input" 
+                        placeholder="Enter weight in kg"
+                        min="20"
+                        max="150"
+                    >
+                </div>
+
+                <div class="results-section" id="resultsSection" style="display: none;">
+                    <div class="result-item">
+                        <span class="result-label">Earth Weight:</span>
+                        <span class="result-value" id="resultEarthWeight">—</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Mercury Weight:</span>
+                        <span class="result-value" id="resultMercuryWeight">—</span>
+                    </div>
+                    <div class="result-item difference">
+                        <span class="result-label">Difference:</span>
+                        <span class="result-value" id="resultDifference">—</span>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button id="calculateBtn" class="btn-game btn-calculate">🧮 Calculate Weight</button>
+                    <button id="resetCalcBtn" class="btn-game btn-reset">🔄 Reset</button>
+                </div>
+            </div>
+
+            <div class="explanation-panel" id="explanationPanel" style="display: none;">
+                <h3 class="explanation-title">💡 Did You Know?</h3>
+                <div class="explanation-content">
+                    <p class="explanation-text">
+                        🔬 <strong>Weight depends on gravity.</strong><br>
+                        Your mass stays the same everywhere, but gravity is different!
+                    </p>
+                    <p class="explanation-text">
+                        📉 <strong>Mercury has weaker gravity</strong> — only 38% of Earth's gravity.<br>
+                        That's why you weigh much less!
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-controls" style="position: relative; z-index: 10;">
+            <a href="{{ url_for('orbit_speed') }}" class="btn-back">⬅ Previous: Orbit Speed</a>
+            <a href="{{ url_for('mercury_survival') }}" class="btn-next">Next: Survival Mission ⮕</a>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/gravity_weight.js') }}"></script>
+    <script>
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            const starCount = 100;
+            
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+        
+        createStars();
+    </script>
+</body>
+</html>
