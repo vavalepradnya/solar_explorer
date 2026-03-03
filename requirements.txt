@@ -61,6 +61,3 @@ websockets==10.4
 Werkzeug==3.0.1
 wsproto==1.2.0
 zipp==3.23.0
-
-flask-sqlalchemy
-psycopg2-binary
