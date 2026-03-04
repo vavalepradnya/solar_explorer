@@ -14,11 +14,8 @@
             <div class="navbar-brand">🚀 SOLAR LAB</div>
             <div class="navbar-right">
                 <div class="user-info">
-                    Welcome, <span class="user-email">{{ user.email }}</span>
+                    Welcome, <span class="user-email">{{ user_email }}</span>
                 </div>
-                {% if user.role == 'admin' %}
-                    <a href="{{ url_for('admin_dashboard') }}" class="btn-logout" style="background: #ff9800; margin-right: 10px;">Admin Panel</a>
-                {% endif %}
                 <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
             </div>
         </nav>
