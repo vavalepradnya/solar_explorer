@@ -28,7 +28,7 @@ pandas==2.3.0
 parse==1.20.2
 pycparser==2.22
 pyee==11.1.1
-pygame==2.6.1
+pygame==2.6.2
 pypiwin32==223
 pyppeteer==2.0.0
 pyquery==2.0.1
