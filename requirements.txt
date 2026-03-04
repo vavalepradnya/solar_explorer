@@ -1,4 +1,4 @@
-ppdirs==1.4.4
+appdirs==1.4.4
 attrs==25.3.0
 beautifulsoup4==4.13.4
 blinker==1.9.0
