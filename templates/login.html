@@ -27,6 +27,14 @@
                 <div class="error-message">{{ error }}</div>
             {% endif %}
 
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="error-message" style="background: rgba(120, 120, 255, 0.2); border-color: #7878ff; color: #7878ff;">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
             <form method="POST" action="{{ url_for('login') }}">
                 <div class="form-group">
                     <label for="email">📧 Email Address</label>
