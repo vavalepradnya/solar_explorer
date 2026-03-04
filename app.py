@@ -4,14 +4,6 @@ import re
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here_change_in_production'
 
-users = {
-    'student1@space.com': 'password123'
-}
-
-def is_valid_email(email):
-    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    return re.match(pattern, email)
-
 @app.route('/')
 def index():
     return redirect(url_for('login'))
@@ -22,15 +14,7 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         
-        if not email or not password:
-            error = 'Please fill in all fields'
-            return render_template('login.html', error=error)
-        
-        if not is_valid_email(email):
-            error = 'Please enter a valid email address'
-            return render_template('login.html', error=error)
-        
-        if email in users and users[email] == password:
+        if email == 'spaceedu@gmail.com' and password == 'space@1234':
             session['user_email'] = email
             return redirect(url_for('dashboard'))
         else:
@@ -38,39 +22,6 @@ def login():
             return render_template('login.html', error=error)
     
     return render_template('login.html')
-
-@app.route('/signup', methods=['GET', 'POST'])
-def signup():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
-        
-        if not email or not password or not confirm_password:
-            error = 'Please fill in all fields'
-            return render_template('signup.html', error=error)
-        
-        if not is_valid_email(email):
-            error = 'Please enter a valid email address'
-            return render_template('signup.html', error=error)
-        
-        if password != confirm_password:
-            error = 'Passwords do not match'
-            return render_template('signup.html', error=error)
-        
-        if len(password) < 6:
-            error = 'Password must be at least 6 characters long'
-            return render_template('signup.html', error=error)
-        
-        if email in users:
-            error = 'Email already exists'
-            return render_template('signup.html', error=error)
-        
-        users[email] = password
-        session['user_email'] = email
-        return redirect(url_for('dashboard'))
-    
-    return render_template('signup.html')
 
 @app.route('/dashboard')
 def dashboard():
